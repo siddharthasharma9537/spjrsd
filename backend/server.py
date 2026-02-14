@@ -22,6 +22,18 @@ db = client[os.environ['DB_NAME']]
 JWT_SECRET = os.environ.get('JWT_SECRET', 'temple-secret-key-2025')
 
 app = FastAPI()
+origins = [
+    "https://cheruvugattu.online",
+    "https://www.cheruvugattu.online",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer(auto_error=False)
 
