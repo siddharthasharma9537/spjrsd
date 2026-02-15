@@ -67,7 +67,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-12">
           <Link to="/" className="flex items-center gap-2 shrink-0">
             <Flame className="h-5 w-5 text-[#D4AF37]" />
-            <span className="font-english-heading text-xs tracking-wide">SPJR Devasthanams</span>
+            <span className="font-english-heading text-xs tracking-wide">SPJRS Devasthanams</span>
           </Link>
           {/* Desktop */}
           <div className="hidden lg:flex items-center gap-0.5 text-xs">
