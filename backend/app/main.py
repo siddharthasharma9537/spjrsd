@@ -2,7 +2,6 @@ from fastapi import FastAPI, APIRouter, HTTPException, Depends, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
@@ -12,14 +11,35 @@ import uuid
 import hashlib
 import jwt
 from datetime import datetime, timezone, timedelta
+from app.routes import volunteer
+from app.database.db import db
+from app.routes import newsletter
+from app.routes import contact
+
+# ===== FILE INDEX =====
+# 1. Setup & DB
+# 2. Security
+# 3. Models
+# 4. Auth
+# 5. Sevas
+# 6. Slots
+# 7. Bookings
+# 8. Donations
+# 9. Accommodation
+# 10. News & Gallery
+# 11. Admin
+# 12. Volunteer / Newsletter / Contact
+# 13. Visitor Stats
+# 14. Live Streams
+# 15. Seed & Root
+# ======================
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
-JWT_SECRET = os.environ.get('JWT_SECRET', 'temple-secret-key-2025')
+JWT_SECRET = os.environ.get('JWT_SECRET')
+if not JWT_SECRET:
+    raise ValueError('JWT_SECRET is not set in environment variables')
 
 app = FastAPI()
 origins = [
@@ -40,7 +60,6 @@ security = HTTPBearer(auto_error=False)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# --- Helpers ---
 def hash_password(pw: str) -> str:
     return hashlib.sha256(pw.encode()).hexdigest()
 
@@ -749,20 +768,6 @@ async def admin_stats(user=Depends(get_current_admin)):
     }
 
 
-# ==================== VOLUNTEER ROUTES ====================
-@api_router.post("/volunteers")
-async def register_volunteer(data: VolunteerRegister):
-    existing = await db.volunteers.find_one({"mobile": data.mobile}, {"_id": 0})
-    if existing:
-        raise HTTPException(status_code=400, detail="Mobile already registered as volunteer")
-    vol = {"id": str(uuid.uuid4()), **data.model_dump(), "status": "Pending", "created_at": datetime.now(timezone.utc).isoformat()}
-    await db.volunteers.insert_one(vol)
-    return {k: v for k, v in vol.items() if k != "_id"}
-
-@api_router.get("/admin/volunteers")
-async def admin_list_volunteers(user=Depends(get_current_admin)):
-    return await db.volunteers.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
-
 # ==================== NEWSLETTER ROUTES ====================
 @api_router.post("/newsletter/subscribe")
 async def newsletter_subscribe(data: NewsletterSubscribe):
@@ -771,17 +776,6 @@ async def newsletter_subscribe(data: NewsletterSubscribe):
         return {"message": "Already subscribed"}
     await db.newsletter.insert_one({"id": str(uuid.uuid4()), "email": data.email, "subscribed_at": datetime.now(timezone.utc).isoformat()})
     return {"message": "Subscribed successfully"}
-
-# ==================== CONTACT ROUTES ====================
-@api_router.post("/contact")
-async def submit_contact(data: ContactMessage):
-    msg = {"id": str(uuid.uuid4()), **data.model_dump(), "status": "New", "created_at": datetime.now(timezone.utc).isoformat()}
-    await db.contact_messages.insert_one(msg)
-    return {k: v for k, v in msg.items() if k != "_id"}
-
-@api_router.get("/admin/contact-messages")
-async def admin_contact_messages(user=Depends(get_current_admin)):
-    return await db.contact_messages.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
 
 # ==================== VISITOR STATS ROUTES ====================
 @api_router.get("/visitor-stats")
@@ -893,8 +887,15 @@ async def root():
     return {"message": "Sri Parvati Jadala Ramalingeshwara Swamy Devastanam API"}
 
 app.include_router(api_router)
+app.include_router(volunteer.router)
+app.include_router(newsletter.router)
+app.include_router(contact.router)
 app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','), allow_methods=["*"], allow_headers=["*"])
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
-    client.close()
+    try:
+        from app.database.db import client
+        client.close()
+    except Exception:
+        pass
