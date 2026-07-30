@@ -66,7 +66,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* Key Feature Cards — Srisailam-style tiles */}
+      {/* Key Feature Cards */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
         <div className="text-center mb-10">
           <h2 className="font-english-heading text-2xl md:text-3xl text-[#621B00] mb-1">Temple Services</h2>
@@ -96,29 +96,37 @@ export default function Home() {
         </div>
       </section>
 
-      {/* About Section */}
+      {/* UPDATED: About Section / Sthala Puranam */}
       <section className="bg-[#2D1B0E] text-white py-12 md:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
             <div>
-              <p className="font-telugu-heading text-lg text-[#D4AF37] mb-2">శ్రీ చెరువుగట్టు క్షేత్ర చరిత్ర</p>
-              <h2 className="font-english-heading text-2xl md:text-3xl mb-4">About Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanams</h2>
+              <p className="font-telugu-heading text-lg text-[#D4AF37] mb-2">స్థలపురాణము</p>
+              <h2 className="font-english-heading text-2xl md:text-3xl mb-4">Sthala Puranam: The 108th Parashurama Linga</h2>
               <p className="text-[#FFE0B2]/80 leading-relaxed mb-3 text-sm">
-                The ancient and sacred shrine at Cheruvugattu hill in Nalgonda district is dedicated to Lord Shiva and Goddess Parvathi. Known for its rich spiritual heritage, the temple attracts lakhs of devotees during the annual Maha Shivaratri Brahmotsavams.
+                In the sacred Treta Yuga, the sixth incarnation of Lord Vishnu, <strong>Lord Parashurama</strong>, undertook a divine pilgrimage to cleanse the earth and restore cosmic balance. Following the guidance of Sage Jamadagni, he consecrated exactly 108 Shiva Lingas across Bharata Varsha.
               </p>
-              <p className="text-[#FFE0B2]/60 leading-relaxed mb-6 text-sm">
-                Administered by the Telangana Endowments Department, the temple offers various sevas, accommodation, and facilities for devotees visiting from across the state and beyond.
+              <p className="text-[#FFE0B2]/80 leading-relaxed mb-6 text-sm">
+                Arriving at the spiritually potent hill of <strong>Ikshwadri (Cheruvugattu)</strong>, Lord Parashurama installed the <strong>108th and final Shiva Linga</strong> within a cave in a rare west-facing direction. Through his intense penance, Lord Shiva manifested with radiant matted locks (<em>Jadala</em>) to grant him absolution.
               </p>
               <Link to="/about" className="inline-flex items-center gap-2 px-5 py-2 border border-[#D4AF37] text-[#D4AF37] rounded-full text-sm hover:bg-[#D4AF37]/10 transition-all" data-testid="read-more-about">
-                Read More <ChevronRight className="h-4 w-4" />
+                Read Full History <ChevronRight className="h-4 w-4" />
               </Link>
             </div>
+            
+            {/* UPDATED: Embedded Artworks Grid */}
             <div className="grid grid-cols-2 gap-3">
-              {gallery.slice(0, 4).map((img, i) => (
-                <div key={i} className="aspect-square rounded-xl overflow-hidden">
-                  <img src={img.image_url} alt={img.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" loading="lazy" />
+              <div className="flex flex-col gap-3">
+                <div className="aspect-[4/3] rounded-xl overflow-hidden bg-black/20">
+                  <img src="/assets/A02570B3-74C8-4557-9656-EBA6875EF238.jpeg" alt="Portrait of Lord Parashurama" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" loading="lazy" />
                 </div>
-              ))}
+                <div className="aspect-[4/3] rounded-xl overflow-hidden bg-black/20">
+                  <img src="/assets/parashurama.webp" alt="Lord Parashurama Warrior" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" loading="lazy" />
+                </div>
+              </div>
+              <div className="aspect-[1/2] rounded-xl overflow-hidden bg-black/20">
+                <img src="/assets/919E13FD-D2A9-4FCF-B58F-1F152120B896.webp" alt="Parashurama consecrating the cave Linga" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" loading="lazy" />
+              </div>
             </div>
           </div>
         </div>
