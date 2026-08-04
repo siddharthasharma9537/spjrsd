@@ -33,7 +33,7 @@ export default function AdminLayout({ children, title }) {
         <nav className="flex-1 p-3 space-y-1">
           {navItems.map(item => (
             <Link key={item.path} to={item.path} className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all ${
-              location.pathname === item.path ? 'bg-[#E65100] text-white' : 'hover:bg-white/5 text-[#FFE0B2]/80'
+              location.pathname === item.path ? 'bg-[#C43E00] text-white' : 'hover:bg-white/5 text-[#FFE0B2]/80'
             }`} data-testid={`admin-nav-${item.label.toLowerCase().replace(' ', '-')}`}>
               <item.icon className="h-4 w-4" />
               {item.label}
@@ -56,7 +56,7 @@ export default function AdminLayout({ children, title }) {
           </div>
           <div className="flex items-center gap-2 text-xs">
             {navItems.map(item => (
-              <Link key={item.path} to={item.path} className={`p-2 rounded ${location.pathname === item.path ? 'bg-[#E65100]' : ''}`}>
+              <Link key={item.path} to={item.path} className={`p-2 rounded ${location.pathname === item.path ? 'bg-[#C43E00]' : ''}`}>
                 <item.icon className="h-4 w-4" />
               </Link>
             ))}

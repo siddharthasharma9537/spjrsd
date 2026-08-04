@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+# Staff back-office and personal devotee pages
+Disallow: /admin
+Disallow: /my-bookings
+Disallow: /ticket/
+Disallow: /donation-receipt/
+Disallow: /login
+Disallow: /register
+Disallow: /auth/
+
+Sitemap: https://cheruvugattu.online/sitemap.xml

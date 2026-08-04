@@ -24,13 +24,13 @@ export default function AdminGallery() {
   };
 
   const handleDelete = async (id) => { if (!window.confirm('Delete?')) return; await api.delete(`/admin/gallery/${id}`); load(); };
-  const inputCls = "w-full h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#E65100] focus:ring-1 focus:ring-[#E65100]/20 outline-none text-sm text-[#2D1B0E]";
+  const inputCls = "w-full h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-1 focus:ring-[#C43E00]/20 outline-none text-sm text-[#2D1B0E]";
 
   return (
     <AdminLayout title="Gallery Management">
       <div className="flex items-center justify-between mb-6">
         <p className="text-sm text-[#8D6E63]">{items.length} images</p>
-        <button onClick={() => { resetForm(); setShowForm(true); }} className="inline-flex items-center gap-2 px-4 py-2 bg-[#E65100] text-white text-sm rounded-full" data-testid="add-gallery-btn"><Plus className="h-4 w-4" /> Add Image</button>
+        <button onClick={() => { resetForm(); setShowForm(true); }} className="inline-flex items-center gap-2 px-4 py-2 bg-[#C43E00] text-white text-sm rounded-full" data-testid="add-gallery-btn"><Plus className="h-4 w-4" /> Add Image</button>
       </div>
       {showForm && (
         <div className="bg-white border border-[#E6DCCA] rounded-xl p-6 mb-6" data-testid="gallery-form">
@@ -49,7 +49,7 @@ export default function AdminGallery() {
             <label className="flex items-center gap-2 text-sm text-[#5D4037]"><input type="checkbox" checked={form.active_flag} onChange={e => setForm({...form, active_flag: e.target.checked})} /> Active</label>
             <div className="flex justify-end gap-3">
               <button type="button" onClick={resetForm} className="px-6 py-2 text-sm border border-[#E6DCCA] rounded-full">Cancel</button>
-              <button type="submit" className="px-6 py-2 bg-[#E65100] text-white text-sm rounded-full" data-testid="gallery-submit-btn">{editing ? 'Update' : 'Create'}</button>
+              <button type="submit" className="px-6 py-2 bg-[#C43E00] text-white text-sm rounded-full" data-testid="gallery-submit-btn">{editing ? 'Update' : 'Create'}</button>
             </div>
           </form>
         </div>
@@ -66,7 +66,7 @@ export default function AdminGallery() {
                 <p className="text-xs font-medium text-[#2D1B0E] truncate">{g.title}</p>
                 <p className="text-xs text-[#8D6E63]">{g.category}</p>
                 <div className="flex gap-1 mt-2">
-                  <button onClick={() => handleEdit(g)} className="p-1 text-[#8D6E63] hover:text-[#E65100]"><Pencil className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => handleEdit(g)} className="p-1 text-[#8D6E63] hover:text-[#C43E00]"><Pencil className="h-3.5 w-3.5" /></button>
                   <button onClick={() => handleDelete(g.id)} className="p-1 text-[#8D6E63] hover:text-red-600"><Trash2 className="h-3.5 w-3.5" /></button>
                 </div>
               </div>

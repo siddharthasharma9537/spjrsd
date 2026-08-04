@@ -6,16 +6,17 @@ import { Users, BookOpen, Flame, IndianRupee, CalendarCheck, HandCoins, BedDoubl
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
-    api.get('/admin/stats').then(r => setStats(r.data)).finally(() => setLoading(false));
+    api.get('/admin/stats').then(r => setStats(r.data)).catch(() => setLoadError(true)).finally(() => setLoading(false));
   }, []);
 
   const cards = stats ? [
-    { icon: Users, label: 'Total Devotees', value: stats.total_devotees, color: 'text-[#E65100]', bg: 'bg-[#E65100]/10' },
+    { icon: Users, label: 'Total Devotees', value: stats.total_devotees, color: 'text-[#C43E00]', bg: 'bg-[#C43E00]/10' },
     { icon: BookOpen, label: 'Total Bookings', value: stats.total_bookings, color: 'text-[#621B00]', bg: 'bg-[#621B00]/10' },
     { icon: CalendarCheck, label: "Today's Bookings", value: stats.today_bookings, color: 'text-[#D4AF37]', bg: 'bg-[#D4AF37]/10' },
-    { icon: Flame, label: 'Active Sevas', value: stats.total_sevas, color: 'text-[#E65100]', bg: 'bg-[#E65100]/10' },
+    { icon: Flame, label: 'Active Sevas', value: stats.total_sevas, color: 'text-[#C43E00]', bg: 'bg-[#C43E00]/10' },
     { icon: IndianRupee, label: 'Seva Revenue', value: `Rs. ${stats.total_revenue.toLocaleString()}`, color: 'text-[#621B00]', bg: 'bg-[#D4AF37]/10' },
     { icon: HandCoins, label: 'Total Donations', value: stats.total_donations, color: 'text-[#D4AF37]', bg: 'bg-[#D4AF37]/10' },
     { icon: IndianRupee, label: 'Donation Amount', value: `Rs. ${stats.total_donation_amount.toLocaleString()}`, color: 'text-green-600', bg: 'bg-green-50' },

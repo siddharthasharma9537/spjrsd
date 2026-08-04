@@ -7,9 +7,10 @@ export default function BookingTicket() {
   const { bookingId } = useParams();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
-    api.get(`/bookings/${bookingId}`).then(r => setBooking(r.data)).finally(() => setLoading(false));
+    api.get(`/bookings/${bookingId}`).then(r => setBooking(r.data)).catch(() => setLoadError(true)).finally(() => setLoading(false));
   }, [bookingId]);
 
   if (loading) return <div className="min-h-screen bg-[#FFFCF5] flex items-center justify-center text-[#8D6E63]">Loading ticket...</div>;
@@ -32,7 +33,7 @@ export default function BookingTicket() {
 
       <div className="max-w-xl mx-auto px-4 py-8">
         <div className="print:hidden mb-6 flex items-center justify-between">
-          <Link to="/my-bookings" className="inline-flex items-center gap-1 text-sm text-[#8D6E63] hover:text-[#E65100] transition-colors">
+          <Link to="/my-bookings" className="inline-flex items-center gap-1 text-sm text-[#8D6E63] hover:text-[#C43E00] transition-colors">
             <ArrowLeft className="h-4 w-4" /> My Bookings
           </Link>
           <button onClick={() => window.print()} className="inline-flex items-center gap-2 px-4 py-2 bg-[#621B00] text-white text-sm rounded-full hover:bg-[#621B00]/90 transition-all" data-testid="print-ticket-btn">

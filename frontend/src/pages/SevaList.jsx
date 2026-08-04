@@ -5,16 +5,20 @@ import TopStrip from '@/components/TopStrip';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import api from '@/lib/api';
+import LoadState from "@/components/LoadState";
+import { useT } from "@/contexts/LanguageContext";
 import { Clock, IndianRupee, ChevronRight, Globe } from 'lucide-react';
 
 export default function SevaList({ paroksha = false }) {
+  const { t, heading } = useT();
   const [sevas, setSevas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const { user, userType } = useAuth();
 
   useEffect(() => {
     const url = paroksha ? '/sevas?paroksha=true' : '/sevas';
-    api.get(url).then(r => setSevas(r.data)).finally(() => setLoading(false));
+    api.get(url).then(r => setSevas(r.data)).catch(() => setLoadError(true)).finally(() => setLoading(false));
   }, [paroksha]);
 
   return (
@@ -28,16 +32,14 @@ export default function SevaList({ paroksha = false }) {
               <div className="w-12 h-12 rounded-full bg-[#621B00]/10 flex items-center justify-center mx-auto mb-3">
                 <Globe className="h-6 w-6 text-[#621B00]" />
               </div>
-              <h1 className="font-english-heading text-2xl md:text-4xl text-[#621B00] mb-1" data-testid="sevas-title">Paroksha Seva</h1>
-              <p className="font-telugu-heading text-xl text-[#8D6E63]">పరోక్ష సేవ</p>
+              <h1 className={`${heading} text-2xl md:text-4xl text-[#621B00] mb-1`} data-testid="sevas-title">{t("Paroksha Seva", "పరోక్ష సేవ")}</h1>
               <p className="text-sm text-[#5D4037] mt-2 max-w-lg mx-auto">
                 Worship Sri Ramalingeshwara Swamy from anywhere in the world. The priest will perform the seva on your behalf and prasadam can be arranged.
               </p>
             </>
           ) : (
             <>
-              <h1 className="font-english-heading text-2xl md:text-4xl text-[#621B00] mb-1" data-testid="sevas-title">Pratyaksha Seva</h1>
-              <p className="font-telugu-heading text-xl text-[#8D6E63]">ప్రత్యక్ష సేవ</p>
+              <h1 className={`${heading} text-2xl md:text-4xl text-[#621B00] mb-1`} data-testid="sevas-title">{t("Pratyaksha Seva", "ప్రత్యక్ష సేవ")}</h1>
               <p className="text-sm text-[#5D4037] mt-2">In-person seva at the temple. Book your slot online.</p>
             </>
           )}
@@ -46,7 +48,7 @@ export default function SevaList({ paroksha = false }) {
         {loading ? (
           <div className="text-center py-12 text-[#8D6E63]">Loading sevas...</div>
         ) : sevas.length === 0 ? (
-          <div className="text-center py-12 text-[#8D6E63]">No sevas available at the moment.</div>
+          <LoadState error={loadError} emptyText="No sevas are available at the moment." />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sevas.map((seva, i) => (
@@ -54,8 +56,7 @@ export default function SevaList({ paroksha = false }) {
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <h3 className="font-english-heading text-base text-[#2D1B0E] tracking-wide">{seva.name_english}</h3>
-                      <p className="font-telugu-heading text-lg text-[#621B00]">{seva.name_telugu}</p>
+                      <h3 className="font-english-heading text-base text-[#2D1B0E] tracking-wide">{t(seva.name_english, seva.name_telugu)}</h3>
                     </div>
                     <div className="flex items-center gap-1 bg-[#D4AF37]/10 text-[#8D2800] px-3 py-1 rounded-full text-sm font-medium">
                       <IndianRupee className="h-3.5 w-3.5" />{seva.base_price}
@@ -68,11 +69,11 @@ export default function SevaList({ paroksha = false }) {
                     {paroksha && <span className="px-2 py-0.5 bg-[#621B00]/10 rounded-full text-[#621B00]">Paroksha</span>}
                   </div>
                   {user && userType === 'devotee' ? (
-                    <Link to={`/book/${seva.id}${paroksha ? '?paroksha=true' : ''}`} className="flex items-center justify-center gap-2 w-full h-11 bg-[#E65100] text-white font-english-heading text-sm tracking-wide uppercase rounded-full hover:bg-[#E65100]/90 transition-all shadow-md" data-testid={`book-btn-${seva.id}`}>
+                    <Link to={`/book/${seva.id}${paroksha ? '?paroksha=true' : ''}`} className="flex items-center justify-center gap-2 w-full h-11 bg-[#C43E00] text-white font-english-heading text-sm tracking-wide uppercase rounded-full hover:bg-[#C43E00]/90 transition-all shadow-md" data-testid={`book-btn-${seva.id}`}>
                       Book Now <ChevronRight className="h-4 w-4" />
                     </Link>
                   ) : (
-                    <Link to="/login" className="flex items-center justify-center gap-2 w-full h-11 border-2 border-[#E65100] text-[#E65100] font-english-heading text-sm tracking-wide uppercase rounded-full hover:bg-[#E65100]/5 transition-all">
+                    <Link to="/login" className="flex items-center justify-center gap-2 w-full h-11 border-2 border-[#C43E00] text-[#C43E00] font-english-heading text-sm tracking-wide uppercase rounded-full hover:bg-[#C43E00]/5 transition-all">
                       Login to Book
                     </Link>
                   )}

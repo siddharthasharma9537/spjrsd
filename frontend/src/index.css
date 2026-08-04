@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=Lato:wght@300;400;700&family=Ramabhadra&family=Tenali+Ramakrishna&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=Lato:wght@300;400;700&family=Ramabhadra&family=Tenali+Ramakrishna&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -35,8 +35,15 @@
   [data-debug-wrapper="true"] { display: contents !important; }
 }
 
-.font-telugu-heading { font-family: 'Ramabhadra', serif; }
-.font-telugu-body { font-family: 'Tenali Ramakrishna', sans-serif; }
+/* Ramabhadra ships a single 400 weight. Telugu headings are decorative and never
+   need bold, so disable weight synthesis - faux-bolding Telugu smears conjuncts
+   and throws off letter spacing. */
+.font-telugu-heading {
+  font-family: 'Ramabhadra', 'Noto Sans Telugu', serif;
+  font-synthesis-weight: none;
+}
+/* Body copy does use <strong>, so it needs a face with real 400-700 weights. */
+.font-telugu-body { font-family: 'Noto Sans Telugu', 'Tenali Ramakrishna', sans-serif; }
 .font-english-heading { font-family: 'Cinzel', serif; }
 .font-english-body { font-family: 'Lato', sans-serif; }
 

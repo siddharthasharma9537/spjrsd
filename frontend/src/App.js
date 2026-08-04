@@ -1,5 +1,10 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import usePageMeta from "@/hooks/usePageMeta";
+import NotFound from "@/pages/NotFound";
 import Home from "@/pages/Home";
 import DevoteeAuth from "@/pages/DevoteeAuth";
 import SevaList from "@/pages/SevaList";
@@ -47,10 +52,80 @@ function ProtectedAdmin({ children }) {
   return children;
 }
 
+/* Per-route title + description. Kept in one place rather than scattered across
+   pages; matched longest-prefix-first so nested paths win. */
+const ROUTE_META = [
+  ['/admin', { title: 'Staff Area', noIndex: true }],
+  ['/about', { title: 'Sthala Puranam & Temple History', description: 'The legend of the 108th Parashurama Linga at Cheruvugattu, temple deities, Arogya Kshetram, Amavasya Jatara, festivals and how to reach the temple.' }],
+  ['/sevas', { title: 'Seva Booking', description: 'Book Abhishekam, Kalyanam, Archana and other sevas online at Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu.' }],
+  ['/paroksha-seva', { title: 'Paroksha Seva', description: 'Book a seva remotely and have it performed in your name at the temple, without travelling to Cheruvugattu.' }],
+  ['/donations/annaprasadam', { title: 'AnnaPrasadam Donation', description: 'Sponsor Annadanam for pilgrims at Cheruvugattu temple. Permanent Nitya Annadanam scheme from Rs. 1,116. 80G receipt issued.' }],
+  ['/donations', { title: 'e-Hundi Online Donation', description: 'Donate online to Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam. e-Hundi, Annadanam and accommodation-room schemes. 80G receipt issued.' }],
+  ['/accommodation', { title: 'Pilgrim Accommodation', description: 'Book AC rooms, cottages and dormitory beds for your stay at Cheruvugattu temple.' }],
+  ['/booking/quick', { title: 'Quick Booking', description: 'Book a seva quickly without creating an account.' }],
+  ['/print-ticket', { title: 'Print Your Ticket', description: 'Look up and reprint your seva booking ticket by booking number or mobile number.' }],
+  ['/my-bookings', { title: 'My Bookings', noIndex: true }],
+  ['/news', { title: 'News & Events', description: 'Latest announcements, festival notices and events from Cheruvugattu temple.' }],
+  ['/media/live-tv', { title: 'Live TV', description: 'Watch live darshan and temple broadcasts from Cheruvugattu.' }],
+  ['/media/gallery/videos', { title: 'Video Gallery', description: 'Videos of festivals, sevas and Brahmotsavams at Cheruvugattu temple.' }],
+  ['/gallery', { title: 'Photo Gallery', description: 'Photographs of the temple, festivals and Brahmotsavams at Cheruvugattu.' }],
+  ['/support/contact', { title: 'Contact Us', description: 'Temple address, Executive Officer contact number, office hours and enquiry form.' }],
+  ['/support/faq', { title: 'Frequently Asked Questions', description: 'Answers about seva booking, donations, 80G receipts, accommodation and temple timings.' }],
+  ['/volunteer', { title: 'Volunteer', description: 'Register to volunteer at Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu.' }],
+  ['/login', { title: 'Devotee Login', noIndex: true }],
+  ['/register', { title: 'Devotee Registration', noIndex: true }],
+  ['/auth', { title: 'Devotee Login', noIndex: true }],
+  ['/ticket', { title: 'Booking Ticket', noIndex: true }],
+  ['/donation-receipt', { title: '80G Donation Receipt', noIndex: true }],
+];
+
+const HOME_META = {
+  description: 'Official website of Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu, Nalgonda — the 108th and final Shiva Linga consecrated by Lord Parashurama. Book sevas, donate and plan your visit.',
+};
+
+/* React Router does not scroll to #hash targets on its own, so footer links like
+   /about#festivals would otherwise land at the top of the page. Also resets to
+   the top on ordinary navigations, which the app did not do before either.
+   Deliberately a single instant jump, not 'smooth': the target sections sit
+   below image grids that reserve their space with aspect-ratio boxes, so
+   layout is already stable by the time this fires - an earlier version that
+   re-issued a smooth scrollIntoView on every image load event fed itself
+   inputs while the browser's own scroll animation was still mid-flight and
+   ran away to the bottom of the page. */
+function ScrollToHash() {
+  const { pathname, hash } = useLocation();
+
+  useEffect(() => {
+    if (!hash) {
+      window.scrollTo(0, 0);
+      return;
+    }
+    const id = hash.slice(1);
+    const timer = setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'auto', block: 'start' });
+    }, 80);
+    return () => clearTimeout(timer);
+  }, [pathname, hash]);
+
+  return null;
+}
+
+function RouteMeta() {
+  const { pathname } = useLocation();
+  const match = ROUTE_META.find(([p]) => pathname === p || pathname.startsWith(p + '/'));
+  usePageMeta(pathname === '/' ? HOME_META : (match ? match[1] : HOME_META));
+  return null;
+}
+
 function App() {
   return (
+    <ErrorBoundary>
     <AuthProvider>
+      <LanguageProvider>
       <BrowserRouter>
+        <RouteMeta />
+        <ScrollToHash />
         <Routes>
           {/* Public */}
           <Route path="/" element={<Home />} />
@@ -100,9 +175,14 @@ function App() {
           <Route path="/admin/accommodations" element={<ProtectedAdmin><AdminAccommodations /></ProtectedAdmin>} />
           <Route path="/admin/gallery" element={<ProtectedAdmin><AdminGallery /></ProtectedAdmin>} />
           <Route path="/admin/donations" element={<ProtectedAdmin><AdminDonations /></ProtectedAdmin>} />
+
+          {/* Catch-all: anything unmatched gets a real page, not a blank screen */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
+      </LanguageProvider>
     </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

@@ -40,13 +40,13 @@ export default function AdminSevas() {
     load();
   };
 
-  const inputCls = "w-full h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#E65100] focus:ring-1 focus:ring-[#E65100]/20 outline-none text-sm text-[#2D1B0E]";
+  const inputCls = "w-full h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-1 focus:ring-[#C43E00]/20 outline-none text-sm text-[#2D1B0E]";
 
   return (
     <AdminLayout title="Seva Management">
       <div className="flex items-center justify-between mb-6">
         <p className="text-sm text-[#8D6E63]">{sevas.length} sevas</p>
-        <button onClick={() => { resetForm(); setShowForm(true); }} className="inline-flex items-center gap-2 px-4 py-2 bg-[#E65100] text-white text-sm rounded-full hover:bg-[#E65100]/90 transition-all" data-testid="add-seva-btn">
+        <button onClick={() => { resetForm(); setShowForm(true); }} className="inline-flex items-center gap-2 px-4 py-2 bg-[#C43E00] text-white text-sm rounded-full hover:bg-[#C43E00]/90 transition-all" data-testid="add-seva-btn">
           <Plus className="h-4 w-4" /> Add Seva
         </button>
       </div>
@@ -100,7 +100,7 @@ export default function AdminSevas() {
             </div>
             <div className="md:col-span-2 flex justify-end gap-3">
               <button type="button" onClick={resetForm} className="px-6 py-2 text-sm text-[#5D4037] border border-[#E6DCCA] rounded-full hover:bg-[#FDFBF7]">Cancel</button>
-              <button type="submit" className="px-6 py-2 bg-[#E65100] text-white text-sm rounded-full hover:bg-[#E65100]/90 transition-all" data-testid="seva-submit-btn">{editing ? 'Update' : 'Create'}</button>
+              <button type="submit" className="px-6 py-2 bg-[#C43E00] text-white text-sm rounded-full hover:bg-[#C43E00]/90 transition-all" data-testid="seva-submit-btn">{editing ? 'Update' : 'Create'}</button>
             </div>
           </form>
         </div>
@@ -132,7 +132,7 @@ export default function AdminSevas() {
                       <span className={`px-2 py-0.5 rounded-full text-xs ${s.active_flag ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{s.active_flag ? 'Active' : 'Inactive'}</span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button onClick={() => handleEdit(s)} className="p-1.5 text-[#8D6E63] hover:text-[#E65100] transition-colors" data-testid={`edit-seva-${s.id}`}><Pencil className="h-4 w-4" /></button>
+                      <button onClick={() => handleEdit(s)} className="p-1.5 text-[#8D6E63] hover:text-[#C43E00] transition-colors" data-testid={`edit-seva-${s.id}`}><Pencil className="h-4 w-4" /></button>
                       <button onClick={() => handleDelete(s.id)} className="p-1.5 text-[#8D6E63] hover:text-red-600 transition-colors ml-1" data-testid={`delete-seva-${s.id}`}><Trash2 className="h-4 w-4" /></button>
                     </td>
                   </tr>

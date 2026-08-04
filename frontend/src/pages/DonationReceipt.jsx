@@ -27,7 +27,7 @@ export default function DonationReceipt() {
 
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="print:hidden mb-6 flex items-center justify-between">
-          <Link to="/donations" className="inline-flex items-center gap-1 text-sm text-[#8D6E63] hover:text-[#E65100] transition-colors">
+          <Link to="/donations" className="inline-flex items-center gap-1 text-sm text-[#8D6E63] hover:text-[#C43E00] transition-colors">
             <ArrowLeft className="h-4 w-4" /> Back
           </Link>
           <button onClick={() => window.print()} className="inline-flex items-center gap-2 px-4 py-2 bg-[#621B00] text-white text-sm rounded-full hover:bg-[#621B00]/90 transition-all" data-testid="print-receipt-btn">

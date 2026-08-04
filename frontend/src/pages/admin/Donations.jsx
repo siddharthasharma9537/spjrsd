@@ -31,7 +31,7 @@ export default function AdminDonations() {
             </div>
           </div>
           <div className="bg-white border border-[#E6DCCA] rounded-xl p-5 flex items-center gap-4" data-testid="anna-stats">
-            <div className="w-12 h-12 bg-[#E65100]/10 rounded-full flex items-center justify-center"><Heart className="h-6 w-6 text-[#E65100]" /></div>
+            <div className="w-12 h-12 bg-[#C43E00]/10 rounded-full flex items-center justify-center"><Heart className="h-6 w-6 text-[#C43E00]" /></div>
             <div>
               <p className="text-sm text-[#8D6E63]">AnnaPrasadam ({stats.anna_prasadam.count} donations)</p>
               <p className="text-xl font-bold text-[#2D1B0E]">Rs. {stats.anna_prasadam.total.toLocaleString()}</p>
@@ -44,7 +44,7 @@ export default function AdminDonations() {
       <div className="flex items-center gap-3 mb-6">
         <span className="text-sm text-[#8D6E63]">Filter:</span>
         {['', 'e-Hundi', 'AnnaPrasadam'].map(f => (
-          <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-full text-xs transition-all ${filter === f ? 'bg-[#E65100] text-white' : 'bg-white border border-[#E6DCCA] text-[#5D4037]'}`} data-testid={`filter-${f || 'all'}`}>
+          <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-full text-xs transition-all ${filter === f ? 'bg-[#C43E00] text-white' : 'bg-white border border-[#E6DCCA] text-[#5D4037]'}`} data-testid={`filter-${f || 'all'}`}>
             {f || 'All'}
           </button>
         ))}
@@ -74,10 +74,10 @@ export default function AdminDonations() {
                   <tr key={d.id} className="border-b border-[#E6DCCA]/50 hover:bg-[#FDFBF7]" data-testid={`donation-row-${d.id}`}>
                     <td className="px-4 py-3 font-mono text-xs text-[#621B00]">{d.donation_number}</td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs ${d.donation_type === 'e-Hundi' ? 'bg-[#D4AF37]/20 text-[#8D2800]' : 'bg-[#E65100]/10 text-[#E65100]'}`}>{d.donation_type}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs ${d.donation_type === 'e-Hundi' ? 'bg-[#D4AF37]/20 text-[#8D2800]' : 'bg-[#C43E00]/10 text-[#C43E00]'}`}>{d.donation_type}</span>
                     </td>
                     <td className="px-4 py-3"><p className="text-[#2D1B0E]">{d.is_anonymous ? 'Anonymous' : d.donor_name}</p><p className="text-xs text-[#8D6E63]">{d.donor_mobile}</p></td>
-                    <td className="px-4 py-3 font-bold text-[#E65100]">Rs. {d.amount}</td>
+                    <td className="px-4 py-3 font-bold text-[#C43E00]">Rs. {d.amount}</td>
                     <td className="px-4 py-3 text-[#5D4037]">{d.donor_gotram || '—'}</td>
                     <td className="px-4 py-3 text-xs text-[#8D6E63] max-w-[150px] truncate">{d.message || '—'}</td>
                     <td className="px-4 py-3 text-xs text-[#8D6E63]">{new Date(d.created_at).toLocaleDateString()}</td>

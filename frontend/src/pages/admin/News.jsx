@@ -25,13 +25,13 @@ export default function AdminNews() {
   };
 
   const handleDelete = async (id) => { if (!window.confirm('Delete?')) return; await api.delete(`/admin/news/${id}`); load(); };
-  const inputCls = "w-full h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#E65100] focus:ring-1 focus:ring-[#E65100]/20 outline-none text-sm text-[#2D1B0E]";
+  const inputCls = "w-full h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-1 focus:ring-[#C43E00]/20 outline-none text-sm text-[#2D1B0E]";
 
   return (
     <AdminLayout title="News Management">
       <div className="flex items-center justify-between mb-6">
         <p className="text-sm text-[#8D6E63]">{items.length} news items</p>
-        <button onClick={() => { resetForm(); setShowForm(true); }} className="inline-flex items-center gap-2 px-4 py-2 bg-[#E65100] text-white text-sm rounded-full" data-testid="add-news-btn"><Plus className="h-4 w-4" /> Add News</button>
+        <button onClick={() => { resetForm(); setShowForm(true); }} className="inline-flex items-center gap-2 px-4 py-2 bg-[#C43E00] text-white text-sm rounded-full" data-testid="add-news-btn"><Plus className="h-4 w-4" /> Add News</button>
       </div>
       {showForm && (
         <div className="bg-white border border-[#E6DCCA] rounded-xl p-6 mb-6" data-testid="news-form">
@@ -52,7 +52,7 @@ export default function AdminNews() {
             </div>
             <div className="flex justify-end gap-3">
               <button type="button" onClick={resetForm} className="px-6 py-2 text-sm border border-[#E6DCCA] rounded-full">Cancel</button>
-              <button type="submit" className="px-6 py-2 bg-[#E65100] text-white text-sm rounded-full" data-testid="news-submit-btn">{editing ? 'Update' : 'Create'}</button>
+              <button type="submit" className="px-6 py-2 bg-[#C43E00] text-white text-sm rounded-full" data-testid="news-submit-btn">{editing ? 'Update' : 'Create'}</button>
             </div>
           </form>
         </div>
@@ -60,18 +60,18 @@ export default function AdminNews() {
       {loading ? <p className="text-[#8D6E63]">Loading...</p> : (
         <div className="space-y-3">
           {items.map(n => (
-            <div key={n.id} className={`bg-white border rounded-xl p-5 ${n.is_important ? 'border-[#E65100]/30' : 'border-[#E6DCCA]'}`} data-testid={`news-row-${n.id}`}>
+            <div key={n.id} className={`bg-white border rounded-xl p-5 ${n.is_important ? 'border-[#C43E00]/30' : 'border-[#E6DCCA]'}`} data-testid={`news-row-${n.id}`}>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-medium text-[#2D1B0E] text-sm">{n.title}</h3>
-                    {n.is_important && <span className="px-2 py-0.5 bg-[#E65100] text-white text-xs rounded-full">Important</span>}
+                    {n.is_important && <span className="px-2 py-0.5 bg-[#C43E00] text-white text-xs rounded-full">Important</span>}
                     <span className={`px-2 py-0.5 rounded-full text-xs ${n.active_flag ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{n.active_flag ? 'Active' : 'Inactive'}</span>
                   </div>
                   <p className="text-xs text-[#8D6E63] line-clamp-1">{n.content}</p>
                 </div>
                 <div className="flex gap-1 ml-2">
-                  <button onClick={() => handleEdit(n)} className="p-1.5 text-[#8D6E63] hover:text-[#E65100]"><Pencil className="h-4 w-4" /></button>
+                  <button onClick={() => handleEdit(n)} className="p-1.5 text-[#8D6E63] hover:text-[#C43E00]"><Pencil className="h-4 w-4" /></button>
                   <button onClick={() => handleDelete(n.id)} className="p-1.5 text-[#8D6E63] hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
                 </div>
               </div>

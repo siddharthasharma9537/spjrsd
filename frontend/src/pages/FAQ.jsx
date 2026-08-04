@@ -1,6 +1,7 @@
 import Navbar from '@/components/Navbar';
 import TopStrip from '@/components/TopStrip';
 import Footer from '@/components/Footer';
+import { useT } from "@/contexts/LanguageContext";
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 
@@ -18,6 +19,7 @@ const faqs = [
 ];
 
 export default function FAQ() {
+  const { t, heading } = useT();
   const [openIdx, setOpenIdx] = useState(null);
 
   return (
@@ -26,16 +28,14 @@ export default function FAQ() {
       <Navbar />
       <div className="flex-1 max-w-3xl mx-auto px-4 py-8 w-full">
         <div className="text-center mb-8">
-          <h1 className="font-english-heading text-2xl md:text-4xl text-[#621B00] mb-1" data-testid="faq-title">Frequently Asked Questions</h1>
-          <p className="font-telugu-heading text-xl text-[#8D6E63]">తరచుగా అడిగే ప్రశ్నలు</p>
+          <h1 className={`${heading} text-2xl md:text-4xl text-[#621B00] mb-1`} data-testid="faq-title">{t("Frequently Asked Questions", "తరచుగా అడిగే ప్రశ్నలు")}</h1>
         </div>
         <div className="space-y-3" data-testid="faq-list">
           {faqs.map((f, i) => (
             <div key={i} className="bg-white border border-[#E6DCCA] rounded-xl overflow-hidden" data-testid={`faq-item-${i}`}>
               <button onClick={() => setOpenIdx(openIdx === i ? null : i)} className="w-full flex items-center justify-between p-5 text-left hover:bg-[#FDFBF7] transition-colors">
                 <div>
-                  <p className="text-sm font-medium text-[#2D1B0E]">{f.q}</p>
-                  <p className="font-telugu-body text-sm text-[#8D6E63]">{f.qTe}</p>
+                  <p className="text-sm font-medium text-[#2D1B0E]">{t(f.q, f.qTe)}</p>
                 </div>
                 {openIdx === i ? <ChevronUp className="h-5 w-5 text-[#8D6E63] shrink-0" /> : <ChevronDown className="h-5 w-5 text-[#8D6E63] shrink-0" />}
               </button>

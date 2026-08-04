@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState , useId } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api';
 import { Flame, ArrowLeft, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 
 export default function AdminLogin() {
+  const uid = useId();
   const [form, setForm] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,7 +28,7 @@ export default function AdminLogin() {
     }
   };
 
-  const inputCls = "w-full h-12 px-4 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#E65100] focus:ring-2 focus:ring-[#E65100]/20 outline-none transition-all text-[#2D1B0E]";
+  const inputCls = "w-full h-12 px-4 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-2 focus:ring-[#C43E00]/20 outline-none transition-all text-[#2D1B0E]";
 
   return (
     <div className="min-h-screen bg-[#FFFCF5] flex flex-col">
@@ -51,14 +52,14 @@ export default function AdminLogin() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-[#5D4037] mb-1">Username</label>
-                <input className={inputCls} value={form.username} onChange={e => setForm({...form, username: e.target.value})} required data-testid="admin-input-username" />
+                <label className="block text-sm font-medium text-[#5D4037] mb-1" htmlFor={`${uid}-username-0`}>Username</label>
+                <input id={`${uid}-username-0`} name="username" autoComplete="username" className={inputCls} value={form.username} onChange={e => setForm({...form, username: e.target.value})} required data-testid="admin-input-username" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[#5D4037] mb-1">Password</label>
+                <label className="block text-sm font-medium text-[#5D4037] mb-1" htmlFor={`${uid}-password`}>Password</label>
                 <div className="relative">
-                  <input className={inputCls} type={showPw ? 'text' : 'password'} value={form.password} onChange={e => setForm({...form, password: e.target.value})} required data-testid="admin-input-password" />
-                  <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8D6E63]">
+                  <input id={`${uid}-password`} name="password" autoComplete="current-password" className={inputCls} type={showPw ? 'text' : 'password'} value={form.password} onChange={e => setForm({...form, password: e.target.value})} required data-testid="admin-input-password" />
+                  <button type="button" onClick={() => setShowPw(!showPw)} aria-label={showPw ? 'Hide password' : 'Show password'} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8D6E63]">
                     {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>

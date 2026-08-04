@@ -2,15 +2,18 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api';
+import { useT } from "@/contexts/LanguageContext";
 import { Flame, ArrowLeft, Eye, Calendar, IndianRupee } from 'lucide-react';
 
 export default function MyBookings() {
+  const { t, heading } = useT();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const { logout } = useAuth();
 
   useEffect(() => {
-    api.get('/bookings/my').then(r => setBookings(r.data)).finally(() => setLoading(false));
+    api.get('/bookings/my').then(r => setBookings(r.data)).catch(() => setLoadError(true)).finally(() => setLoading(false));
   }, []);
 
   const statusColors = {
@@ -37,18 +40,17 @@ export default function MyBookings() {
       </nav>
 
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <Link to="/sevas" className="inline-flex items-center gap-1 text-sm text-[#8D6E63] hover:text-[#E65100] mb-6 transition-colors">
+        <Link to="/sevas" className="inline-flex items-center gap-1 text-sm text-[#8D6E63] hover:text-[#C43E00] mb-6 transition-colors">
           <ArrowLeft className="h-4 w-4" /> Back to Sevas
         </Link>
-        <h1 className="font-english-heading text-2xl text-[#621B00] mb-1" data-testid="my-bookings-title">My Bookings</h1>
-        <p className="font-telugu-heading text-lg text-[#8D6E63] mb-8">నా బుకింగ్‌లు</p>
+        <h1 className={`${heading} text-2xl text-[#621B00] mb-1`} data-testid="my-bookings-title">{t("My Bookings", "నా బుకింగ్‌లు")}</h1>
 
         {loading ? (
           <p className="text-center py-12 text-[#8D6E63]">Loading...</p>
         ) : bookings.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-[#8D6E63] mb-4">No bookings yet / ఇంకా బుకింగ్‌లు లేవు</p>
-            <Link to="/sevas" className="inline-flex items-center gap-2 px-6 py-3 bg-[#E65100] text-white rounded-full font-english-heading text-sm tracking-wide uppercase hover:bg-[#E65100]/90 transition-all">Book a Seva</Link>
+            <p className="text-[#8D6E63] mb-4">{t('No bookings yet', 'ఇంకా బుకింగ్‌లు లేవు')}</p>
+            <Link to="/sevas" className="inline-flex items-center gap-2 px-6 py-3 bg-[#C43E00] text-white rounded-full font-english-heading text-sm tracking-wide uppercase hover:bg-[#C43E00]/90 transition-all">Book a Seva</Link>
           </div>
         ) : (
           <div className="space-y-4">
@@ -58,7 +60,6 @@ export default function MyBookings() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="font-english-heading text-sm text-[#2D1B0E]">{b.seva_name_english}</h3>
-                      <span className="font-telugu-heading text-base text-[#621B00]">{b.seva_name_telugu}</span>
                     </div>
                     <div className="flex flex-wrap items-center gap-4 text-xs text-[#8D6E63]">
                       <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> {b.for_date}</span>

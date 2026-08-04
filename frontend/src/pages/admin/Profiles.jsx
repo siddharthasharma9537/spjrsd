@@ -35,13 +35,13 @@ export default function AdminProfiles() {
     load();
   };
 
-  const inputCls = "w-full h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#E65100] focus:ring-1 focus:ring-[#E65100]/20 outline-none text-sm text-[#2D1B0E]";
+  const inputCls = "w-full h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-1 focus:ring-[#C43E00]/20 outline-none text-sm text-[#2D1B0E]";
 
   return (
     <AdminLayout title="Day Profiles">
       <div className="flex items-center justify-between mb-6">
         <p className="text-sm text-[#8D6E63]">{profiles.length} profiles</p>
-        <button onClick={() => { resetForm(); setShowForm(true); }} className="inline-flex items-center gap-2 px-4 py-2 bg-[#E65100] text-white text-sm rounded-full hover:bg-[#E65100]/90 transition-all" data-testid="add-profile-btn">
+        <button onClick={() => { resetForm(); setShowForm(true); }} className="inline-flex items-center gap-2 px-4 py-2 bg-[#C43E00] text-white text-sm rounded-full hover:bg-[#C43E00]/90 transition-all" data-testid="add-profile-btn">
           <Plus className="h-4 w-4" /> Add Profile
         </button>
       </div>
@@ -66,7 +66,7 @@ export default function AdminProfiles() {
             </label>
             <div className="flex justify-end gap-3">
               <button type="button" onClick={resetForm} className="px-6 py-2 text-sm text-[#5D4037] border border-[#E6DCCA] rounded-full hover:bg-[#FDFBF7]">Cancel</button>
-              <button type="submit" className="px-6 py-2 bg-[#E65100] text-white text-sm rounded-full hover:bg-[#E65100]/90 transition-all" data-testid="profile-submit-btn">{editing ? 'Update' : 'Create'}</button>
+              <button type="submit" className="px-6 py-2 bg-[#C43E00] text-white text-sm rounded-full hover:bg-[#C43E00]/90 transition-all" data-testid="profile-submit-btn">{editing ? 'Update' : 'Create'}</button>
             </div>
           </form>
         </div>
@@ -79,7 +79,7 @@ export default function AdminProfiles() {
               <div className="flex items-start justify-between mb-2">
                 <h3 className="font-medium text-[#2D1B0E]">{p.name}</h3>
                 <div className="flex gap-1">
-                  <button onClick={() => handleEdit(p)} className="p-1 text-[#8D6E63] hover:text-[#E65100]" data-testid={`edit-profile-${p.id}`}><Pencil className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => handleEdit(p)} className="p-1 text-[#8D6E63] hover:text-[#C43E00]" data-testid={`edit-profile-${p.id}`}><Pencil className="h-3.5 w-3.5" /></button>
                   <button onClick={() => handleDelete(p.id)} className="p-1 text-[#8D6E63] hover:text-red-600" data-testid={`delete-profile-${p.id}`}><Trash2 className="h-3.5 w-3.5" /></button>
                 </div>
               </div>

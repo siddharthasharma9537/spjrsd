@@ -62,3 +62,7 @@ design_guidelines.json
 # ======================
 coverage/
 *.pem
+
+# Full-resolution originals of site photos, kept locally as a backup - the
+# served copies live in frontend/public/Assets, resized for the web.
+frontend/assets-source/

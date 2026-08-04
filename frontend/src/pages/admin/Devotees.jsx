@@ -6,9 +6,10 @@ import { Users, Phone, Mail } from 'lucide-react';
 export default function AdminDevotees() {
   const [devotees, setDevotees] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
-    api.get('/admin/devotees').then(r => setDevotees(r.data)).finally(() => setLoading(false));
+    api.get('/admin/devotees').then(r => setDevotees(r.data)).catch(() => setLoadError(true)).finally(() => setLoading(false));
   }, []);
 
   return (

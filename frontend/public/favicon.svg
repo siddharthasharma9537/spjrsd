@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Cheruvugattu temple">
+  <rect width="64" height="64" rx="12" fill="#621B00"/>
+  <!-- Shiva linga on a yoni base, centred -->
+  <path d="M32 14c5.6 0 9.4 5.2 9.4 12.4 0 6.4-3.4 11.2-9.4 11.2s-9.4-4.8-9.4-11.2C22.6 19.2 26.4 14 32 14z" fill="#D4AF37"/>
+  <rect x="14" y="40" width="36" height="6" rx="3" fill="#D4AF37"/>
+  <rect x="19" y="48" width="26" height="5" rx="2.5" fill="#D4AF37" opacity="0.75"/>
+  <!-- Tripundra -->
+  <path d="M26 24h12M26 28h12" stroke="#621B00" stroke-width="2.4" stroke-linecap="round"/>
+</svg>

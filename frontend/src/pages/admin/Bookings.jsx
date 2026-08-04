@@ -41,7 +41,7 @@ export default function AdminBookings() {
     NoShow: 'bg-gray-100 text-gray-800',
   };
 
-  const inputCls = "h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#E65100] focus:ring-1 focus:ring-[#E65100]/20 outline-none text-sm text-[#2D1B0E]";
+  const inputCls = "h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-1 focus:ring-[#C43E00]/20 outline-none text-sm text-[#2D1B0E]";
 
   return (
     <AdminLayout title="Booking Management">

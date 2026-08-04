@@ -1,24 +1,29 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useT } from "@/contexts/LanguageContext";
 
+// All slides now carry authentic photographs of the kshetram itself.
 const slides = [
-  { title: 'Sri Parvathi Jadala Ramalingeshwara Swamy', subtitle: 'శ్రీ పార్వతీ జడల రామలింగేశ్వర స్వామి దేవస్థానం', desc: 'Cheruvugattu, Nalgonda, Telangana', cta: { label: 'Book Seva', to: '/sevas' }, image: 'https://images.unsplash.com/photo-1582560475093-6f09a3dc9739?auto=format&fit=crop&w=1600&q=80' },
-  { title: 'Maha Shivaratri Brahmotsavams', subtitle: 'మహా శివరాత్రి బ్రహ్మోత్సవాలు', desc: 'Annual grand festival attracting lakhs of devotees', cta: { label: 'View News', to: '/news' }, image: 'https://images.unsplash.com/photo-1606293926075-69a00dbfde81?auto=format&fit=crop&w=1600&q=80' },
-  { title: 'e-Hundi Online Donation', subtitle: 'ఈ-హుండి ఆన్‌లైన్ దానం', desc: 'Contribute to temple welfare from anywhere in the world', cta: { label: 'Donate Now', to: '/donations' }, image: 'https://images.unsplash.com/photo-1567591370504-82a4d58d4349?auto=format&fit=crop&w=1600&q=80' },
-  { title: 'Paroksha Seva', subtitle: 'పరోక్ష సేవ', desc: 'Remote seva - worship without being physically present', cta: { label: 'Book Now', to: '/paroksha-seva' }, image: 'https://images.unsplash.com/photo-1690312021800-9b5991464fd2?auto=format&fit=crop&w=1600&q=80' },
-  { title: 'Pilgrim Accommodation', subtitle: 'యాత్రికుల వసతి', desc: 'Comfortable rooms and cottages for visiting devotees', cta: { label: 'Book Room', to: '/accommodation' }, image: 'https://images.unsplash.com/photo-1716047270022-b01edb8022af?auto=format&fit=crop&w=1600&q=80' },
+  { title: 'Sri Parvathi Jadala Ramalingeshwara Swamy', subtitle: 'శ్రీ పార్వతీ జడల రామలింగేశ్వర స్వామి దేవస్థానం', desc: 'Cheruvugattu, Narketpally Mandal, Nalgonda, Telangana', cta: { label: 'Book Seva', to: '/sevas' }, image: '/Assets/Main_Temple_Full_View_Up_Hill.jpg' },
+  { title: 'The 108th Parashurama Linga', subtitle: 'స్థల పురాణము', desc: 'The last of the 108 Shiva Lingas consecrated by Lord Parashurama', cta: { label: 'Read Sthala Puranam', to: '/about' }, image: '/Assets/Sri_Swamy_Varu_0.jpg' },
+  { title: 'Sri Parvathi Devi Temple', subtitle: 'శ్రీ పార్వతీ దేవి ఆలయం', desc: 'The Ammavaru shrine at the foot of the sacred hill', cta: { label: 'Temple History', to: '/about' }, image: '/Assets/Parvati_Devi_Temple_Panoramic_View_Down_Hill.jpg' },
+  { title: 'Moodu Gundlu', subtitle: 'మూడు గుండ్లు', desc: 'The revered Urdhva Lingam atop the three sacred rock pools', cta: { label: 'Read More', to: '/about' }, image: '/Assets/Mudu_Gundlu_Shivalingam_6.jpg' },
+  { title: 'Vaarshika Brahmotsavams', subtitle: 'వార్షిక బ్రహ్మోత్సవములు', desc: 'Five days of Kalyanotsavams drawing nearly five lakh devotees', cta: { label: 'View News', to: '/news' }, image: '/Assets/Brahmotsavam_Pavalimpu_Seva_Decoratin_1.jpg' },
+  { title: 'e-Hundi Online Donation', subtitle: 'ఈ-హుండి ఆన్‌లైన్ దానం', desc: 'Contribute to temple welfare from anywhere in the world', cta: { label: 'Donate Now', to: '/donations' }, image: '/Assets/Sri_Swamy_Varu_2.jpg' },
+  { title: 'Pilgrim Accommodation', subtitle: 'యాత్రికుల వసతి', desc: 'Comfortable rooms and cottages for visiting devotees', cta: { label: 'Book Room', to: '/accommodation' }, image: '/Assets/Parvati_Devi_Temple_Top_View_Down_Hill.jpg' },
 ];
 
 export default function HeroCarousel() {
+  const { t, heading } = useT();
   const [current, setCurrent] = useState(0);
 
   const next = useCallback(() => setCurrent(c => (c + 1) % slides.length), []);
   const prev = () => setCurrent(c => (c - 1 + slides.length) % slides.length);
 
   useEffect(() => {
-    const t = setInterval(next, 5000);
-    return () => clearInterval(t);
+    const id = setInterval(next, 5000);
+    return () => clearInterval(id);
   }, [next]);
 
   const slide = slides[current];
@@ -28,16 +33,19 @@ export default function HeroCarousel() {
       {/* Background */}
       {slides.map((s, i) => (
         <div key={i} className={`absolute inset-0 transition-opacity duration-1000 ${i === current ? 'opacity-100' : 'opacity-0'}`}>
-          <img src={s.image} alt={s.title} className="w-full h-full object-cover" loading={i === 0 ? 'eager' : 'lazy'} />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+          {s.image
+            ? <img src={s.image} alt={s.title} className="w-full h-full object-cover" loading={i === 0 ? 'eager' : 'lazy'} />
+            : <div className="w-full h-full temple-gradient" />}
+          {/* Overlay is tuned for the light-toned temple artwork - the gold Telugu
+              subtitle needs contrast even over the brightest part of the image. */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/60 to-black/45" />
         </div>
       ))}
 
       {/* Content */}
       <div className="relative h-full flex items-center justify-center text-center text-white px-4">
         <div className="max-w-3xl animate-fade-in-up" key={current}>
-          <p className="font-telugu-heading text-lg md:text-2xl text-[#D4AF37] mb-2">{slide.subtitle}</p>
-          <h1 className="font-english-heading text-2xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-3">{slide.title}</h1>
+          <h1 className={`${heading} text-2xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-3`}>{t(slide.title, slide.subtitle)}</h1>
           <p className="text-[#FFE0B2]/80 text-sm md:text-base mb-6">{slide.desc}</p>
           <Link to={slide.cta.to} className="inline-flex items-center gap-2 bg-[#D4AF37] text-[#2A1800] font-english-heading tracking-wide uppercase text-sm px-6 py-2.5 rounded-full hover:bg-[#e6c44a] transition-all shadow-lg" data-testid="hero-cta">
             {slide.cta.label}
