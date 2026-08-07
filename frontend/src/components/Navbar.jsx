@@ -63,11 +63,29 @@ export default function Navbar() {
 
   return (
     <nav className="bg-[#621B00] text-white sticky top-0 z-50 shadow-lg" data-testid="navbar">
+      <div
+        aria-hidden="true"
+        className="h-1.5 w-full"
+        style={{
+          backgroundColor: '#3D1F0A',
+          backgroundImage: 'repeating-linear-gradient(45deg, #D4AF37 0, #D4AF37 4px, transparent 4px, transparent 10px)',
+        }}
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-12">
-          <Link to="/" className="flex items-center gap-2 shrink-0">
-            <Flame className="h-5 w-5 text-[#D4AF37]" />
-            <span className="font-english-heading text-xs tracking-wide">SPJRS Devasthanams</span>
+        <div className="flex items-center justify-between min-h-[3rem] py-2">
+          <Link to="/" className="flex items-center gap-2.5 shrink-0">
+            <span className="flex h-9 w-9 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-full border-2 border-[#D4AF37] bg-gradient-to-b from-[#7A2400] to-[#4A1400] shadow-inner">
+              <Flame className="h-4 w-4 lg:h-5 lg:w-5 text-[#D4AF37]" />
+            </span>
+            <span className="flex flex-col leading-tight">
+              <span className="font-english-heading text-[11px] sm:text-xs lg:text-sm tracking-wide uppercase">
+                <span className="lg:hidden">Sri Parvathi Jadala Devasthanam</span>
+                <span className="hidden lg:inline">Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam</span>
+              </span>
+              <span className="hidden sm:block font-telugu-heading text-[10px] lg:text-xs text-[#D4AF37]/80 mt-0.5">
+                శ్రీ పార్వతీ జడల రామలింగేశ్వర స్వామి దేవస్థానం
+              </span>
+            </span>
           </Link>
           {/* Desktop */}
           <div className="hidden lg:flex items-center gap-0.5 text-xs">

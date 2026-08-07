@@ -29,6 +29,14 @@ export default function HeroCarousel() {
   const slide = slides[current];
 
   return (
+    <div
+      className="p-1.5"
+      style={{
+        backgroundColor: '#D4AF37',
+        backgroundImage: 'repeating-linear-gradient(45deg, #D4AF37 0, #D4AF37 6px, #8a6d1f 6px, #8a6d1f 12px)',
+      }}
+    >
+    <div className="p-[3px] bg-[#2D1B0E]">
     <section className="relative h-[400px] md:h-[500px] overflow-hidden" data-testid="hero-carousel">
       {/* Background */}
       {slides.map((s, i) => (
@@ -68,5 +76,7 @@ export default function HeroCarousel() {
         ))}
       </div>
     </section>
+    </div>
+    </div>
   );
 }

@@ -6,18 +6,20 @@ import HeroCarousel from '@/components/HeroCarousel';
 import Footer from '@/components/Footer';
 import api from '@/lib/api';
 import { useT } from "@/contexts/LanguageContext";
-import { Flame, BookOpen, Heart, ChevronRight, Camera, Newspaper, BedDouble, HandCoins, Tv, IndianRupee, Clock } from 'lucide-react';
+import { Flame, BookOpen, Heart, ChevronRight, Camera, Newspaper, BedDouble, HandCoins, Tv, IndianRupee, Clock, Users, CalendarDays } from 'lucide-react';
 
 export default function Home() {
   const { t, heading } = useT();
   const [news, setNews] = useState([]);
   const [gallery, setGallery] = useState([]);
   const [sevas, setSevas] = useState([]);
+  const [visitors, setVisitors] = useState(null);
 
   useEffect(() => {
     api.get('/news').then(r => setNews(r.data.slice(0, 5))).catch(() => {});
     api.get('/gallery?media_type=PHOTO').then(r => setGallery(r.data.slice(0, 6))).catch(() => api.get('/gallery').then(r => setGallery(r.data.filter(g => !g.media_type || g.media_type === 'PHOTO').slice(0, 6))).catch(() => {}));
     api.get('/sevas').then(r => setSevas(r.data.slice(0, 4))).catch(() => {});
+    api.get('/visitor-stats').then(r => setVisitors(r.data)).catch(() => {});
   }, []);
 
   const featureCards = [
@@ -49,7 +51,7 @@ export default function Home() {
       {/* News Ticker */}
       {news.length > 0 && (
         <div className="bg-[#D4AF37]/10 border-b border-[#D4AF37]/20 overflow-hidden" data-testid="news-ticker">
-          <div className="max-w-7xl mx-auto px-4 flex items-center gap-3 py-2">
+          <div className="max-w-7xl mx-auto px-4 flex items-center gap-3 py-2.5">
             <span className="bg-[#C43E00] text-white text-xs px-3 py-1 rounded-full font-medium shrink-0 flex items-center gap-1">
               <Newspaper className="h-3 w-3" /> News
             </span>
@@ -63,7 +65,17 @@ export default function Home() {
                 ))}
               </div>
             </div>
-            <Link to="/news" className="text-xs text-[#C43E00] hover:underline shrink-0 font-medium" data-testid="view-all-news">View All</Link>
+            <span className="hidden md:flex items-center gap-1.5 text-xs text-[#621B00]/70 border-l border-[#D4AF37]/30 pl-3 shrink-0" data-testid="ticker-date">
+              <CalendarDays className="h-3.5 w-3.5 text-[#C43E00]" />
+              {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+            </span>
+            {visitors && (
+              <span className="hidden sm:flex items-center gap-1.5 text-xs text-[#621B00]/70 border-l border-[#D4AF37]/30 pl-3 shrink-0" data-testid="ticker-visitors">
+                <Users className="h-3.5 w-3.5 text-[#C43E00]" />
+                {visitors.total_visitors?.toLocaleString()} visited
+              </span>
+            )}
+            <Link to="/news" className="text-xs text-[#C43E00] hover:underline shrink-0 font-medium border-l border-[#D4AF37]/30 pl-3" data-testid="view-all-news">View All</Link>
           </div>
         </div>
       )}
@@ -122,17 +134,21 @@ export default function Home() {
                 </div>
                 <figcaption className="mt-1.5 text-center text-xs text-[#FFE0B2]/50 italic">The kshetram atop Ikshwadri hill</figcaption>
               </figure>
-              <figure>
-                <div className="aspect-[3/4] rounded-xl overflow-hidden bg-black/20">
+              <figure className="relative pt-2">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-[#D4AF37] shadow-[0_0_8px_2px_rgba(212,175,55,0.6)] z-10" aria-hidden="true" />
+                <div className="absolute inset-x-0 top-0 aspect-[3/4] rounded-t-[999px] rounded-b-2xl bg-[radial-gradient(circle_at_50%_35%,rgba(212,175,55,0.35),transparent_70%)] blur-md" aria-hidden="true" />
+                <div className="relative aspect-[3/4] rounded-t-[999px] rounded-b-2xl overflow-hidden border-2 border-[#D4AF37] shadow-[0_0_0_4px_#3D1F0A]">
                   <img src="/Assets/Lord_Parashurama.jpeg" alt="Lord Parashurama, painted by Raja Ravi Varma" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" loading="lazy" />
                 </div>
-                <figcaption className="mt-1.5 text-center text-xs text-[#FFE0B2]/50 italic">Lord Parashurama, by Raja Ravi Varma</figcaption>
+                <figcaption className="mt-2 text-center text-xs text-[#FFE0B2]/50 italic">Lord Parashurama, by Raja Ravi Varma</figcaption>
               </figure>
-              <figure>
-                <div className="aspect-[3/4] rounded-xl overflow-hidden bg-black/20">
+              <figure className="relative pt-2">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-[#D4AF37] shadow-[0_0_8px_2px_rgba(212,175,55,0.6)] z-10" aria-hidden="true" />
+                <div className="absolute inset-x-0 top-0 aspect-[3/4] rounded-t-[999px] rounded-b-2xl bg-[radial-gradient(circle_at_50%_35%,rgba(212,175,55,0.35),transparent_70%)] blur-md" aria-hidden="true" />
+                <div className="relative aspect-[3/4] rounded-t-[999px] rounded-b-2xl overflow-hidden border-2 border-[#D4AF37] shadow-[0_0_0_4px_#3D1F0A]">
                   <img src="/Assets/Sri_Swamy_Varu_1.jpg" alt="Sri Jadala Ramalingeshwara Swamy adorned for puja" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" loading="lazy" />
                 </div>
-                <figcaption className="mt-1.5 text-center text-xs text-[#FFE0B2]/50 italic">Sri Swamy Varu</figcaption>
+                <figcaption className="mt-2 text-center text-xs text-[#FFE0B2]/50 italic">Sri Swamy Varu</figcaption>
               </figure>
             </div>
           </div>
