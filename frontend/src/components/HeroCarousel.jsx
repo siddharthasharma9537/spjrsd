@@ -3,15 +3,18 @@ import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useT } from "@/contexts/LanguageContext";
 
-// All slides now carry authentic photographs of the kshetram itself.
+// A hand-picked set of photographs of the kshetram itself; captions describe
+// what is actually in each frame.
 const slides = [
-  { title: 'Sri Parvathi Jadala Ramalingeshwara Swamy', subtitle: 'శ్రీ పార్వతీ జడల రామలింగేశ్వర స్వామి దేవస్థానం', desc: 'Cheruvugattu, Narketpally Mandal, Nalgonda, Telangana', cta: { label: 'Book Seva', to: '/sevas' }, image: '/Assets/Main_Temple_Full_View_Up_Hill.webp' },
-  { title: 'The 108th Parashurama Linga', subtitle: 'స్థల పురాణము', desc: 'The last of the 108 Shiva Lingas consecrated by Lord Parashurama', cta: { label: 'Read Sthala Puranam', to: '/about' }, image: '/Assets/Sri_Swamy_Varu_0.webp' },
-  { title: 'Sri Parvathi Devi Temple', subtitle: 'శ్రీ పార్వతీ దేవి ఆలయం', desc: 'The Ammavaru shrine at the foot of the sacred hill', cta: { label: 'Temple History', to: '/about' }, image: '/Assets/Parvati_Devi_Temple_Panoramic_View_Down_Hill.webp' },
-  { title: 'Moodu Gundlu', subtitle: 'మూడు గుండ్లు', desc: 'The revered Urdhva Lingam atop the three sacred rock pools', cta: { label: 'Read More', to: '/about' }, image: '/Assets/Mudu_Gundlu_Shivalingam_6.webp' },
-  { title: 'Vaarshika Brahmotsavams', subtitle: 'వార్షిక బ్రహ్మోత్సవములు', desc: 'Five days of Kalyanotsavams drawing nearly five lakh devotees', cta: { label: 'View News', to: '/news' }, image: '/Assets/Brahmotsavam_Pavalimpu_Seva_Decoratin_1.webp' },
-  { title: 'e-Hundi Online Donation', subtitle: 'ఈ-హుండి ఆన్‌లైన్ దానం', desc: 'Contribute to temple welfare from anywhere in the world', cta: { label: 'Donate Now', to: '/donations' }, image: '/Assets/Sri_Swamy_Varu_2.webp' },
-  { title: 'Pilgrim Accommodation', subtitle: 'యాత్రికుల వసతి', desc: 'Comfortable rooms and cottages for visiting devotees', cta: { label: 'Book Room', to: '/accommodation' }, image: '/Assets/Parvati_Devi_Temple_Top_View_Down_Hill.webp' },
+  { title: 'Ikshwadri — The Sacred Hill', subtitle: 'ఇక్ష్వాద్రి — పవిత్ర గిరి', desc: 'The steps path rising to the Swamy, guarded by Sri Ganapati', cta: { label: 'Temples of the Kshetram', to: '/temples' }, image: '/Assets/Ikshwadri_Hill_2.webp' },
+  { title: 'Sri Jadala Ramalingeshwara Swamy', subtitle: 'శ్రీ జడల రామలింగేశ్వర స్వామి', desc: 'The 108th and final Shiva Linga consecrated by Lord Parashurama', cta: { label: 'Book Seva', to: '/sevas' }, image: '/Assets/Sri_Swamy_Varu_Alankarm_1.webp' },
+  { title: 'Sri Mallikarjuna Swamy', subtitle: 'శ్రీ మల్లిఖార్జున స్వామి', desc: 'Consort of Sri Bhramarambha Devi, at the foot of the hill', cta: { label: 'Temple History', to: '/temples' }, image: '/Assets/Mallikharjuna_Swamy_Down_Hill_2_Close_Up.webp' },
+  { title: 'Moodu Gundlu', subtitle: 'మూడు గుండ్లు', desc: 'The revered Urdhva Lingam atop the three sacred rock pools', cta: { label: 'Read More', to: '/temples' }, image: '/Assets/Mudu_Gundlu_Shivalingam_4.webp' },
+  { title: 'Sri Bhramarambha Devi', subtitle: 'శ్రీ భ్రమరాంబ దేవి', desc: 'Sri Parvathi Devi, at her shrine at the foot of the hill', cta: { label: 'Temple History', to: '/temples' }, image: '/Assets/Parvati_Devi_1.webp' },
+  { title: 'Sri Maha Ganapati', subtitle: 'శ్రీ మహా గణపతి', desc: 'Adorned in floral alankaram during the festival days', cta: { label: 'View Gallery', to: '/gallery' }, image: '/Assets/Decorated_Ganapati.webp' },
+  { title: 'Vaarshika Brahmotsavams', subtitle: 'వార్షిక బ్రహ్మోత్సవములు', desc: 'Five days of Kalyanotsavams drawing nearly five lakh devotees', cta: { label: 'View News', to: '/news' }, image: '/Assets/Brahmotsavama_Kalyana_Murthulu_3.webp' },
+  { title: 'Swamy Vari Kalyanam', subtitle: 'స్వామివారి కళ్యాణం', desc: 'The Kalyana Murthulu adorned for the celestial marriage', cta: { label: 'Book Seva', to: '/sevas' }, image: '/Assets/Kalyana_Murthulu.webp' },
+  { title: 'Cheruvugattu Kshetram', subtitle: 'చెరువుగట్టు క్షేత్రము', desc: 'Cheruvugattu, Narketpally Mandal, Nalgonda, Telangana', cta: { label: 'Plan Your Visit', to: '/about' }, image: '/Assets/Ikshwadri_Hill.webp' },
 ];
 
 export default function HeroCarousel() {
