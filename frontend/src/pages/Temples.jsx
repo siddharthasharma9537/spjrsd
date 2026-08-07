@@ -91,7 +91,7 @@ export default function Temples() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-[#5D4037]">
             <div>
               <div className="aspect-[4/3] rounded-xl overflow-hidden mb-3 bg-[#FDFBF7] border border-[#E6DCCA]">
-                <img src="/Assets/Mudu_Gundlu_Shivalingam_6.jpg" alt="Mudu Gundlu, at the summit of the hill" className="w-full h-full object-cover" loading="lazy" />
+                <img src="/Assets/Mudu_Gundlu_Shivalingam_6.webp" alt="Mudu Gundlu, at the summit of the hill" className="w-full h-full object-cover" loading="lazy" />
               </div>
               <p className="font-medium text-[#2D1B0E] mb-1">{t('Mudu Gundlu', 'మూడు గుండ్లు')}</p>
               <p className="leading-relaxed">
@@ -130,15 +130,15 @@ export default function Temples() {
           <p className="text-xs text-[#8D6E63] mb-4 flex items-center gap-1"><MapPin className="h-3 w-3" /> {t('At the foot of the hill', 'గట్టు క్రింద')}</p>
 
           <div className="aspect-[16/9] rounded-xl overflow-hidden mb-3 bg-[#FDFBF7] border border-[#E6DCCA]">
-            <img src="/Assets/Parvati_Devi_Temple_Panoramic_View_Down_Hill.jpg" alt="Sri Parvathi Devi Temple at the foot of the hill" className="w-full h-full object-cover" loading="lazy" />
+            <img src="/Assets/Parvati_Devi_Temple_Panoramic_View_Down_Hill.webp" alt="Sri Parvathi Devi Temple at the foot of the hill" className="w-full h-full object-cover" loading="lazy" />
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
             {[
               { img: '/Assets/Sri_Parvati_Devi_Temple_Arial_View.webp', en: 'Aerial view of the complex', te: 'ఆలయ ప్రాంగణ వైమానిక దృశ్యం' },
               { img: '/Assets/Sri_Parvati_Devi_Temple_Inside_View.webp', en: 'Inside the complex', te: 'ఆలయ లోపలి దృశ్యం' },
-              { img: '/Assets/Parvati_Devi_1.jpg', en: 'Sri Bhramarambha Devi', te: 'శ్రీ భ్రమరాంబ దేవి' },
-              { img: '/Assets/Mallikharjuna_Swamy_Down_Hill_1.jpg', en: 'Sri Mallikarjuna Swamy', te: 'శ్రీ మల్లిఖార్జున స్వామి' },
+              { img: '/Assets/Parvati_Devi_1.webp', en: 'Sri Bhramarambha Devi', te: 'శ్రీ భ్రమరాంబ దేవి' },
+              { img: '/Assets/Mallikharjuna_Swamy_Down_Hill_1.webp', en: 'Sri Mallikarjuna Swamy', te: 'శ్రీ మల్లిఖార్జున స్వామి' },
             ].map((s, i) => (
               <figure key={i}>
                 <div className="aspect-square rounded-xl overflow-hidden bg-[#FDFBF7] border border-[#E6DCCA]">

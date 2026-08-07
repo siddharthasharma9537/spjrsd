@@ -130,7 +130,7 @@ export default function Home() {
             <div className="grid grid-cols-2 gap-3">
               <figure className="col-span-2">
                 <div className="aspect-[16/9] rounded-xl overflow-hidden bg-black/20">
-                  <img src="/Assets/Main_Temple_Full_View_Up_Hill.jpg" alt="The hilltop temple complex at Cheruvugattu" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" loading="lazy" />
+                  <img src="/Assets/Main_Temple_Full_View_Up_Hill.webp" alt="The hilltop temple complex at Cheruvugattu" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" loading="lazy" />
                 </div>
                 <figcaption className="mt-1.5 text-center text-xs text-[#FFE0B2]/50 italic">The kshetram atop Ikshwadri hill</figcaption>
               </figure>
@@ -138,7 +138,7 @@ export default function Home() {
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-[#D4AF37] shadow-[0_0_8px_2px_rgba(212,175,55,0.6)] z-10" aria-hidden="true" />
                 <div className="absolute inset-x-0 top-0 aspect-[3/4] rounded-t-[999px] rounded-b-2xl bg-[radial-gradient(circle_at_50%_35%,rgba(212,175,55,0.35),transparent_70%)] blur-md" aria-hidden="true" />
                 <div className="relative aspect-[3/4] rounded-t-[999px] rounded-b-2xl overflow-hidden border-2 border-[#D4AF37] shadow-[0_0_0_4px_#3D1F0A]">
-                  <img src="/Assets/Lord_Parashurama.jpeg" alt="Lord Parashurama, painted by Raja Ravi Varma" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" loading="lazy" />
+                  <img src="/Assets/Lord_Parashurama.webp" alt="Lord Parashurama, painted by Raja Ravi Varma" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" loading="lazy" />
                 </div>
                 <figcaption className="mt-2 text-center text-xs text-[#FFE0B2]/50 italic">Lord Parashurama, by Raja Ravi Varma</figcaption>
               </figure>
@@ -146,7 +146,7 @@ export default function Home() {
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-[#D4AF37] shadow-[0_0_8px_2px_rgba(212,175,55,0.6)] z-10" aria-hidden="true" />
                 <div className="absolute inset-x-0 top-0 aspect-[3/4] rounded-t-[999px] rounded-b-2xl bg-[radial-gradient(circle_at_50%_35%,rgba(212,175,55,0.35),transparent_70%)] blur-md" aria-hidden="true" />
                 <div className="relative aspect-[3/4] rounded-t-[999px] rounded-b-2xl overflow-hidden border-2 border-[#D4AF37] shadow-[0_0_0_4px_#3D1F0A]">
-                  <img src="/Assets/Sri_Swamy_Varu_1.jpg" alt="Sri Jadala Ramalingeshwara Swamy adorned for puja" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" loading="lazy" />
+                  <img src="/Assets/Sri_Swamy_Varu_1.webp" alt="Sri Jadala Ramalingeshwara Swamy adorned for puja" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" loading="lazy" />
                 </div>
                 <figcaption className="mt-2 text-center text-xs text-[#FFE0B2]/50 italic">Sri Swamy Varu</figcaption>
               </figure>

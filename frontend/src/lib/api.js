@@ -10,7 +10,12 @@ if (!process.env.REACT_APP_BACKEND_URL) {
   console.warn('REACT_APP_BACKEND_URL is not set; API calls will target same-origin /api.');
 }
 
-const api = axios.create({ baseURL: API_URL });
+// Without this, a hung backend (down, crashed, still booting) leaves every
+// "Please wait..." button stuck forever instead of failing into the page's
+// existing error handling - that's what happened when the Render backend
+// stopped responding: the login/register buttons spun for 90+ seconds with
+// no way out.
+const api = axios.create({ baseURL: API_URL, timeout: 20000 });
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');

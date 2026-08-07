@@ -10,24 +10,24 @@ import { useLanguage } from '@/contexts/LanguageContext';
    the temple's own hand-drawn layout maps; do not merge these back into one
    undifferentiated list. */
 const PARIVARA_HILL = [
-  { img: '/Assets/Anjaneya_Swamy_1.jpg', en: 'Sri Anjaneya Swamy', te: 'శ్రీ ఆంజనేయ స్వామి' },
+  { img: '/Assets/Anjaneya_Swamy_1.webp', en: 'Sri Anjaneya Swamy', te: 'శ్రీ ఆంజనేయ స్వామి' },
 ];
 const PARIVARA_FOOTHILL = [
-  { img: '/Assets/Mallikharjuna_Swamy_Down_Hill_1.jpg', en: 'Sri Mallikarjuna Swamy', te: 'శ్రీ మల్లిఖార్జున స్వామి' },
-  { img: '/Assets/Ganapati_Swamy_Down_Hill.jpg', en: 'Sri Ganapati', te: 'శ్రీ గణపతి' },
-  { img: '/Assets/Subrahmanya_Swamy_Down_Hill.jpg', en: 'Sri Subrahmanya Swamy', te: 'శ్రీ సుబ్రహ్మణ్య స్వామి' },
-  { img: '/Assets/Veerabhadra_Swamy_Down_Hill.jpg', en: 'Sri Veerabhadra Swamy', te: 'శ్రీ వీరభద్ర స్వామి' },
-  { img: '/Assets/Bhadrakali_Ammavaru_Down_Hill.jpg', en: 'Sri Bhadrakali Devi', te: 'శ్రీ భద్రకాళీ దేవి' },
+  { img: '/Assets/Mallikharjuna_Swamy_Down_Hill_1.webp', en: 'Sri Mallikarjuna Swamy', te: 'శ్రీ మల్లిఖార్జున స్వామి' },
+  { img: '/Assets/Ganapati_Swamy_Down_Hill.webp', en: 'Sri Ganapati', te: 'శ్రీ గణపతి' },
+  { img: '/Assets/Subrahmanya_Swamy_Down_Hill.webp', en: 'Sri Subrahmanya Swamy', te: 'శ్రీ సుబ్రహ్మణ్య స్వామి' },
+  { img: '/Assets/Veerabhadra_Swamy_Down_Hill.webp', en: 'Sri Veerabhadra Swamy', te: 'శ్రీ వీరభద్ర స్వామి' },
+  { img: '/Assets/Bhadrakali_Ammavaru_Down_Hill.webp', en: 'Sri Bhadrakali Devi', te: 'శ్రీ భద్రకాళీ దేవి' },
 ];
 
 /* Photographs from the annual Brahmotsavams. */
 const BRAHMOTSAVAM = [
-  { img: '/Assets/Brahmotsavam_Dhwajarohanam_1.jpg', en: 'Dhwajarohanam — the flag hoisting that opens the festival', te: 'ధ్వజారోహణం — ఉత్సవ ప్రారంభము' },
-  { img: '/Assets/Brahmotsavam_Pavalimpu_Seva_Decoratin_1.jpg', en: 'Pavalimpu Seva floral decoration', te: 'పవళింపు సేవ పుష్పాలంకరణ' },
-  { img: '/Assets/Brahmotsavam_Pavalimpu_Seva_Decoratin_3.jpg', en: 'Pavalimpu Seva mandapam', te: 'పవళింపు సేవ మండపము' },
-  { img: '/Assets/Brahmotsavam_Alankara_Ganapati_2026.jpg', en: 'Alankara Ganapati', te: 'అలంకార గణపతి' },
-  { img: '/Assets/Utsava_Murthulu_1.jpg', en: 'Utsava Murthulu adorned for procession', te: 'ఉత్సవ మూర్తులు' },
-  { img: '/Assets/Brahmotsavam_Cultural_Dance_1.JPG', en: 'Cultural performances by devotees', te: 'భక్తులచే సాంస్కృతిక కార్యక్రమములు' },
+  { img: '/Assets/Brahmotsavam_Dhwajarohanam_1.webp', en: 'Dhwajarohanam — the flag hoisting that opens the festival', te: 'ధ్వజారోహణం — ఉత్సవ ప్రారంభము' },
+  { img: '/Assets/Brahmotsavam_Pavalimpu_Seva_Decoratin_1.webp', en: 'Pavalimpu Seva floral decoration', te: 'పవళింపు సేవ పుష్పాలంకరణ' },
+  { img: '/Assets/Brahmotsavam_Pavalimpu_Seva_Decoratin_3.webp', en: 'Pavalimpu Seva mandapam', te: 'పవళింపు సేవ మండపము' },
+  { img: '/Assets/Brahmotsavam_Alankara_Ganapati_2026.webp', en: 'Alankara Ganapati', te: 'అలంకార గణపతి' },
+  { img: '/Assets/Utsava_Murthulu_1.webp', en: 'Utsava Murthulu adorned for procession', te: 'ఉత్సవ మూర్తులు' },
+  { img: '/Assets/Brahmotsavam_Cultural_Dance_1.webp', en: 'Cultural performances by devotees', te: 'భక్తులచే సాంస్కృతిక కార్యక్రమములు' },
 ];
 
 /* Telugu copy below is the temple's own wording from the Devasthanam handout;
@@ -56,19 +56,19 @@ const CONTENT = {
   deities: [
     {
       titleEn: 'At the foot of the hill (గట్టు క్రింద)', titleTe: 'గట్టు క్రింద',
-      img: '/Assets/Parvati_Devi_1.jpg', alt: 'Sri Parvathi Devi adorned in silk and garlands',
+      img: '/Assets/Parvati_Devi_1.webp', alt: 'Sri Parvathi Devi adorned in silk and garlands',
       en: 'Sri Bhramarambha Devi (Sri Parvathi Devi), with Sri Mallikarjuna Swamy — a manifestation of the Swamy\'s own Shivalingam — as her consort. Sri Ganapati and Sri Subrahmanya Swamy are worshipped in the connecting Antharaalayam, and Sri Bhadrakali sametha Veerabhadra Swamy in an adjoining shrine of the same complex.',
       te: 'కొండ క్రింద ఆలయములో శ్రీ భ్రమరాంబ దేవి (శ్రీ పార్వతీ అమ్మవారు) కొలువై యుండగా, ఆమె సఖునిగా శ్రీ స్వామివారి శివలింగ స్వరూపమే అయిన శ్రీ మల్లిఖార్జున స్వామి కొలువైయున్నారు. అంతరాళయంలో శ్రీ గణపతి, శ్రీ సుబ్రహ్మణ్య స్వామి, అదే ప్రాంగణంలోని ఉపాలయంలో శ్రీ భద్రకాళీ సమేత వీరభద్ర స్వామి కొలువైయున్నారు.',
     },
     {
       titleEn: 'Atop the hill (గట్టు మీద)', titleTe: 'గట్టు మీద',
-      img: '/Assets/Sri_Swamy_Varu_1.jpg', alt: 'Sri Jadala Ramalingeshwara Swamy adorned for puja',
+      img: '/Assets/Sri_Swamy_Varu_1.webp', alt: 'Sri Jadala Ramalingeshwara Swamy adorned for puja',
       en: 'Sri Ramalingeshwara Swamy, with Sri Anjaneya Swamy and Sri Renuka Yellamma as neighbouring shrines along the hilltop, and Sri Kalabhairava Swamy as Kshetrapalaka (guardian deity) at the entrance of the steps path.',
       te: 'గట్టుమీద శ్రీ స్వామివారికి సమీపముననే శ్రీ ఆంజనేయ స్వామివారు, శ్రీ రేణుకా ఎల్లమ్మ అమ్మవారు ఆలయములు కలవు. మెట్ల మార్గపు ప్రవేశద్వారము వద్ద క్షేత్రపాలకుడుగా శ్రీ కాలభైరవ స్వామివారు కొలువైయున్నారు.',
     },
     {
       titleEn: 'Moodu Gundlu (మూడు గుండ్లు)', titleTe: 'మూడు గుండ్లు',
-      img: '/Assets/Mudu_Gundlu_Shivalingam_6.jpg', alt: 'The Moodu Gundlu Shivalingam beneath a five-hooded naga canopy',
+      img: '/Assets/Mudu_Gundlu_Shivalingam_6.webp', alt: 'The Moodu Gundlu Shivalingam beneath a five-hooded naga canopy',
       en: 'The revered Urdhva Lingam is situated atop three sacred rock pools (Moodu Gundlu). Devotees believe that climbing to worship here removes sins and hardships.',
       te: 'అతి ప్రశస్తమైన మూడు గుండ్లపై ఊర్ధ్వలింగము కొలువైయుండి భక్తుల మనోభీష్టాలను నెరవేరుస్తుంది. మూడుగుండ్లు ఎక్కి శ్రీ స్వామివారిని దర్శించుకోవడం ద్వారా సమస్త పాపభీతి, కష్టాలు తొలగిపోతాయని నమ్మకం.',
     },

@@ -186,7 +186,7 @@ export default function Donations() {
                     same image displayed at the temple counter. */}
                 <div className="flex flex-col items-center bg-white border border-[#E6DCCA] rounded-xl p-3 mb-3">
                   <img
-                    src="/Assets/bank-of-baroda-upi-qr.jpg"
+                    src="/Assets/bank-of-baroda-upi-qr.webp"
                     alt={`Official Bank of Baroda UPI QR code for ${TEMPLE_UPI_PAYEE}`}
                     className="w-full max-w-[240px] h-auto rounded-lg"
                     loading="lazy"

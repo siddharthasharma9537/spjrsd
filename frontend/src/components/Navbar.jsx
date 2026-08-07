@@ -99,7 +99,7 @@ export default function Navbar() {
               </span>
             </Link>
             <span className="hidden md:flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-2 border-[#D4AF37] bg-gradient-to-b from-[#7A2400] to-[#3D1000] shadow-lg overflow-hidden">
-              <img src="/Assets/Sri_Swamy_Varu_1.jpg" alt="Sri Jadala Ramalingeshwara Swamy" className="h-full w-full object-cover" />
+              <img src="/Assets/Sri_Swamy_Varu_1.webp" alt="Sri Jadala Ramalingeshwara Swamy" className="h-full w-full object-cover" />
             </span>
           </div>
         </div>
