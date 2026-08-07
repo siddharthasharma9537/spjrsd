@@ -9,8 +9,8 @@ const slides = [
   { title: 'Ikshwadri — The Sacred Hill', subtitle: 'ఇక్ష్వాద్రి — పవిత్ర గిరి', desc: 'The steps path rising to the Swamy, guarded by Sri Ganapati', cta: { label: 'Temples of the Kshetram', to: '/temples' }, image: '/Assets/Ikshwadri_Hill_2.webp' },
   { title: 'Sri Jadala Ramalingeshwara Swamy', subtitle: 'శ్రీ జడల రామలింగేశ్వర స్వామి', desc: 'The 108th and final Shiva Linga consecrated by Lord Parashurama', cta: { label: 'Book Seva', to: '/sevas' }, image: '/Assets/Sri_Swamy_Varu_Alankarm_1.webp' },
   { title: 'Sri Mallikarjuna Swamy', subtitle: 'శ్రీ మల్లిఖార్జున స్వామి', desc: 'Consort of Sri Bhramarambha Devi, at the foot of the hill', cta: { label: 'Temple History', to: '/temples' }, image: '/Assets/Mallikharjuna_Swamy_Down_Hill_2_Close_Up.webp' },
-  { title: 'Moodu Gundlu', subtitle: 'మూడు గుండ్లు', desc: 'The revered Urdhva Lingam atop the three sacred rock pools', cta: { label: 'Read More', to: '/temples' }, image: '/Assets/Mudu_Gundlu_Shivalingam_4.webp' },
-  { title: 'Sri Bhramarambha Devi', subtitle: 'శ్రీ భ్రమరాంబ దేవి', desc: 'Sri Parvathi Devi, at her shrine at the foot of the hill', cta: { label: 'Temple History', to: '/temples' }, image: '/Assets/Parvati_Devi_1.webp' },
+  { title: 'Moodu Gundlu', subtitle: 'మూడు గుండ్లు', desc: 'The revered Urdhva Lingam atop the three sacred rock pools', cta: { label: 'Read More', to: '/temples' }, image: '/Assets/Mudu_Gundlu_Shivalingam_4.webp', focus: '50% 45%' },
+  { title: 'Sri Bhramarambha Devi', subtitle: 'శ్రీ భ్రమరాంబ దేవి', desc: 'Sri Parvathi Devi, at her shrine at the foot of the hill', cta: { label: 'Temple History', to: '/temples' }, image: '/Assets/Parvati_Devi_1.webp', focus: '50% 16%' },
   { title: 'Sri Maha Ganapati', subtitle: 'శ్రీ మహా గణపతి', desc: 'Adorned in floral alankaram during the festival days', cta: { label: 'View Gallery', to: '/gallery' }, image: '/Assets/Decorated_Ganapati.webp' },
   { title: 'Vaarshika Brahmotsavams', subtitle: 'వార్షిక బ్రహ్మోత్సవములు', desc: 'Five days of Kalyanotsavams drawing nearly five lakh devotees', cta: { label: 'View News', to: '/news' }, image: '/Assets/Brahmotsavama_Kalyana_Murthulu_3.webp' },
   { title: 'Swamy Vari Kalyanam', subtitle: 'స్వామివారి కళ్యాణం', desc: 'The Kalyana Murthulu adorned for the celestial marriage', cta: { label: 'Book Seva', to: '/sevas' }, image: '/Assets/Kalyana_Murthulu.webp' },
@@ -38,7 +38,15 @@ export default function HeroCarousel() {
       {slides.map((s, i) => (
         <div key={i} className={`absolute inset-0 transition-opacity duration-1000 ${i === current ? 'opacity-100' : 'opacity-0'}`}>
           {s.image
-            ? <img src={s.image} alt={s.title} className="w-full h-full object-cover" loading={i === 0 ? 'eager' : 'lazy'} />
+            ? <img
+                src={s.image}
+                alt={s.title}
+                className="w-full h-full object-cover"
+                /* Portrait shots crop to a narrow band in this wide frame, so each
+                   slide can pull the crop up to keep the deity's face in view. */
+                style={{ objectPosition: s.focus || 'center' }}
+                loading={i === 0 ? 'eager' : 'lazy'}
+              />
             : <div className="w-full h-full temple-gradient" />}
           {/* Overlay is tuned for the light-toned temple artwork - the gold Telugu
               subtitle needs contrast even over the brightest part of the image. */}
