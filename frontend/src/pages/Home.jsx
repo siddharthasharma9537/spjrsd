@@ -126,7 +126,7 @@ export default function Home() {
                 <div className="aspect-[3/4] rounded-xl overflow-hidden bg-black/20">
                   <img src="/Assets/Lord_Parashurama.jpeg" alt="Lord Parashurama, painted by Raja Ravi Varma" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" loading="lazy" />
                 </div>
-                <figcaption className="mt-1.5 text-center text-xs text-[#FFE0B2]/50 italic">Raja Ravi Varma</figcaption>
+                <figcaption className="mt-1.5 text-center text-xs text-[#FFE0B2]/50 italic">Lord Parashurama, by Raja Ravi Varma</figcaption>
               </figure>
               <figure>
                 <div className="aspect-[3/4] rounded-xl overflow-hidden bg-black/20">
