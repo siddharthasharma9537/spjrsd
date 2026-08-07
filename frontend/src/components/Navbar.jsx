@@ -64,14 +64,6 @@ export default function Navbar() {
 
   return (
     <nav className="bg-[#621B00] text-white sticky top-0 z-50 shadow-lg" data-testid="navbar">
-      <div
-        aria-hidden="true"
-        className="h-1.5 w-full"
-        style={{
-          backgroundColor: '#3D1F0A',
-          backgroundImage: 'repeating-linear-gradient(45deg, #D4AF37 0, #D4AF37 4px, transparent 4px, transparent 10px)',
-        }}
-      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between min-h-[3rem] py-2">
           <Link to="/" className="flex items-center gap-2.5 shrink-0">
