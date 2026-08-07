@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Flame, Menu, X, ChevronDown } from 'lucide-react';
+import { Flame, Menu, X, ChevronDown, Home } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 const navGroups = [
@@ -108,13 +108,12 @@ export default function Navbar() {
       {/* Menu bar - sticks to the top once the title scrolls past */}
       <div className="bg-gradient-to-b from-[#B22F30] to-[#7B0406] text-white sticky top-0 z-50 shadow-lg border-y border-[#D4AF37]/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between lg:justify-center min-h-[2.75rem]">
-            {/* Compact wordmark, shown only once the banner has scrolled away */}
-            <Link to="/" className="lg:hidden font-english-heading text-[11px] tracking-wide uppercase py-2">
-              SPJRS Devasthanam
-            </Link>
+          <div className="flex items-center justify-end lg:justify-center min-h-[2.75rem]">
             {/* Desktop */}
             <div className="hidden lg:flex items-center text-xs divide-x divide-white/15">
+              <Link to="/" className="flex items-center gap-1.5 px-3 py-2.5 hover:bg-white/10 transition-colors whitespace-nowrap" data-testid="nav-home">
+                <Home className="h-3.5 w-3.5" /> Home
+              </Link>
               {navGroups.map((g, i) => (
                 g.children ? <Dropdown key={i} label={g.label} children={g.children} /> : <Link key={i} to={g.to} className="px-3 py-2.5 hover:bg-white/10 transition-colors whitespace-nowrap">{g.label}</Link>
               ))}
@@ -145,6 +144,9 @@ export default function Navbar() {
         </div>
       {mobileOpen && (
         <div className="lg:hidden bg-[#3D1F0A] border-t border-[#5D4037]/30 px-4 py-3 space-y-1 text-sm max-h-[70vh] overflow-y-auto">
+          <Link to="/" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 rounded">
+            <Home className="h-4 w-4" /> Home
+          </Link>
           {navGroups.map((g, i) => (
             g.children ? (
               <div key={i}>
