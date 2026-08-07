@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Flame, Menu, X, ChevronDown, Home } from 'lucide-react';
+import { Menu, X, ChevronDown, Home } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 const navGroups = [
@@ -84,9 +84,12 @@ export default function Navbar() {
       <div className="bg-gradient-to-b from-[#7A2400] via-[#621B00] to-[#4A1400] text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6">
           <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-6">
-            <span className="flex h-12 w-12 md:h-20 md:w-20 shrink-0 items-center justify-center rounded-full border-2 border-[#D4AF37] bg-gradient-to-b from-[#7A2400] to-[#3D1000] shadow-lg">
-              <Flame className="h-6 w-6 md:h-10 md:w-10 text-[#D4AF37]" />
-            </span>
+            {/* Transparent-background logo, so the maroon banner shows through */}
+            <img
+              src="/Assets/Temple_Logo_Transparent.webp"
+              alt="Sri Jadala Ramalingeshwara Swamy"
+              className="h-14 w-14 md:h-24 md:w-24 shrink-0 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+            />
             <Link to="/" className="text-center leading-tight">
               <span className="block font-telugu-heading text-base md:text-3xl text-[#F5D061] drop-shadow-[0_2px_3px_rgba(0,0,0,0.5)]">
                 శ్రీ పార్వతీ జడల రామలింగేశ్వర స్వామి దేవస్థానం
@@ -99,7 +102,7 @@ export default function Navbar() {
               </span>
             </Link>
             <span className="hidden md:flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-2 border-[#D4AF37] bg-gradient-to-b from-[#7A2400] to-[#3D1000] shadow-lg overflow-hidden">
-              <img src="/Assets/Sri_Swamy_Varu_1.webp" alt="Sri Jadala Ramalingeshwara Swamy" className="h-full w-full object-cover" />
+              <img src="/Assets/Parvati_Devi_1.webp" alt="Sri Bhramarambha Devi (Sri Parvathi Devi)" className="h-full w-full object-cover object-top" />
             </span>
           </div>
         </div>
