@@ -16,6 +16,7 @@ import DonationReceipt from "@/pages/DonationReceipt";
 import Accommodation from "@/pages/Accommodation";
 import AccommodationBooking from "@/pages/AccommodationBooking";
 import AboutTemple from "@/pages/AboutTemple";
+import Temples from "@/pages/Temples";
 import Gallery from "@/pages/Gallery";
 import TicketLookup from "@/pages/TicketLookup";
 import NewsPage from "@/pages/NewsPage";
@@ -57,6 +58,7 @@ function ProtectedAdmin({ children }) {
 const ROUTE_META = [
   ['/admin', { title: 'Staff Area', noIndex: true }],
   ['/about', { title: 'Sthala Puranam & Temple History', description: 'The legend of the 108th Parashurama Linga at Cheruvugattu, temple deities, Arogya Kshetram, Amavasya Jatara, festivals and how to reach the temple.' }],
+  ['/temples', { title: 'Temples of the Kshetram', description: 'Every temple of Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam - the hilltop shrines, Sri Parvathi Devi Temple, Sri Narasimha Swamy Temple, and Sri Swamy Vari Padalu at Yellareddigudem.' }],
   ['/sevas', { title: 'Seva Booking', description: 'Book Abhishekam, Kalyanam, Archana and other sevas online at Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu.' }],
   ['/paroksha-seva', { title: 'Paroksha Seva', description: 'Book a seva remotely and have it performed in your name at the temple, without travelling to Cheruvugattu.' }],
   ['/donations/annaprasadam', { title: 'AnnaPrasadam Donation', description: 'Sponsor Annadanam for pilgrims at Cheruvugattu temple. Permanent Nitya Annadanam scheme from Rs. 1,116. 80G receipt issued.' }],
@@ -134,6 +136,7 @@ function App() {
           <Route path="/auth/sign-in" element={<DevoteeAuth />} />
           <Route path="/auth/sign-up" element={<DevoteeAuth isRegister />} />
           <Route path="/about" element={<AboutTemple />} />
+          <Route path="/temples" element={<Temples />} />
           <Route path="/sevas" element={<SevaList />} />
           <Route path="/sevas/pratyaksha" element={<SevaList />} />
           <Route path="/sevas/paroksha" element={<SevaList paroksha />} />

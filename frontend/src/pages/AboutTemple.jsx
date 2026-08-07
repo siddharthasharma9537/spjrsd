@@ -5,14 +5,19 @@ import { MapPin, Clock, Phone, Calendar } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLanguage } from '@/contexts/LanguageContext';
 
-/* Parivara devatas photographed at the Ammavaru shrine at the foot of the hill. */
-const PARIVARA = [
-  { img: '/Assets/Mallikharjuna_Swamy_Down_Hill_1.jpg', en: 'Sri Mallikarjuna Swamy', te: 'శ్రీ మల్లిఖార్జున స్వామి' },
-  { img: '/Assets/Subrahmanya_Swamy_Down_Hill.jpg', en: 'Sri Subrahmanya Swamy', te: 'శ్రీ సుబ్రహ్మణ్య స్వామి' },
-  { img: '/Assets/Bhadrakali_Ammavaru_Down_Hill.jpg', en: 'Sri Bhadrakali Ammavaru', te: 'శ్రీ భద్రకాళీ అమ్మవారు' },
-  { img: '/Assets/Veerabhadra_Swamy_Down_Hill.jpg', en: 'Sri Veerabhadra Swamy', te: 'శ్రీ వీరభద్ర స్వామి' },
-  { img: '/Assets/Ganapati_Swamy_Down_Hill.jpg', en: 'Sri Vighneshwara Swamy', te: 'శ్రీ విఘ్నేశ్వర స్వామి' },
+/* Parivara devatas, grouped by their actual location - the foot-of-hill group
+   (Sri Parvathi Devi Temple complex) and the hilltop group. Confirmed against
+   the temple's own hand-drawn layout maps; do not merge these back into one
+   undifferentiated list. */
+const PARIVARA_HILL = [
   { img: '/Assets/Anjaneya_Swamy_1.jpg', en: 'Sri Anjaneya Swamy', te: 'శ్రీ ఆంజనేయ స్వామి' },
+];
+const PARIVARA_FOOTHILL = [
+  { img: '/Assets/Mallikharjuna_Swamy_Down_Hill_1.jpg', en: 'Sri Mallikarjuna Swamy', te: 'శ్రీ మల్లిఖార్జున స్వామి' },
+  { img: '/Assets/Ganapati_Swamy_Down_Hill.jpg', en: 'Sri Ganapati', te: 'శ్రీ గణపతి' },
+  { img: '/Assets/Subrahmanya_Swamy_Down_Hill.jpg', en: 'Sri Subrahmanya Swamy', te: 'శ్రీ సుబ్రహ్మణ్య స్వామి' },
+  { img: '/Assets/Veerabhadra_Swamy_Down_Hill.jpg', en: 'Sri Veerabhadra Swamy', te: 'శ్రీ వీరభద్ర స్వామి' },
+  { img: '/Assets/Bhadrakali_Ammavaru_Down_Hill.jpg', en: 'Sri Bhadrakali Devi', te: 'శ్రీ భద్రకాళీ దేవి' },
 ];
 
 /* Photographs from the annual Brahmotsavams. */
@@ -52,14 +57,14 @@ const CONTENT = {
     {
       titleEn: 'At the foot of the hill (గట్టు క్రింద)', titleTe: 'గట్టు క్రింద',
       img: '/Assets/Parvati_Devi_1.jpg', alt: 'Sri Parvathi Devi adorned in silk and garlands',
-      en: 'Sri Parvathi Devi\'s shrine, with Sri Mallikarjuna Swamy, Subrahmanya Swamy, and Sri Bhadrakali Veerabhadra Swamy as parivara devatas.',
-      te: 'కొండ క్రింద ఆలయములో శ్రీ పార్వతీ అమ్మవారు కొలువై, పరివార దేవతలుగా శ్రీ మల్లిఖార్జున స్వామి, సుబ్రహ్మణ్య స్వామి, శ్రీ భద్రకాళీ వీరభద్ర స్వామి కొలువైయున్నారు.',
+      en: 'Sri Bhramarambha Devi (Sri Parvathi Devi), with Sri Mallikarjuna Swamy — a manifestation of the Swamy\'s own Shivalingam — as her consort. Sri Ganapati and Sri Subrahmanya Swamy are worshipped in the connecting Antharaalayam, and Sri Bhadrakali sametha Veerabhadra Swamy in an adjoining shrine of the same complex.',
+      te: 'కొండ క్రింద ఆలయములో శ్రీ భ్రమరాంబ దేవి (శ్రీ పార్వతీ అమ్మవారు) కొలువై యుండగా, ఆమె సఖునిగా శ్రీ స్వామివారి శివలింగ స్వరూపమే అయిన శ్రీ మల్లిఖార్జున స్వామి కొలువైయున్నారు. అంతరాళయంలో శ్రీ గణపతి, శ్రీ సుబ్రహ్మణ్య స్వామి, అదే ప్రాంగణంలోని ఉపాలయంలో శ్రీ భద్రకాళీ సమేత వీరభద్ర స్వామి కొలువైయున్నారు.',
     },
     {
       titleEn: 'Atop the hill (గట్టు మీద)', titleTe: 'గట్టు మీద',
       img: '/Assets/Sri_Swamy_Varu_1.jpg', alt: 'Sri Jadala Ramalingeshwara Swamy adorned for puja',
-      en: 'Sri Ramalingeshwara Swamy, with Sri Vighneshwara Swamy, Sri Anjaneya Swamy, and Sri Yellamma Amma Vari as parivara devatas, and Sri Kalabhairava Swamy as Kshetrapalaka (guardian deity).',
-      te: 'గట్టుమీద శ్రీ స్వామివారికి పరివార దేవతలుగా శ్రీ విఘ్నేశ్వర స్వామివారు, శ్రీ ఆంజనేయ స్వామివారు, శ్రీ ఎల్లమ్మ అమ్మవారు మరియు క్షేత్రపాలకుడుగా శ్రీ కాలభైరవ స్వామివారు కొలువైయున్నారు.',
+      en: 'Sri Ramalingeshwara Swamy, with Sri Anjaneya Swamy and Sri Renuka Yellamma as neighbouring shrines along the hilltop, and Sri Kalabhairava Swamy as Kshetrapalaka (guardian deity) at the entrance of the steps path.',
+      te: 'గట్టుమీద శ్రీ స్వామివారికి సమీపముననే శ్రీ ఆంజనేయ స్వామివారు, శ్రీ రేణుకా ఎల్లమ్మ అమ్మవారు ఆలయములు కలవు. మెట్ల మార్గపు ప్రవేశద్వారము వద్ద క్షేత్రపాలకుడుగా శ్రీ కాలభైరవ స్వామివారు కొలువైయున్నారు.',
     },
     {
       titleEn: 'Moodu Gundlu (మూడు గుండ్లు)', titleTe: 'మూడు గుండ్లు',
@@ -108,9 +113,9 @@ const CONTENT = {
     { labelEn: 'Swamy Vari Pushkarini', labelTe: 'స్వామివారి పుష్కరిణి',
       en: 'Devotees bathe in the temple\'s sacred pushkarini before darshan of the deity.',
       te: 'ఈ దేవాలయానికి విచ్చేసిన ప్రతి భక్తుడూ ఈ పుష్కరిణిలో స్నానం చేసి పవిత్రమై స్వామివారిని దర్శించుకోవటం ఆచారం.' },
-    { labelEn: 'Swamy Vari Padalu', labelTe: 'స్వామివారి పాదాలు',
-      en: 'At the Swamy\'s footprints atop the hill, devotees perform 11, 21, or 41 pradakshinas as an act of devotion.',
-      te: 'గుట్టపైన శ్రీ స్వామివారి పాదాల వద్ద భక్తులు 11, 21 మరియు 41 ప్రదక్షిణలు చేసి భక్తిని చాటుకుంటారు.' },
+    { labelEn: 'Swamy Vari Padalu (Hilltop)', labelTe: 'స్వామివారి పాదాలు (గట్టుపైన)',
+      en: 'At the Swamy\'s footprints atop the hill, devotees perform 11, 21, or 41 pradakshinas as an act of devotion. A second Swamy Vari Padalu shrine stands separately at Yellareddigudem village, on the main road before Cheruvugattu.',
+      te: 'గుట్టపైన శ్రీ స్వామివారి పాదాల వద్ద భక్తులు 11, 21 మరియు 41 ప్రదక్షిణలు చేసి భక్తిని చాటుకుంటారు. చెరువుగట్టుకు ముందు యెల్లారెడ్డిగూడెం గ్రామంలో ప్రధాన రహదారిపై మరొక స్వామివారి పాదాల ఆలయం వేరుగా కలదు.' },
     { labelEn: 'Moodu Gundlu', labelTe: 'భక్తుల కడగండ్లు తీర్చే మూడుగుండ్లు',
       en: 'Climbing the three sacred rock pools to seek the Swamy\'s darshan is believed to relieve devotees of sin and suffering.',
       te: 'మూడుగుండ్లు ఎక్కి శ్రీ స్వామివారిని దర్శించుకోవడం ద్వారా సమస్త పాపభీతి, కష్టాలు తొలగిపోతాయని నమ్మకం.' },
@@ -319,13 +324,31 @@ export default function AboutTemple() {
             ))}
           </div>
 
-          {/* Parivara devatas of the Ammavaru shrine at the foot of the hill */}
+          {/* Parivara devatas, split by their actual location on the hill vs. at its foot */}
           <div className="mt-8">
             <p className={`text-sm font-medium text-[#2D1B0E] mb-3 ${te ? 'font-telugu-heading' : ''}`}>
-              {te ? 'పరివార దేవతలు' : 'Parivara Devatas'}
+              {te ? 'పరివార దేవతలు — గట్టుమీద' : 'Parivara Devatas — Atop the Hill'}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              {PARIVARA.map((p, i) => (
+              {PARIVARA_HILL.map((p, i) => (
+                <figure key={i}>
+                  <div className="aspect-square rounded-xl overflow-hidden bg-[#FDFBF7] border border-[#E6DCCA]">
+                    <img src={p.img} alt={p.en} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" loading="lazy" />
+                  </div>
+                  <figcaption className={`mt-1.5 text-center text-xs text-[#8D6E63] ${te ? 'font-telugu-body' : ''}`}>
+                    {te ? p.te : p.en}
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-8">
+            <p className={`text-sm font-medium text-[#2D1B0E] mb-3 ${te ? 'font-telugu-heading' : ''}`}>
+              {te ? 'పరివార దేవతలు — గట్టు క్రింద' : 'Parivara Devatas — At the Foot of the Hill'}
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              {PARIVARA_FOOTHILL.map((p, i) => (
                 <figure key={i}>
                   <div className="aspect-square rounded-xl overflow-hidden bg-[#FDFBF7] border border-[#E6DCCA]">
                     <img src={p.img} alt={p.en} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" loading="lazy" />
