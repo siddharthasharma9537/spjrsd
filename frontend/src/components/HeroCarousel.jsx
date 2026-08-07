@@ -14,6 +14,7 @@ const slides = [
   { title: 'Sri Maha Ganapati', subtitle: 'శ్రీ మహా గణపతి', desc: 'Adorned in floral alankaram during the festival days', cta: { label: 'View Gallery', to: '/gallery' }, image: '/Assets/Decorated_Ganapati.webp' },
   { title: 'Vaarshika Brahmotsavams', subtitle: 'వార్షిక బ్రహ్మోత్సవములు', desc: 'Five days of Kalyanotsavams drawing nearly five lakh devotees', cta: { label: 'View News', to: '/news' }, image: '/Assets/Brahmotsavama_Kalyana_Murthulu_3.webp' },
   { title: 'Swamy Vari Kalyanam', subtitle: 'స్వామివారి కళ్యాణం', desc: 'The Kalyana Murthulu adorned for the celestial marriage', cta: { label: 'Book Seva', to: '/sevas' }, image: '/Assets/Kalyana_Murthulu.webp' },
+  { title: 'Amavasya Laksha Pushparchana', subtitle: 'అమావాస్య లక్ష పుష్పార్చన', desc: 'A lakh of flowers offered to the Swamy every Amavasya evening', cta: { label: 'Festivals & Jatara', to: '/about#festivals' }, image: '/Assets/Amavasya_Laksha_Pushaparchana_2.webp' },
   { title: 'Cheruvugattu Kshetram', subtitle: 'చెరువుగట్టు క్షేత్రము', desc: 'Cheruvugattu, Narketpally Mandal, Nalgonda, Telangana', cta: { label: 'Plan Your Visit', to: '/about' }, image: '/Assets/Ikshwadri_Hill.webp' },
 ];
 
