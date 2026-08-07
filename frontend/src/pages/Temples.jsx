@@ -67,6 +67,27 @@ export default function Temples() {
             </div>
           </div>
 
+          {/* Shrines along the hill, in the order a devotee encounters them */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
+            {[
+              { img: '/Assets/Steps_Way_Entrance.webp', en: 'Steps Path entrance', te: 'మెట్ల మార్గ ప్రవేశము' },
+              { img: '/Assets/Sri_Kalabhairava_Swamy.webp', en: 'Sri Kalabhairava Swamy', te: 'శ్రీ కాలభైరవ స్వామి' },
+              { img: '/Assets/Sri__Renuka_Yellmma_Temple_Back_View.webp', en: 'Sri Renuka Yellamma Temple', te: 'శ్రీ రేణుకా ఎల్లమ్మ ఆలయం' },
+              { img: '/Assets/Sri_Anjaneya_Swamy_Temple.webp', en: 'Sri Anjaneya Swamy Temple', te: 'శ్రీ ఆంజనేయ స్వామి ఆలయం' },
+              { img: '/Assets/Main_Temple_Entrance.webp', en: 'Main Temple entrance', te: 'ప్రధాన ఆలయ ప్రవేశము' },
+              { img: '/Assets/Main_Temple_Gopuram.webp', en: 'Main Temple Gopuram', te: 'ప్రధాన ఆలయ గోపురం' },
+              { img: '/Assets/Sri_Swamy_Vari_Pushkarini_1.webp', en: 'Swamy Vari Pushkarini', te: 'స్వామివారి పుష్కరిణి' },
+              { img: '/Assets/Sri_Swamy_Vari_Padalu_Area.webp', en: 'Swamy Vari Padalu', te: 'స్వామివారి పాదాలు' },
+            ].map((s, i) => (
+              <figure key={i}>
+                <div className="aspect-square rounded-xl overflow-hidden bg-[#FDFBF7] border border-[#E6DCCA]">
+                  <img src={s.img} alt={s.en} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" loading="lazy" />
+                </div>
+                <figcaption className="mt-1.5 text-center text-xs text-[#8D6E63]">{t(s.en, s.te)}</figcaption>
+              </figure>
+            ))}
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-[#5D4037]">
             <div>
               <div className="aspect-[4/3] rounded-xl overflow-hidden mb-3 bg-[#FDFBF7] border border-[#E6DCCA]">
@@ -78,7 +99,14 @@ export default function Temples() {
               </p>
             </div>
             <div>
-              <p className="font-medium text-[#2D1B0E] mb-1">{t('Swamy Vari Pushkarini & Gowgarbham', 'స్వామివారి పుష్కరిణి & గోగర్భం')}</p>
+              <div className="aspect-[4/3] rounded-xl overflow-hidden mb-3 bg-[#FDFBF7] border border-[#E6DCCA]">
+                <img src="/Assets/Kalyana_Mandapam.webp" alt="The Kalyana Mandapam on the hill" className="w-full h-full object-cover" loading="lazy" />
+              </div>
+              <p className="font-medium text-[#2D1B0E] mb-1">{t('Kalyana Mandapam', 'కళ్యాణ మండపము')}</p>
+              <p className="leading-relaxed">
+                {t('South of Mudu Gundlu, near the Main Temple entrance and the walkway from the parking area.', 'మూడుగుండ్లకు దక్షిణాన, ప్రధాన ఆలయ ప్రవేశద్వారము మరియు పార్కింగ్ నుండి వచ్చు నడక మార్గమునకు సమీపమున కలదు.')}
+              </p>
+              <p className="font-medium text-[#2D1B0E] mt-4 mb-1">{t('Swamy Vari Pushkarini & Gowgarbham', 'స్వామివారి పుష్కరిణి & గోగర్భం')}</p>
               <p className="leading-relaxed">
                 {t(
                   'Near the top of the Steps Path stands the Pushkarini, the temple\'s sacred tank, with Gowgarbham adjoining it.',
@@ -101,8 +129,24 @@ export default function Temples() {
           <h2 className={`${heading} text-xl text-[#621B00] mb-1`}>{t('Sri Parvathi Devi Temple', 'శ్రీ పార్వతీ దేవి ఆలయం')}</h2>
           <p className="text-xs text-[#8D6E63] mb-4 flex items-center gap-1"><MapPin className="h-3 w-3" /> {t('At the foot of the hill', 'గట్టు క్రింద')}</p>
 
-          <div className="aspect-[16/9] rounded-xl overflow-hidden mb-4 bg-[#FDFBF7] border border-[#E6DCCA]">
+          <div className="aspect-[16/9] rounded-xl overflow-hidden mb-3 bg-[#FDFBF7] border border-[#E6DCCA]">
             <img src="/Assets/Parvati_Devi_Temple_Panoramic_View_Down_Hill.jpg" alt="Sri Parvathi Devi Temple at the foot of the hill" className="w-full h-full object-cover" loading="lazy" />
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+            {[
+              { img: '/Assets/Sri_Parvati_Devi_Temple_Arial_View.webp', en: 'Aerial view of the complex', te: 'ఆలయ ప్రాంగణ వైమానిక దృశ్యం' },
+              { img: '/Assets/Sri_Parvati_Devi_Temple_Inside_View.webp', en: 'Inside the complex', te: 'ఆలయ లోపలి దృశ్యం' },
+              { img: '/Assets/Parvati_Devi_1.jpg', en: 'Sri Bhramarambha Devi', te: 'శ్రీ భ్రమరాంబ దేవి' },
+              { img: '/Assets/Mallikharjuna_Swamy_Down_Hill_1.jpg', en: 'Sri Mallikarjuna Swamy', te: 'శ్రీ మల్లిఖార్జున స్వామి' },
+            ].map((s, i) => (
+              <figure key={i}>
+                <div className="aspect-square rounded-xl overflow-hidden bg-[#FDFBF7] border border-[#E6DCCA]">
+                  <img src={s.img} alt={s.en} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" loading="lazy" />
+                </div>
+                <figcaption className="mt-1.5 text-center text-xs text-[#8D6E63]">{t(s.en, s.te)}</figcaption>
+              </figure>
+            ))}
           </div>
 
           <p className="text-sm text-[#5D4037] leading-relaxed mb-4">
