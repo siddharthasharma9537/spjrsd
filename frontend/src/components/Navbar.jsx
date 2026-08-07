@@ -32,28 +32,44 @@ const navGroups = [
   ]},
 ];
 
+/* Opens on hover (with a short close delay so the cursor can travel from the
+   trigger into the panel), and still opens on click/keyboard focus for touch
+   and accessibility. */
 function Dropdown({ label, children }) {
   const [open, setOpen] = useState(false);
   const ref = useRef();
+  const closeTimer = useRef();
+
+  const openNow = () => { clearTimeout(closeTimer.current); setOpen(true); };
+  const closeSoon = () => { clearTimeout(closeTimer.current); closeTimer.current = setTimeout(() => setOpen(false), 180); };
 
   useEffect(() => {
     const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    return () => { document.removeEventListener('mousedown', handler); clearTimeout(closeTimer.current); };
   }, []);
 
   return (
-    <div className="relative" ref={ref}>
-      <button onClick={() => setOpen(!open)} className="flex items-center gap-1 px-2 py-1.5 rounded hover:bg-white/10 transition-colors text-xs whitespace-nowrap">
-        {label} <ChevronDown className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`} />
+    <div className="relative" ref={ref} onMouseEnter={openNow} onMouseLeave={closeSoon}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        onFocus={openNow}
+        aria-expanded={open}
+        aria-haspopup="true"
+        className={`flex items-center gap-1 px-3 py-2.5 transition-colors text-xs whitespace-nowrap ${open ? 'bg-white/10' : 'hover:bg-white/10'}`}
+      >
+        {label} <ChevronDown className={`h-3 w-3 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
       </button>
-      {open && (
-        <div className="absolute top-full left-0 mt-1 bg-white border border-[#E6DCCA] rounded-lg shadow-xl py-1 min-w-[180px] z-50">
-          {children.map((c, i) => (
-            <Link key={i} to={c.to} onClick={() => setOpen(false)} className="block px-4 py-2 text-xs text-[#5D4037] hover:bg-[#C43E00]/5 hover:text-[#C43E00] transition-colors">{c.label}</Link>
-          ))}
-        </div>
-      )}
+      {/* Kept mounted so the panel can ease in and out rather than snapping. */}
+      <div
+        className={`absolute top-full left-0 bg-white border border-[#E6DCCA] rounded-b-lg shadow-xl py-1 min-w-[190px] z-50 origin-top transition-all duration-300 ease-out ${
+          open ? 'opacity-100 translate-y-0 visible' : 'opacity-0 -translate-y-1.5 invisible'
+        }`}
+      >
+        {children.map((c, i) => (
+          <Link key={i} to={c.to} onClick={() => setOpen(false)} className="block px-4 py-2 text-xs text-[#5D4037] hover:bg-[#C43E00]/5 hover:text-[#C43E00] transition-colors">{c.label}</Link>
+        ))}
+      </div>
     </div>
   );
 }
@@ -63,53 +79,70 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <nav className="bg-[#621B00] text-white sticky top-0 z-50 shadow-lg" data-testid="navbar">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between min-h-[3rem] py-2">
-          <Link to="/" className="flex items-center gap-2.5 shrink-0">
-            <span className="flex h-9 w-9 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-full border-2 border-[#D4AF37] bg-gradient-to-b from-[#7A2400] to-[#4A1400] shadow-inner">
-              <Flame className="h-4 w-4 lg:h-5 lg:w-5 text-[#D4AF37]" />
+    <nav data-testid="navbar">
+      {/* Title banner - centred, scrolls away with the page */}
+      <div className="bg-gradient-to-b from-[#7A2400] via-[#621B00] to-[#4A1400] text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-6">
+            <span className="flex h-12 w-12 md:h-20 md:w-20 shrink-0 items-center justify-center rounded-full border-2 border-[#D4AF37] bg-gradient-to-b from-[#7A2400] to-[#3D1000] shadow-lg">
+              <Flame className="h-6 w-6 md:h-10 md:w-10 text-[#D4AF37]" />
             </span>
-            <span className="flex flex-col leading-tight">
-              <span className="font-english-heading text-[11px] sm:text-xs lg:text-sm tracking-wide uppercase">
-                <span className="lg:hidden">Sri Parvathi Jadala Devasthanam</span>
-                <span className="hidden lg:inline">Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam</span>
-              </span>
-              <span className="hidden sm:block font-telugu-heading text-[10px] lg:text-xs text-[#D4AF37]/80 mt-0.5">
+            <Link to="/" className="text-center leading-tight">
+              <span className="block font-telugu-heading text-base md:text-3xl text-[#F5D061] drop-shadow-[0_2px_3px_rgba(0,0,0,0.5)]">
                 శ్రీ పార్వతీ జడల రామలింగేశ్వర స్వామి దేవస్థానం
               </span>
+              <span className="block font-english-heading text-[11px] sm:text-sm md:text-xl tracking-[0.12em] uppercase text-[#FFF3D6] mt-1 md:mt-1.5">
+                Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam
+              </span>
+              <span className="block font-telugu-body text-[10px] md:text-sm text-[#FFE0B2]/70 mt-1">
+                చెరువుగట్టు, నల్లగొండ జిల్లా
+              </span>
+            </Link>
+            <span className="hidden md:flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-2 border-[#D4AF37] bg-gradient-to-b from-[#7A2400] to-[#3D1000] shadow-lg overflow-hidden">
+              <img src="/Assets/Sri_Swamy_Varu_1.jpg" alt="Sri Jadala Ramalingeshwara Swamy" className="h-full w-full object-cover" />
             </span>
-          </Link>
-          {/* Desktop */}
-          <div className="hidden lg:flex items-center gap-0.5 text-xs">
-            {navGroups.map((g, i) => (
-              g.children ? <Dropdown key={i} label={g.label} children={g.children} /> : <Link key={i} to={g.to} className="px-2 py-1.5 rounded hover:bg-white/10 transition-colors whitespace-nowrap">{g.label}</Link>
-            ))}
-            <Link to="/print-ticket" className="px-2 py-1.5 rounded hover:bg-white/10 text-[#D4AF37] transition-colors">Print Ticket</Link>
-            {user && userType === 'devotee' && (
-              <>
-                <Link to="/my-bookings" className="px-2 py-1.5 rounded hover:bg-white/10 transition-colors">My Bookings</Link>
-                <button onClick={logout} className="px-2 py-1.5 text-[#FFE0B2] hover:text-white">Logout</button>
-              </>
-            )}
-            {user && userType === 'admin' && (
-              <>
-                <Link to="/admin" className="px-2 py-1.5 rounded bg-[#D4AF37]/20 hover:bg-[#D4AF37]/30">Dashboard</Link>
-                <button onClick={logout} className="px-2 py-1.5 text-[#FFE0B2]">Logout</button>
-              </>
-            )}
-            {!user && (
-              <>
-                <Link to="/login" className="px-3 py-1.5 rounded bg-[#D4AF37] text-[#2A1800] font-medium hover:bg-[#e6c44a] transition-colors" data-testid="nav-login">Sign In</Link>
-                <Link to="/admin/login" className="px-2 py-1.5 text-[#FFE0B2]/50 hover:text-white text-xs" data-testid="nav-staff">Staff</Link>
-              </>
-            )}
           </div>
-          <button className="lg:hidden p-2" onClick={() => setMobileOpen(!mobileOpen)} data-testid="mobile-menu-btn">
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
         </div>
       </div>
+
+      {/* Menu bar - sticks to the top once the title scrolls past */}
+      <div className="bg-gradient-to-b from-[#B22F30] to-[#7B0406] text-white sticky top-0 z-50 shadow-lg border-y border-[#D4AF37]/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between lg:justify-center min-h-[2.75rem]">
+            {/* Compact wordmark, shown only once the banner has scrolled away */}
+            <Link to="/" className="lg:hidden font-english-heading text-[11px] tracking-wide uppercase py-2">
+              SPJRS Devasthanam
+            </Link>
+            {/* Desktop */}
+            <div className="hidden lg:flex items-center text-xs divide-x divide-white/15">
+              {navGroups.map((g, i) => (
+                g.children ? <Dropdown key={i} label={g.label} children={g.children} /> : <Link key={i} to={g.to} className="px-3 py-2.5 hover:bg-white/10 transition-colors whitespace-nowrap">{g.label}</Link>
+              ))}
+              <Link to="/print-ticket" className="px-3 py-2.5 hover:bg-white/10 text-[#F5D061] transition-colors">Print Ticket</Link>
+              {user && userType === 'devotee' && (
+                <>
+                  <Link to="/my-bookings" className="px-3 py-2.5 hover:bg-white/10 transition-colors">My Bookings</Link>
+                  <button onClick={logout} className="px-3 py-2.5 text-[#FFE0B2] hover:text-white">Logout</button>
+                </>
+              )}
+              {user && userType === 'admin' && (
+                <>
+                  <Link to="/admin" className="px-3 py-2.5 bg-[#D4AF37]/20 hover:bg-[#D4AF37]/30">Dashboard</Link>
+                  <button onClick={logout} className="px-3 py-2.5 text-[#FFE0B2]">Logout</button>
+                </>
+              )}
+              {!user && (
+                <>
+                  <Link to="/login" className="px-3 py-2.5 bg-[#D4AF37] text-[#2A1800] font-medium hover:bg-[#e6c44a] transition-colors" data-testid="nav-login">Sign In</Link>
+                  <Link to="/admin/login" className="px-3 py-2.5 text-[#FFE0B2]/60 hover:text-white text-xs" data-testid="nav-staff">Staff</Link>
+                </>
+              )}
+            </div>
+            <button className="lg:hidden p-2" onClick={() => setMobileOpen(!mobileOpen)} data-testid="mobile-menu-btn">
+              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
+        </div>
       {mobileOpen && (
         <div className="lg:hidden bg-[#3D1F0A] border-t border-[#5D4037]/30 px-4 py-3 space-y-1 text-sm max-h-[70vh] overflow-y-auto">
           {navGroups.map((g, i) => (
@@ -132,6 +165,7 @@ export default function Navbar() {
           {!user && <Link to="/login" onClick={() => setMobileOpen(false)} className="block px-3 py-2 bg-[#D4AF37] text-[#2A1800] rounded text-center font-medium">Sign In</Link>}
         </div>
       )}
+      </div>
     </nav>
   );
 }
