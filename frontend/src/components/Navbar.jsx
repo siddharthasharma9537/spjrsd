@@ -124,15 +124,18 @@ export default function Navbar() {
               >
                 శ్రీ పార్వతీ జడల రామలింగేశ్వర స్వామి దేవస్థానం
               </span>
+              {/* Cream rather than TTD's red: their wordmark sits on a light
+                  saffron ground, ours on dark maroon, where red would read as
+                  muddy. A soft dark shadow gives it the same crispness. */}
               <span
-                className="block font-english-heading text-[11px] sm:text-sm md:text-xl tracking-[0.12em] uppercase text-[#C4381B] mt-1 md:mt-1.5"
-                style={{ paintOrder: 'stroke fill', WebkitTextStroke: '0.6px #FFFFFF' }}
+                className="block font-english-heading font-semibold text-[11px] sm:text-sm md:text-xl tracking-[0.12em] uppercase text-[#FFF6DE] mt-1 md:mt-1.5"
+                style={{ textShadow: '0 1px 3px rgba(0,0,0,0.55)' }}
               >
                 Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam
               </span>
               <span
-                className="block font-telugu-body text-[10px] md:text-sm text-[#FFE0B2] mt-1"
-                style={{ paintOrder: 'stroke fill', WebkitTextStroke: '1px rgba(255,255,255,0.55)' }}
+                className="block font-telugu-body text-[10px] md:text-sm text-[#FFE0B2]/90 mt-1"
+                style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
               >
                 చెరువుగట్టు, నల్లగొండ జిల్లా
               </span>
