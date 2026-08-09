@@ -98,8 +98,9 @@ export default function Navbar() {
 
   return (
     <nav data-testid="navbar">
-      {/* Title banner - centred, scrolls away with the page */}
-      <div className="bg-gradient-to-b from-[#7A2400] via-[#621B00] to-[#4A1400] text-white">
+      {/* Title banner - centred, scrolls away with the page. overflow-hidden keeps
+          the sun rays from spilling into the strip above and the menu below. */}
+      <div className="relative overflow-hidden bg-gradient-to-b from-[#7A2400] via-[#621B00] to-[#4A1400] text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6">
           <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-6">
             {/* Transparent-background logo, so the maroon banner shows through */}
@@ -111,14 +112,19 @@ export default function Navbar() {
                 className="relative h-full w-full object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
               />
             </span>
-            <Link to="/" className="text-center leading-tight">
-              <span className="block font-telugu-heading text-base md:text-3xl text-[#F5D061] drop-shadow-[0_2px_3px_rgba(0,0,0,0.5)]">
+            {/* Soft white tint behind the wordmark so the text reads clearly
+                against the maroon and the sun rays behind it. */}
+            <Link
+              to="/"
+              className="relative text-center leading-tight rounded-2xl px-5 py-2.5 md:px-8 md:py-3 bg-white/85 shadow-[0_2px_12px_rgba(0,0,0,0.25)] ring-1 ring-[#D4AF37]/40"
+            >
+              <span className="block font-telugu-heading text-base md:text-3xl text-[#7A2400]">
                 శ్రీ పార్వతీ జడల రామలింగేశ్వర స్వామి దేవస్థానం
               </span>
-              <span className="block font-english-heading text-[11px] sm:text-sm md:text-xl tracking-[0.12em] uppercase text-[#FFF3D6] mt-1 md:mt-1.5">
+              <span className="block font-english-heading text-[11px] sm:text-sm md:text-xl tracking-[0.12em] uppercase text-[#621B00] mt-1 md:mt-1.5">
                 Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam
               </span>
-              <span className="block font-telugu-body text-[10px] md:text-sm text-[#FFE0B2]/70 mt-1">
+              <span className="block font-telugu-body text-[10px] md:text-sm text-[#8D6E63] mt-1">
                 చెరువుగట్టు, నల్లగొండ జిల్లా
               </span>
             </Link>
