@@ -74,54 +74,27 @@ function Dropdown({ label, children }) {
   );
 }
 
-/* Radiating gold rays behind the banner images. Drawn in CSS rather than as an
-   image so it scales cleanly; the mask fades the rays out before they reach the
-   edge so they read as a glow rather than a hard-edged disc. */
-function SunRays({ className = '' }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 ${className}`}
-      style={{
-        backgroundImage:
-          'repeating-conic-gradient(from 0deg, rgba(245,208,97,0.55) 0deg 3deg, rgba(245,208,97,0) 3deg 9deg)',
-        WebkitMaskImage: 'radial-gradient(circle, rgba(0,0,0,0.25) 28%, rgba(0,0,0,0.9) 45%, transparent 72%)',
-        maskImage: 'radial-gradient(circle, rgba(0,0,0,0.25) 28%, rgba(0,0,0,0.9) 45%, transparent 72%)',
-      }}
-    />
-  );
-}
-
 export default function Navbar() {
   const { user, userType, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <nav data-testid="navbar">
-      {/* Title banner - centred, scrolls away with the page. overflow-hidden keeps
-          the sun rays from spilling into the strip above and the menu below. */}
-      <div className="relative overflow-hidden bg-gradient-to-b from-[#7A2400] via-[#621B00] to-[#4A1400] text-white">
+      {/* Title banner - centred, scrolls away with the page */}
+      <div className="bg-gradient-to-b from-[#7A2400] via-[#621B00] to-[#4A1400] text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6">
           <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-6">
             {/* Transparent-background logo, so the maroon banner shows through */}
-            <span className="relative flex h-14 w-14 md:h-24 md:w-24 shrink-0 items-center justify-center">
-              <SunRays className="h-[190%] w-[190%]" />
-              <img
-                src="/Assets/Temple_Logo_Transparent.webp"
-                alt="Sri Jadala Ramalingeshwara Swamy"
-                className="relative h-full w-full object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
-              />
-            </span>
-            {/* A soft, edgeless haze of light behind the wordmark - not a panel.
-                It simply lifts the background so the lettering reads clearly. */}
+            <img
+              src="/Assets/Temple_Logo_Transparent.webp"
+              alt="Sri Jadala Ramalingeshwara Swamy"
+              className="h-14 w-14 md:h-24 md:w-24 shrink-0 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+            />
             {/* A fine white outline traced around each letter, the way the TTD
                 wordmark is drawn - it lifts the lettering off the banner
                 without putting a panel or a box behind it. */}
             <Link to="/" className="relative text-center leading-tight">
-              <span
-                className="block font-telugu-heading text-base md:text-3xl text-[#F5D061]"
-                style={{ paintOrder: 'stroke fill', WebkitTextStroke: '1px #FFFFFF' }}
-              >
+              <span className="block font-telugu-heading wordmark-outline text-base md:text-3xl">
                 శ్రీ పార్వతీ జడల రామలింగేశ్వర స్వామి దేవస్థానం
               </span>
               {/* Cream rather than TTD's red: their wordmark sits on a light
@@ -140,11 +113,8 @@ export default function Navbar() {
                 చెరువుగట్టు, నల్లగొండ జిల్లా
               </span>
             </Link>
-            <span className="relative hidden md:flex h-20 w-20 shrink-0 items-center justify-center">
-              <SunRays className="h-[210%] w-[210%]" />
-              <span className="relative flex h-full w-full items-center justify-center rounded-full border-2 border-[#D4AF37] bg-gradient-to-b from-[#7A2400] to-[#3D1000] shadow-lg overflow-hidden">
-                <img src="/Assets/Parvati_Devi_1.webp" alt="Sri Bhramarambha Devi (Sri Parvathi Devi)" className="h-full w-full object-cover object-top" />
-              </span>
+            <span className="hidden md:flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-2 border-[#D4AF37] bg-gradient-to-b from-[#7A2400] to-[#3D1000] shadow-lg overflow-hidden">
+              <img src="/Assets/Parvati_Devi_1.webp" alt="Sri Bhramarambha Devi (Sri Parvathi Devi)" className="h-full w-full object-cover object-top" />
             </span>
           </div>
         </div>

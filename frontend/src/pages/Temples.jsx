@@ -19,7 +19,7 @@ export default function Temples() {
 
       <div className="temple-gradient text-white py-12 md:py-20">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h1 className={`${heading} text-2xl md:text-4xl mb-2`} data-testid="temples-title">
+          <h1 className={`${heading} wordmark-outline text-2xl md:text-4xl mb-2`} data-testid="temples-title">
             {t('Temples of the Kshetram', 'క్షేత్రంలోని ఆలయములు')}
           </h1>
           <p className="text-[#FFE0B2]/70 text-sm">

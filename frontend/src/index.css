@@ -47,6 +47,15 @@
 .font-english-heading { font-family: 'Cinzel', serif; }
 .font-english-body { font-family: 'Lato', sans-serif; }
 
+/* Gold lettering traced with a fine white outline, as used on the title banner
+   and the page header banners. paint-order keeps the stroke behind the fill so
+   the outline sits outside the glyph instead of eating into it. */
+.wordmark-outline {
+  color: #F5D061;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 1px #FFFFFF;
+}
+
 body {
   font-family: 'Lato', sans-serif;
   background-color: #FFFCF5;

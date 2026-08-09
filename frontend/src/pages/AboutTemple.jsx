@@ -169,7 +169,7 @@ export default function AboutTemple() {
       {/* Hero */}
       <div className="temple-gradient text-white py-12 md:py-20">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h1 className={`${headingFont} text-2xl md:text-4xl mb-2`} data-testid="about-title">
+          <h1 className={`${headingFont} wordmark-outline text-2xl md:text-4xl mb-2`} data-testid="about-title">
             {te ? 'శ్రీ చెరువుగట్టు క్షేత్ర చరిత్ర' : 'Sthala Puranam: The Legend of Ikshwadri'}
           </h1>
           <p className="text-[#FFE0B2]/70 text-sm">Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanams</p>
