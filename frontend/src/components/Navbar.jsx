@@ -112,19 +112,28 @@ export default function Navbar() {
                 className="relative h-full w-full object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
               />
             </span>
-            {/* Soft white tint behind the wordmark so the text reads clearly
-                against the maroon and the sun rays behind it. */}
-            <Link
-              to="/"
-              className="relative text-center leading-tight rounded-2xl px-5 py-2.5 md:px-8 md:py-3 bg-white/85 shadow-[0_2px_12px_rgba(0,0,0,0.25)] ring-1 ring-[#D4AF37]/40"
-            >
-              <span className="block font-telugu-heading text-base md:text-3xl text-[#7A2400]">
+            {/* A soft, edgeless haze of light behind the wordmark - not a panel.
+                It simply lifts the background so the lettering reads clearly. */}
+            {/* A fine white outline traced around each letter, the way the TTD
+                wordmark is drawn - it lifts the lettering off the banner
+                without putting a panel or a box behind it. */}
+            <Link to="/" className="relative text-center leading-tight">
+              <span
+                className="block font-telugu-heading text-base md:text-3xl text-[#F5D061]"
+                style={{ paintOrder: 'stroke fill', WebkitTextStroke: '1px #FFFFFF' }}
+              >
                 శ్రీ పార్వతీ జడల రామలింగేశ్వర స్వామి దేవస్థానం
               </span>
-              <span className="block font-english-heading text-[11px] sm:text-sm md:text-xl tracking-[0.12em] uppercase text-[#621B00] mt-1 md:mt-1.5">
+              <span
+                className="block font-english-heading text-[11px] sm:text-sm md:text-xl tracking-[0.12em] uppercase text-[#C4381B] mt-1 md:mt-1.5"
+                style={{ paintOrder: 'stroke fill', WebkitTextStroke: '0.6px #FFFFFF' }}
+              >
                 Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam
               </span>
-              <span className="block font-telugu-body text-[10px] md:text-sm text-[#8D6E63] mt-1">
+              <span
+                className="block font-telugu-body text-[10px] md:text-sm text-[#FFE0B2] mt-1"
+                style={{ paintOrder: 'stroke fill', WebkitTextStroke: '1px rgba(255,255,255,0.55)' }}
+              >
                 చెరువుగట్టు, నల్లగొండ జిల్లా
               </span>
             </Link>
