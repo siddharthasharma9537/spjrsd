@@ -80,43 +80,64 @@ export default function Navbar() {
 
   return (
     <nav data-testid="navbar">
-      {/* Title banner - centred, scrolls away with the page */}
-      <div className="bg-gradient-to-b from-[#7A2400] via-[#621B00] to-[#4A1400] text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6">
-          <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-6">
-            {/* Transparent-background logo, so the maroon banner shows through */}
-            <img
-              src="/Assets/Temple_Logo_Transparent.webp"
-              alt="Sri Jadala Ramalingeshwara Swamy"
-              className="h-14 w-14 md:h-24 md:w-24 shrink-0 object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
-            />
-            {/* A fine white outline traced around each letter, the way the TTD
-                wordmark is drawn - it lifts the lettering off the banner
-                without putting a panel or a box behind it. */}
-            <Link to="/" className="relative text-center leading-tight">
-              <span className="block font-telugu-heading wordmark-outline text-base md:text-3xl">
+      {/* Title banner - the Swamy and Ammavaru flanking the name, in matching
+          gold medallions. Photographs sit on a plain maroon ground rather than
+          an illustrated one, so the two do not fight each other. */}
+      <div className="temple-header-banner text-white">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 md:py-4">
+          {/* One link wraps the whole lockup, so assistive tech announces a
+              single "home" destination rather than three in a row. */}
+          <Link
+            to="/"
+            className="grid grid-cols-1 md:grid-cols-[minmax(6rem,8rem)_1fr_minmax(6rem,8rem)] items-center gap-3 md:gap-5 lg:gap-8"
+          >
+            <span className="hidden md:flex justify-center">
+              <span className="temple-header-medallion h-24 w-24 lg:h-28 lg:w-28">
+                <img
+                  src="/Assets/Sri_Swamy_Varu_1.webp"
+                  alt="Sri Jadala Ramalingeshwara Swamy"
+                  width="1200"
+                  height="1600"
+                  className="h-full w-full object-cover"
+                />
+              </span>
+            </span>
+
+            {/* Centre: name stack, Telugu leading as it does on the temple's own
+                signage, then English, then the district line. */}
+            <span className="block text-center leading-tight px-1 min-w-0">
+              <span className="block font-telugu-heading temple-header-te text-lg sm:text-2xl md:text-[1.7rem] lg:text-[2rem] leading-snug">
                 శ్రీ పార్వతీ జడల రామలింగేశ్వర స్వామి దేవస్థానం
               </span>
-              {/* Cream rather than TTD's red: their wordmark sits on a light
-                  saffron ground, ours on dark maroon, where red would read as
-                  muddy. A soft dark shadow gives it the same crispness. */}
-              <span
-                className="block font-english-heading font-semibold text-[11px] sm:text-sm md:text-xl tracking-[0.12em] uppercase text-[#FFF6DE] mt-1 md:mt-1.5"
-                style={{ textShadow: '0 1px 3px rgba(0,0,0,0.55)' }}
-              >
+              <span className="block font-english-heading temple-header-en text-[11px] sm:text-sm md:text-base lg:text-lg tracking-[0.06em] uppercase mt-1 md:mt-1.5">
                 Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam
               </span>
-              <span
-                className="block font-telugu-body text-[10px] md:text-sm text-[#FFE0B2]/90 mt-1"
-                style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
-              >
+              <span className="block font-telugu-body temple-header-loc text-sm sm:text-base md:text-lg mt-1">
                 చెరువుగట్టు, నల్లగొండ జిల్లా
               </span>
-            </Link>
-            <span className="hidden md:flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-2 border-[#D4AF37] bg-gradient-to-b from-[#7A2400] to-[#3D1000] shadow-lg overflow-hidden">
-              <img src="/Assets/Parvati_Devi_1.webp" alt="Sri Bhramarambha Devi (Sri Parvathi Devi)" className="h-full w-full object-cover object-top" />
+              {/* Stands in for the side medallions once they drop away */}
+              <img
+                src="/Assets/Temple_Logo_Transparent.webp"
+                alt=""
+                aria-hidden="true"
+                width="600"
+                height="496"
+                className="md:hidden mx-auto mt-2 h-14 w-auto object-contain drop-shadow-[0_2px_6px_rgba(0,0,0,0.5)]"
+              />
             </span>
-          </div>
+
+            <span className="hidden md:flex justify-center">
+              <span className="temple-header-medallion h-24 w-24 lg:h-28 lg:w-28">
+                <img
+                  src="/Assets/Parvati_Devi_1.webp"
+                  alt="Sri Bhramarambha Devi (Sri Parvathi Devi)"
+                  width="1500"
+                  height="2000"
+                  className="h-full w-full object-cover object-top"
+                />
+              </span>
+            </span>
+          </Link>
         </div>
       </div>
 
