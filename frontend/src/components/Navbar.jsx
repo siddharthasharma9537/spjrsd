@@ -91,16 +91,17 @@ export default function Navbar() {
             to="/"
             className="grid grid-cols-1 md:grid-cols-[minmax(6rem,8rem)_1fr_minmax(6rem,8rem)] items-center gap-3 md:gap-5 lg:gap-8"
           >
+            {/* Transparent-background logo, so the maroon banner shows through
+                instead of a white box. No medallion ring - the logo carries
+                its own gold detailing already. */}
             <span className="hidden md:flex justify-center">
-              <span className="temple-header-medallion h-24 w-24 lg:h-28 lg:w-28">
-                <img
-                  src="/Assets/Sri_Swamy_Varu_1.webp"
-                  alt="Sri Jadala Ramalingeshwara Swamy"
-                  width="1200"
-                  height="1600"
-                  className="h-full w-full object-cover"
-                />
-              </span>
+              <img
+                src="/Assets/Temple_Logo_Transparent.webp"
+                alt="Sri Jadala Ramalingeshwara Swamy"
+                width="600"
+                height="496"
+                className="h-24 w-24 lg:h-28 lg:w-28 object-contain drop-shadow-[0_3px_10px_rgba(0,0,0,0.55)]"
+              />
             </span>
 
             {/* Centre: name stack, Telugu leading as it does on the temple's own
