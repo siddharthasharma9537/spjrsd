@@ -918,14 +918,7 @@ async def seed_data():
     await db.live_streams.insert_many(live_streams)
     # Seed visitor stats
     await db.visitor_stats.insert_one({"key": "main", "total_visitors": 12847, "todays_visitors": 42, "last_reset_date": datetime.now(timezone.utc).strftime("%Y-%m-%d")})
-    # Seed video gallery items
-    video_gallery = [
-        {"id": str(uuid.uuid4()), "title": "Maha Shivaratri Celebrations 2025", "image_url": "https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg", "media_url": "https://www.youtube.com/embed/dQw4w9WgXcQ", "category": "Festival", "media_type": "VIDEO", "active_flag": True, "created_at": datetime.now(timezone.utc).isoformat()},
-        {"id": str(uuid.uuid4()), "title": "Temple Documentary - Sacred Cheruvugattu", "image_url": "https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg", "media_url": "https://www.youtube.com/embed/dQw4w9WgXcQ", "category": "Documentary", "media_type": "VIDEO", "active_flag": True, "created_at": datetime.now(timezone.utc).isoformat()},
-        {"id": str(uuid.uuid4()), "title": "Daily Abhishekam Ritual", "image_url": "https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg", "media_url": "https://www.youtube.com/embed/dQw4w9WgXcQ", "category": "Seva", "media_type": "VIDEO", "active_flag": True, "created_at": datetime.now(timezone.utc).isoformat()},
-    ]
-    await db.gallery.insert_many(video_gallery)
-    return {"message": "Seed data created successfully", "sevas": len(sevas), "profiles": len(profiles), "slots": len(slots), "accommodations": len(accommodations), "news": len(news_items), "gallery": len(gallery_items) + len(video_gallery)}
+    return {"message": "Seed data created successfully", "sevas": len(sevas), "profiles": len(profiles), "slots": len(slots), "accommodations": len(accommodations), "news": len(news_items), "gallery": len(gallery_items)}
 
 @api_router.get("/")
 async def root():
