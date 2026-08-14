@@ -496,11 +496,11 @@ export default function AboutTemple() {
               administration, kept apart from the Dharmakartha Mandali below. */}
           <div className="mt-6 pt-6 border-t border-[#E6DCCA]">
             <p className={`text-sm font-medium text-[#2D1B0E] mb-3 ${te ? 'font-telugu-heading' : ''}`}>
-              {te ? 'కార్యనిర్వహణాధికారి' : 'Executive Officer'}
+              {te ? 'పరిపాలన' : 'Administration'}
             </p>
             <div className="flex flex-col gap-1 text-sm text-[#5D4037]">
               <span className={te ? 'font-telugu-body' : ''}>{te ? EXECUTIVE_OFFICER.nameTe : EXECUTIVE_OFFICER.nameEn}</span>
-              <span className={`text-xs shrink-0 px-2 py-0.5 rounded-full bg-[#621B00]/10 text-[#621B00] w-fit ${te ? 'font-telugu-body' : ''}`}>
+              <span className={`text-xs shrink-0 px-2 py-0.5 rounded-full w-fit text-[#8D6E63] ${te ? 'font-telugu-body' : ''}`}>
                 {te ? EXECUTIVE_OFFICER.roleTe : EXECUTIVE_OFFICER.roleEn}
               </span>
             </div>
@@ -517,7 +517,7 @@ export default function AboutTemple() {
                 return (
                   <div key={i} className={`flex ${isLast ? 'flex-col sm:col-span-2' : 'items-baseline justify-between'} gap-1 sm:gap-3 py-1 border-b border-[#E6DCCA]/60`}>
                     <span className={te ? 'font-telugu-body' : ''}>{i + 1}. {te ? m.nameTe : m.nameEn}</span>
-                    <span className={`text-xs shrink-0 px-2 py-0.5 rounded-full w-fit ${i === 0 ? 'bg-[#D4AF37]/20 text-[#8D2800] font-medium' : isLast ? 'bg-[#621B00]/10 text-[#621B00]' : 'text-[#8D6E63]'} ${te ? 'font-telugu-body' : ''}`}>
+                    <span className={`text-xs shrink-0 px-2 py-0.5 rounded-full w-fit text-[#8D6E63] ${te ? 'font-telugu-body' : ''}`}>
                       {te ? m.roleTe : m.roleEn}
                     </span>
                   </div>
