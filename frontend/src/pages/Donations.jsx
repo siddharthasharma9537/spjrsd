@@ -193,6 +193,17 @@ export default function Donations() {
                     data-testid="upi-qr-code"
                   />
                   <p className="text-[10px] text-[#8D6E63] mt-2 text-center px-2">Scan with any UPI app (GPay, PhonePe, Paytm, BHIM)</p>
+                  {/* This site is an independent, unofficial project (see footer) - but
+                      the QR code and bank details themselves are the temple's genuine,
+                      official payment details, issued by the bank. Worth saying explicitly
+                      right here so devotees don't mistake one disclaimer for the other. */}
+                  <div className="flex items-start gap-1.5 mt-3 pt-3 border-t border-[#E6DCCA] w-full">
+                    <CheckCircle className="h-3.5 w-3.5 text-green-700 shrink-0 mt-0.5" />
+                    <div className="text-[10px] text-[#5D4037] leading-relaxed">
+                      <p>This QR code and the bank/UPI details below are the temple&apos;s genuine, official payment details.</p>
+                      <p className="font-telugu-body mt-0.5">ఈ క్యూఆర్ కోడ్ మరియు క్రింద గల బ్యాంకు/UPI వివరాలు దేవస్థానం యొక్క నిజమైన, అధికారిక చెల్లింపు వివరాలు.</p>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-2 mb-3">
