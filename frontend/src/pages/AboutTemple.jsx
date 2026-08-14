@@ -20,6 +20,25 @@ const PARIVARA_FOOTHILL = [
   { img: '/Assets/Bhadrakali_Ammavaru_Down_Hill.webp', en: 'Sri Bhadrakali Devi', te: 'శ్రీ భద్రకాళీ దేవి' },
 ];
 
+/* Transcribed from the Dharmakartha Mandali board at the temple office. */
+const TRUST_BOARD = [
+  { nameEn: 'Sri Varala Ramesh', nameTe: 'శ్రీ వారాల రమేష్ గారు', roleEn: 'Chairman', roleTe: 'చైర్మన్' },
+  { nameEn: 'Sri Kommu Sreenu', nameTe: 'శ్రీ కొమ్ము శ్రీను గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
+  { nameEn: 'Sri Mandula Narsimha', nameTe: 'శ్రీ మందుల నర్సింహ్మా గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
+  { nameEn: 'Sri Ranga Sravan Kumar', nameTe: 'శ్రీ రంగా శ్రవణ్ కుమార్ గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
+  { nameEn: 'Smt. Nalla Anitha', nameTe: 'శ్రీమతి నల్ల అనిత గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
+  { nameEn: 'Sri Pala Mahesh', nameTe: 'శ్రీ పాల మహేష్ గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
+  { nameEn: 'Sri Veeravelli Raghunadh', nameTe: 'శ్రీ వీరవెల్లి రఘునాధ్ గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
+  { nameEn: 'Sri Marri Lingaswamy', nameTe: 'శ్రీ మర్రి లింగస్వామి గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
+  { nameEn: 'Sri Gaddaguti Yadayya', nameTe: 'శ్రీ గద్దగూటి యాదయ్య గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
+  { nameEn: 'Sri Regatte Srinivas Reddy', nameTe: 'శ్రీ రేగట్టె శ్రీనివాస్ రెడ్డి గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
+  { nameEn: 'Sri Prajnapuram Satyanarayana', nameTe: 'శ్రీ ప్రజ్ఞాపురం సత్యనారాయణ గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
+  { nameEn: 'Sri Idukulla Sampath', nameTe: 'శ్రీ ఇడుకుళ్ళ సంపత్ గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
+  { nameEn: 'Sri Kammalapalli Mallesh', nameTe: 'శ్రీ కమ్మలపల్లి మల్లేష్ గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
+  { nameEn: 'Sri Gouridevi Lakshmayya', nameTe: 'శ్రీ గౌరిదేవి లక్ష్మయ్య గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
+  { nameEn: 'Sri P. Ramalingeshwara Sharma', nameTe: 'శ్రీ పి. రామలింగేశ్వర శర్మ గారు', roleEn: 'Ex-Officio Member', roleTe: 'ఎక్స్ అఫీషియో' },
+];
+
 /* Photographs from the annual Brahmotsavams. */
 const BRAHMOTSAVAM = [
   { img: '/Assets/Brahmotsavam_Dhwajarohanam_1.webp', en: 'Dhwajarohanam — the flag hoisting that opens the festival', te: 'ధ్వజారోహణం — ఉత్సవ ప్రారంభము' },
@@ -303,6 +322,23 @@ export default function AboutTemple() {
           <p className="font-telugu-heading text-base text-[#8D6E63] mb-4">దేవస్థానం - పరిపాలన</p>
           <div className={`text-sm text-[#5D4037] leading-relaxed space-y-3 ${bodyFont}`}>
             {(te ? CONTENT.admin.te : CONTENT.admin.en).map((p, i) => <p key={i}>{p}</p>)}
+          </div>
+
+          {/* Dharmakartha Mandali - transcribed from the board at the temple office */}
+          <div className="mt-6 pt-6 border-t border-[#E6DCCA]">
+            <p className={`text-sm font-medium text-[#2D1B0E] mb-3 ${te ? 'font-telugu-heading' : ''}`}>
+              {te ? 'ధర్మకర్తల మండలి' : 'Dharmakartha Mandali (Board of Trustees)'}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-[#5D4037]">
+              {TRUST_BOARD.map((m, i) => (
+                <div key={i} className="flex items-baseline justify-between gap-3 py-1 border-b border-[#E6DCCA]/60">
+                  <span className={te ? 'font-telugu-body' : ''}>{i + 1}. {te ? m.nameTe : m.nameEn}</span>
+                  <span className={`text-xs shrink-0 px-2 py-0.5 rounded-full ${i === 0 ? 'bg-[#D4AF37]/20 text-[#8D2800]' : i === TRUST_BOARD.length - 1 ? 'bg-[#621B00]/10 text-[#621B00]' : 'text-[#8D6E63]'} ${te ? 'font-telugu-body' : ''}`}>
+                    {te ? m.roleTe : m.roleEn}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
