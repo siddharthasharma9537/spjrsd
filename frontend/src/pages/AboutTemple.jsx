@@ -22,6 +22,7 @@ const PARIVARA_FOOTHILL = [
 
 /* Transcribed from the Dharmakartha Mandali board at the temple office. */
 const TRUST_BOARD = [
+  { nameEn: 'Sri S. Mohan Babu', nameTe: 'శ్రీ ఎస్. మోహన్ బాబు గారు', roleEn: 'Executive Officer', roleTe: 'కార్యనిర్వహణాధికారి' },
   { nameEn: 'Sri Varala Ramesh', nameTe: 'శ్రీ వారాల రమేష్ గారు', roleEn: 'Chairman', roleTe: 'చైర్మన్' },
   { nameEn: 'Sri Kommu Sreenu', nameTe: 'శ్రీ కొమ్ము శ్రీను గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
   { nameEn: 'Sri Mandula Narsimha', nameTe: 'శ్రీ మందుల నర్సింహ్మా గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
@@ -316,32 +317,6 @@ export default function AboutTemple() {
           </div>
         </section>
 
-        {/* Temple Administration & Location */}
-        <section id="administration" className="bg-white border border-[#E6DCCA] rounded-xl p-6 scroll-mt-24">
-          <h2 className="font-english-heading text-xl text-[#621B00] mb-1">Temple & Administration</h2>
-          <p className="font-telugu-heading text-base text-[#8D6E63] mb-4">దేవస్థానం - పరిపాలన</p>
-          <div className={`text-sm text-[#5D4037] leading-relaxed space-y-3 ${bodyFont}`}>
-            {(te ? CONTENT.admin.te : CONTENT.admin.en).map((p, i) => <p key={i}>{p}</p>)}
-          </div>
-
-          {/* Dharmakartha Mandali - transcribed from the board at the temple office */}
-          <div className="mt-6 pt-6 border-t border-[#E6DCCA]">
-            <p className={`text-sm font-medium text-[#2D1B0E] mb-3 ${te ? 'font-telugu-heading' : ''}`}>
-              {te ? 'ధర్మకర్తల మండలి' : 'Dharmakartha Mandali (Board of Trustees)'}
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-[#5D4037]">
-              {TRUST_BOARD.map((m, i) => (
-                <div key={i} className="flex items-baseline justify-between gap-3 py-1 border-b border-[#E6DCCA]/60">
-                  <span className={te ? 'font-telugu-body' : ''}>{i + 1}. {te ? m.nameTe : m.nameEn}</span>
-                  <span className={`text-xs shrink-0 px-2 py-0.5 rounded-full ${i === 0 ? 'bg-[#D4AF37]/20 text-[#8D2800]' : i === TRUST_BOARD.length - 1 ? 'bg-[#621B00]/10 text-[#621B00]' : 'text-[#8D6E63]'} ${te ? 'font-telugu-body' : ''}`}>
-                    {te ? m.roleTe : m.roleEn}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* Deities of the Temple */}
         <section className="bg-white border border-[#E6DCCA] rounded-xl p-6">
           <h2 className="font-english-heading text-xl text-[#621B00] mb-1">Deities of the Temple</h2>
@@ -500,6 +475,32 @@ export default function AboutTemple() {
             <div className={`text-sm text-[#5D4037] space-y-2 ${bodyFont}`}>
               {CONTENT.reach.modes.map((m, i) => (
                 <p key={i}><strong>{te ? m.labelTe : m.labelEn}:</strong> {te ? m.te : m.en}</p>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Temple Administration & Location */}
+        <section id="administration" className="bg-white border border-[#E6DCCA] rounded-xl p-6 scroll-mt-24">
+          <h2 className="font-english-heading text-xl text-[#621B00] mb-1">Temple & Administration</h2>
+          <p className="font-telugu-heading text-base text-[#8D6E63] mb-4">దేవస్థానం - పరిపాలన</p>
+          <div className={`text-sm text-[#5D4037] leading-relaxed space-y-3 ${bodyFont}`}>
+            {(te ? CONTENT.admin.te : CONTENT.admin.en).map((p, i) => <p key={i}>{p}</p>)}
+          </div>
+
+          {/* Dharmakartha Mandali - transcribed from the board at the temple office */}
+          <div className="mt-6 pt-6 border-t border-[#E6DCCA]">
+            <p className={`text-sm font-medium text-[#2D1B0E] mb-3 ${te ? 'font-telugu-heading' : ''}`}>
+              {te ? 'ధర్మకర్తల మండలి' : 'Dharmakartha Mandali (Board of Trustees)'}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-[#5D4037]">
+              {TRUST_BOARD.map((m, i) => (
+                <div key={i} className="flex items-baseline justify-between gap-3 py-1 border-b border-[#E6DCCA]/60">
+                  <span className={te ? 'font-telugu-body' : ''}>{i + 1}. {te ? m.nameTe : m.nameEn}</span>
+                  <span className={`text-xs shrink-0 px-2 py-0.5 rounded-full ${i === 0 ? 'bg-[#D4AF37]/20 text-[#8D2800]' : i === TRUST_BOARD.length - 1 ? 'bg-[#621B00]/10 text-[#621B00]' : 'text-[#8D6E63]'} ${te ? 'font-telugu-body' : ''}`}>
+                    {te ? m.roleTe : m.roleEn}
+                  </span>
+                </div>
               ))}
             </div>
           </div>
