@@ -3,7 +3,9 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import api from '@/lib/api';
 import { useT } from "@/contexts/LanguageContext";
-import { ArrowLeft, IndianRupee, CheckCircle } from 'lucide-react';
+import { ArrowLeft, IndianRupee, CheckCircle, Users, BedDouble } from 'lucide-react';
+import { BOOKINGS_PAUSED } from '@/lib/bookingStatus';
+import BookingPausedNotice from '@/components/BookingPausedNotice';
 
 export default function AccommodationBooking() {
   const { t, heading } = useT();
@@ -41,6 +43,39 @@ export default function AccommodationBooking() {
   const inputCls = "w-full h-12 px-4 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-2 focus:ring-[#C43E00]/20 outline-none transition-all text-[#2D1B0E]";
 
   if (!acc) return <div className="min-h-screen bg-[#FFFCF5]"><Navbar /><p className="text-center py-12 text-[#8D6E63]">Loading...</p></div>;
+
+  if (BOOKINGS_PAUSED) return (
+    <div className="min-h-screen bg-[#FFFCF5]">
+      <Navbar />
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        <Link to="/accommodation" className="inline-flex items-center gap-1 text-sm text-[#8D6E63] hover:text-[#C43E00] mb-6 transition-colors">
+          <ArrowLeft className="h-4 w-4" /> Back to Accommodation
+        </Link>
+        <div className="bg-white border border-[#E6DCCA] rounded-xl p-6 md:p-8 shadow-sm">
+          <div className="border-b border-[#E6DCCA] pb-4 mb-6">
+            <h1 className="font-english-heading text-xl text-[#621B00]" data-testid="acc-booking-name">{acc.name}</h1>
+            <div className="flex items-center gap-1 text-[#C43E00] font-medium mt-2">
+              <IndianRupee className="h-4 w-4" /> {acc.price_per_day} / day
+            </div>
+          </div>
+          {acc.description && <p className="text-sm text-[#5D4037] leading-relaxed mb-4">{acc.description}</p>}
+          <div className="flex flex-wrap items-center gap-4 text-xs text-[#8D6E63] mb-4">
+            <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> Capacity: {acc.capacity}</span>
+            <span className="flex items-center gap-1"><BedDouble className="h-3.5 w-3.5" /> {acc.total_rooms} rooms</span>
+            <span>{acc.room_type}</span>
+          </div>
+          {acc.amenities && (
+            <div className="flex flex-wrap gap-2 mb-6">
+              {acc.amenities.split(',').map((a, j) => (
+                <span key={j} className="px-2 py-0.5 bg-[#FDFBF7] border border-[#E6DCCA] rounded text-xs text-[#5D4037]">{a.trim()}</span>
+              ))}
+            </div>
+          )}
+          <BookingPausedNotice />
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#FFFCF5]">

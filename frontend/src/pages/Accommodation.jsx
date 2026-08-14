@@ -8,6 +8,7 @@ import api from '@/lib/api';
 import LoadState from "@/components/LoadState";
 import { useT } from "@/contexts/LanguageContext";
 import { BedDouble, Users, IndianRupee, ChevronRight, Wifi, Droplets, Wind, Tv } from 'lucide-react';
+import { BOOKINGS_PAUSED } from '@/lib/bookingStatus';
 
 export default function Accommodation() {
   const { t, heading } = useT();
@@ -64,7 +65,11 @@ export default function Accommodation() {
                       <span className="text-xl font-bold text-[#C43E00]">{acc.price_per_day}</span>
                       <span className="text-sm text-[#8D6E63]">/ day</span>
                     </div>
-                    {user && userType === 'devotee' ? (
+                    {BOOKINGS_PAUSED ? (
+                      <Link to={`/accommodation/book/${acc.id}`} className="inline-flex items-center gap-1 px-5 py-2 border-2 border-[#C43E00] text-[#C43E00] text-sm rounded-full hover:bg-[#C43E00]/5 transition-all" data-testid={`info-acc-${acc.id}`}>
+                        More Info
+                      </Link>
+                    ) : user && userType === 'devotee' ? (
                       <Link to={`/accommodation/book/${acc.id}`} className="inline-flex items-center gap-1 px-5 py-2 bg-[#C43E00] text-white text-sm rounded-full hover:bg-[#C43E00]/90 transition-all" data-testid={`book-acc-${acc.id}`}>
                         Book Now <ChevronRight className="h-4 w-4" />
                       </Link>

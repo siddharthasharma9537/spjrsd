@@ -8,6 +8,7 @@ import api from '@/lib/api';
 import LoadState from "@/components/LoadState";
 import { useT } from "@/contexts/LanguageContext";
 import { Zap, Flame, IndianRupee, ChevronRight, Clock } from 'lucide-react';
+import { BOOKINGS_PAUSED } from '@/lib/bookingStatus';
 
 export default function QuickBooking() {
   const { t, heading } = useT();
@@ -58,7 +59,11 @@ export default function QuickBooking() {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="flex items-center gap-0.5 text-lg font-bold text-[#C43E00]"><IndianRupee className="h-4 w-4" />{seva.base_price}</span>
-                  {user && userType === 'devotee' ? (
+                  {BOOKINGS_PAUSED ? (
+                    <Link to={`/book/${seva.id}`} className="inline-flex items-center gap-1 px-5 py-2 border-2 border-[#C43E00] text-[#C43E00] text-sm rounded-full hover:bg-[#C43E00]/5 transition-all" data-testid={`quick-info-${seva.id}`}>
+                      More Info
+                    </Link>
+                  ) : user && userType === 'devotee' ? (
                     <Link to={`/book/${seva.id}`} className="inline-flex items-center gap-1 px-5 py-2 bg-[#C43E00] text-white text-sm rounded-full hover:bg-[#C43E00]/90 transition-all" data-testid={`quick-book-${seva.id}`}>
                       Book <ChevronRight className="h-4 w-4" />
                     </Link>

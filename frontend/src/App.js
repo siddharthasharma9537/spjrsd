@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { BOOKINGS_PAUSED } from "@/lib/bookingStatus";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import usePageMeta from "@/hooks/usePageMeta";
 import NotFound from "@/pages/NotFound";
@@ -162,10 +163,13 @@ function App() {
           <Route path="/booking/darshan" element={<SevaList />} />
           <Route path="/donation-receipt/:donationId" element={<DonationReceipt />} />
           {/* Protected Devotee */}
-          <Route path="/book/:sevaId" element={<ProtectedDevotee><SevaBooking /></ProtectedDevotee>} />
+          {/* While BOOKINGS_PAUSED, these two render info-only (no form, no
+              submit) - so they stay open rather than bouncing anonymous
+              visitors to login before they can see anything. */}
+          <Route path="/book/:sevaId" element={BOOKINGS_PAUSED ? <SevaBooking /> : <ProtectedDevotee><SevaBooking /></ProtectedDevotee>} />
           <Route path="/ticket/:bookingId" element={<ProtectedDevotee><BookingTicket /></ProtectedDevotee>} />
           <Route path="/my-bookings" element={<ProtectedDevotee><MyBookings /></ProtectedDevotee>} />
-          <Route path="/accommodation/book/:accId" element={<ProtectedDevotee><AccommodationBooking /></ProtectedDevotee>} />
+          <Route path="/accommodation/book/:accId" element={BOOKINGS_PAUSED ? <AccommodationBooking /> : <ProtectedDevotee><AccommodationBooking /></ProtectedDevotee>} />
           {/* Admin */}
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<ProtectedAdmin><AdminDashboard /></ProtectedAdmin>} />

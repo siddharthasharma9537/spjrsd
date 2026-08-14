@@ -8,6 +8,7 @@ import api from '@/lib/api';
 import LoadState from "@/components/LoadState";
 import { useT } from "@/contexts/LanguageContext";
 import { Clock, IndianRupee, ChevronRight, Globe } from 'lucide-react';
+import { BOOKINGS_PAUSED } from '@/lib/bookingStatus';
 
 export default function SevaList({ paroksha = false }) {
   const { t, heading } = useT();
@@ -68,7 +69,11 @@ export default function SevaList({ paroksha = false }) {
                     <span>Max {seva.max_persons_per_ticket} persons/ticket</span>
                     {paroksha && <span className="px-2 py-0.5 bg-[#621B00]/10 rounded-full text-[#621B00]">Paroksha</span>}
                   </div>
-                  {user && userType === 'devotee' ? (
+                  {BOOKINGS_PAUSED ? (
+                    <Link to={`/book/${seva.id}${paroksha ? '?paroksha=true' : ''}`} className="flex items-center justify-center gap-2 w-full h-11 border-2 border-[#C43E00] text-[#C43E00] font-english-heading text-sm tracking-wide uppercase rounded-full hover:bg-[#C43E00]/5 transition-all" data-testid={`info-btn-${seva.id}`}>
+                      More Info
+                    </Link>
+                  ) : user && userType === 'devotee' ? (
                     <Link to={`/book/${seva.id}${paroksha ? '?paroksha=true' : ''}`} className="flex items-center justify-center gap-2 w-full h-11 bg-[#C43E00] text-white font-english-heading text-sm tracking-wide uppercase rounded-full hover:bg-[#C43E00]/90 transition-all shadow-md" data-testid={`book-btn-${seva.id}`}>
                       Book Now <ChevronRight className="h-4 w-4" />
                     </Link>

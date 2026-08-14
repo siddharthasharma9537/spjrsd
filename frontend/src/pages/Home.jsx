@@ -7,6 +7,7 @@ import Footer from '@/components/Footer';
 import api from '@/lib/api';
 import { useT } from "@/contexts/LanguageContext";
 import { Flame, BookOpen, Heart, ChevronRight, Camera, Newspaper, BedDouble, HandCoins, Tv, IndianRupee, Clock, Users, CalendarDays } from 'lucide-react';
+import { BOOKINGS_PAUSED } from '@/lib/bookingStatus';
 
 export default function Home() {
   const { t, heading } = useT();
@@ -24,9 +25,9 @@ export default function Home() {
 
   const featureCards = [
     { icon: HandCoins, to: '/donations', title: 'e-Hundi', titleTe: 'ఈ-హుండి', desc: 'Online donations from across the globe for temple welfare', cta: 'Donate Now', color: '#D4AF37' },
-    { icon: BookOpen, to: '/paroksha-seva', title: 'Paroksha Seva', titleTe: 'పరోక్ష సేవ', desc: 'Participate in sevas without being physically present', cta: 'Book Now', color: '#621B00' },
+    { icon: BookOpen, to: '/paroksha-seva', title: 'Paroksha Seva', titleTe: 'పరోక్ష సేవ', desc: 'Participate in sevas without being physically present', cta: BOOKINGS_PAUSED ? 'More Info' : 'Book Now', color: '#621B00' },
     { icon: Heart, to: '/donations/annaprasadam', title: 'AnnaPrasadam', titleTe: 'అన్నప్రసాదం', desc: 'Sponsor sacred food offering for devotees', cta: 'Donate Now', color: '#C43E00' },
-    { icon: BedDouble, to: '/accommodation', title: 'Accommodation', titleTe: 'వసతి', desc: 'Rooms, cottages and guest houses for visiting pilgrims', cta: 'Book Now', color: '#621B00' },
+    { icon: BedDouble, to: '/accommodation', title: 'Accommodation', titleTe: 'వసతి', desc: 'Rooms, cottages and guest houses for visiting pilgrims', cta: BOOKINGS_PAUSED ? 'More Info' : 'Book Now', color: '#621B00' },
     { icon: Tv, to: '/media/live-tv', title: 'Temple TV', titleTe: 'ఆలయ టీవీ', desc: '24x7 live darshan and devotional programs', cta: 'Watch Now', color: '#C43E00' },
     { icon: Camera, to: '/gallery', title: 'Photo Gallery', titleTe: 'ఫోటో గ్యాలరీ', desc: 'Beautiful moments from the sacred temple', cta: 'View Gallery', color: '#D4AF37' },
   ];
