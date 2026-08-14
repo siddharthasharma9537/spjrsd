@@ -888,7 +888,6 @@ async def seed_data():
     # Seed gallery
     gallery_items = [
         {"id": str(uuid.uuid4()), "title": "Sri Jadala Ramalingeshwara Swamy", "image_url": "/Assets/Sri_Swamy_Varu_1.webp", "category": "Deities", "media_type": "PHOTO", "active_flag": True, "created_at": datetime.now(timezone.utc).isoformat()},
-        {"id": str(uuid.uuid4()), "title": "Sri Swamy Vari Alankaram", "image_url": "/Assets/Sri_Swamy_Varu_2.webp", "category": "Deities", "media_type": "PHOTO", "active_flag": True, "created_at": datetime.now(timezone.utc).isoformat()},
         {"id": str(uuid.uuid4()), "title": "Sri Parvathi Devi Ammavaru", "image_url": "/Assets/Parvati_Devi_1.webp", "category": "Deities", "media_type": "PHOTO", "active_flag": True, "created_at": datetime.now(timezone.utc).isoformat()},
         {"id": str(uuid.uuid4()), "title": "Main Temple, Atop the Hill", "image_url": "/Assets/Main_Temple_Full_View_Up_Hill.webp", "category": "Temple", "media_type": "PHOTO", "active_flag": True, "created_at": datetime.now(timezone.utc).isoformat()},
         {"id": str(uuid.uuid4()), "title": "Sri Parvathi Devi Temple, Foot of the Hill", "image_url": "/Assets/Parvati_Devi_Temple_Panoramic_View_Down_Hill.webp", "category": "Temple", "media_type": "PHOTO", "active_flag": True, "created_at": datetime.now(timezone.utc).isoformat()},
