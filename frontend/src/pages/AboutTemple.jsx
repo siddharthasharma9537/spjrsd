@@ -512,14 +512,17 @@ export default function AboutTemple() {
               {te ? 'ధర్మకర్తల మండలి' : 'Dharmakartha Mandali (Board of Trustees)'}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-[#5D4037]">
-              {TRUST_BOARD.map((m, i) => (
-                <div key={i} className="flex items-baseline justify-between gap-3 py-1 border-b border-[#E6DCCA]/60">
-                  <span className={te ? 'font-telugu-body' : ''}>{i + 1}. {te ? m.nameTe : m.nameEn}</span>
-                  <span className={`text-xs shrink-0 px-2 py-0.5 rounded-full ${i === 0 ? 'bg-[#D4AF37]/20 text-[#8D2800] font-medium' : i === TRUST_BOARD.length - 1 ? 'bg-[#621B00]/10 text-[#621B00]' : 'text-[#8D6E63]'} ${te ? 'font-telugu-body' : ''}`}>
-                    {te ? m.roleTe : m.roleEn}
-                  </span>
-                </div>
-              ))}
+              {TRUST_BOARD.map((m, i) => {
+                const isLast = i === TRUST_BOARD.length - 1;
+                return (
+                  <div key={i} className={`flex ${isLast ? 'flex-col sm:col-span-2' : 'items-baseline justify-between'} gap-1 sm:gap-3 py-1 border-b border-[#E6DCCA]/60`}>
+                    <span className={te ? 'font-telugu-body' : ''}>{i + 1}. {te ? m.nameTe : m.nameEn}</span>
+                    <span className={`text-xs shrink-0 px-2 py-0.5 rounded-full w-fit ${i === 0 ? 'bg-[#D4AF37]/20 text-[#8D2800] font-medium' : isLast ? 'bg-[#621B00]/10 text-[#621B00]' : 'text-[#8D6E63]'} ${te ? 'font-telugu-body' : ''}`}>
+                      {te ? m.roleTe : m.roleEn}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
