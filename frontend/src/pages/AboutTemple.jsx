@@ -498,9 +498,9 @@ export default function AboutTemple() {
             <p className={`text-sm font-medium text-[#2D1B0E] mb-3 ${te ? 'font-telugu-heading' : ''}`}>
               {te ? 'కార్యనిర్వహణాధికారి' : 'Executive Officer'}
             </p>
-            <div className="flex items-baseline justify-between gap-3 text-sm text-[#5D4037]">
+            <div className="flex flex-col gap-1 text-sm text-[#5D4037]">
               <span className={te ? 'font-telugu-body' : ''}>{te ? EXECUTIVE_OFFICER.nameTe : EXECUTIVE_OFFICER.nameEn}</span>
-              <span className={`text-xs shrink-0 px-2 py-0.5 rounded-full bg-[#621B00]/10 text-[#621B00] ${te ? 'font-telugu-body' : ''}`}>
+              <span className={`text-xs shrink-0 px-2 py-0.5 rounded-full bg-[#621B00]/10 text-[#621B00] w-fit ${te ? 'font-telugu-body' : ''}`}>
                 {te ? EXECUTIVE_OFFICER.roleTe : EXECUTIVE_OFFICER.roleEn}
               </span>
             </div>
