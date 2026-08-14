@@ -20,9 +20,13 @@ const PARIVARA_FOOTHILL = [
   { img: '/Assets/Bhadrakali_Ammavaru_Down_Hill.webp', en: 'Sri Bhadrakali Devi', te: 'శ్రీ భద్రకాళీ దేవి' },
 ];
 
+/* The Executive Officer is a government appointee who oversees the temple
+   administration, not a member of the Dharmakartha Mandali - shown as its
+   own entry, separate from the trustee board below. */
+const EXECUTIVE_OFFICER = { nameEn: 'Sri S. Mohan Babu', nameTe: 'శ్రీ ఎస్. మోహన్ బాబు గారు', roleEn: 'Assistant Commissioner & Executive Officer', roleTe: 'అసిస్టెంట్ కమీషనర్ & కార్యనిర్వహణాధికారి' };
+
 /* Transcribed from the Dharmakartha Mandali board at the temple office. */
 const TRUST_BOARD = [
-  { nameEn: 'Sri S. Mohan Babu', nameTe: 'శ్రీ ఎస్. మోహన్ బాబు గారు', roleEn: 'Executive Officer', roleTe: 'కార్యనిర్వహణాధికారి' },
   { nameEn: 'Sri Varala Ramesh', nameTe: 'శ్రీ వారాల రమేష్ గారు', roleEn: 'Chairman', roleTe: 'చైర్మన్' },
   { nameEn: 'Sri Kommu Sreenu', nameTe: 'శ్రీ కొమ్ము శ్రీను గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
   { nameEn: 'Sri Mandula Narsimha', nameTe: 'శ్రీ మందుల నర్సింహ్మా గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
@@ -37,7 +41,7 @@ const TRUST_BOARD = [
   { nameEn: 'Sri Idukulla Sampath', nameTe: 'శ్రీ ఇడుకుళ్ళ సంపత్ గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
   { nameEn: 'Sri Kammalapalli Mallesh', nameTe: 'శ్రీ కమ్మలపల్లి మల్లేష్ గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
   { nameEn: 'Sri Gouridevi Lakshmayya', nameTe: 'శ్రీ గౌరిదేవి లక్ష్మయ్య గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
-  { nameEn: 'Sri P. Ramalingeshwara Sharma', nameTe: 'శ్రీ పి. రామలింగేశ్వర శర్మ గారు', roleEn: 'Ex-Officio Member', roleTe: 'ఎక్స్ అఫీషియో' },
+  { nameEn: 'Dr. P. Ramalingeshwara Sharma', nameTe: 'డా. పి. రామలింగేశ్వర శర్మ గారు', roleEn: 'Ex-Officio Member & Pradhana Archaka', roleTe: 'ఎక్స్ అఫీషియో సభ్యులు & ప్రధాన అర్చకులు' },
 ];
 
 /* Photographs from the annual Brahmotsavams. */
@@ -488,6 +492,20 @@ export default function AboutTemple() {
             {(te ? CONTENT.admin.te : CONTENT.admin.en).map((p, i) => <p key={i}>{p}</p>)}
           </div>
 
+          {/* Executive Officer - a government appointee overseeing the temple's
+              administration, kept apart from the Dharmakartha Mandali below. */}
+          <div className="mt-6 pt-6 border-t border-[#E6DCCA]">
+            <p className={`text-sm font-medium text-[#2D1B0E] mb-3 ${te ? 'font-telugu-heading' : ''}`}>
+              {te ? 'కార్యనిర్వహణాధికారి' : 'Executive Officer'}
+            </p>
+            <div className="flex items-baseline justify-between gap-3 text-sm text-[#5D4037]">
+              <span className={te ? 'font-telugu-body' : ''}>{te ? EXECUTIVE_OFFICER.nameTe : EXECUTIVE_OFFICER.nameEn}</span>
+              <span className={`text-xs shrink-0 px-2 py-0.5 rounded-full bg-[#621B00]/10 text-[#621B00] ${te ? 'font-telugu-body' : ''}`}>
+                {te ? EXECUTIVE_OFFICER.roleTe : EXECUTIVE_OFFICER.roleEn}
+              </span>
+            </div>
+          </div>
+
           {/* Dharmakartha Mandali - transcribed from the board at the temple office */}
           <div className="mt-6 pt-6 border-t border-[#E6DCCA]">
             <p className={`text-sm font-medium text-[#2D1B0E] mb-3 ${te ? 'font-telugu-heading' : ''}`}>
@@ -497,7 +515,7 @@ export default function AboutTemple() {
               {TRUST_BOARD.map((m, i) => (
                 <div key={i} className="flex items-baseline justify-between gap-3 py-1 border-b border-[#E6DCCA]/60">
                   <span className={te ? 'font-telugu-body' : ''}>{i + 1}. {te ? m.nameTe : m.nameEn}</span>
-                  <span className={`text-xs shrink-0 px-2 py-0.5 rounded-full ${i === 0 ? 'bg-[#D4AF37]/20 text-[#8D2800]' : i === TRUST_BOARD.length - 1 ? 'bg-[#621B00]/10 text-[#621B00]' : 'text-[#8D6E63]'} ${te ? 'font-telugu-body' : ''}`}>
+                  <span className={`text-xs shrink-0 px-2 py-0.5 rounded-full ${i === 0 ? 'bg-[#D4AF37]/20 text-[#8D2800] font-medium' : i === TRUST_BOARD.length - 1 ? 'bg-[#621B00]/10 text-[#621B00]' : 'text-[#8D6E63]'} ${te ? 'font-telugu-body' : ''}`}>
                     {te ? m.roleTe : m.roleEn}
                   </span>
                 </div>
