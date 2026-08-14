@@ -4,7 +4,7 @@ import TopStrip from '@/components/TopStrip';
 import Navbar from '@/components/Navbar';
 import api from '@/lib/api';
 import { useT } from "@/contexts/LanguageContext";
-import { ArrowLeft, IndianRupee, AlertCircle, Clock, Users } from 'lucide-react';
+import { ArrowLeft, IndianRupee, AlertCircle, Clock, Users, Printer, Info } from 'lucide-react';
 import { BOOKINGS_PAUSED } from '@/lib/bookingStatus';
 import BookingPausedNotice from '@/components/BookingPausedNotice';
 import { SEVA_SAMAGRI } from '@/lib/sevaSamagri';
@@ -40,10 +40,27 @@ function SamagriSection({ sevaId, t, heading }) {
   if (!items) return null;
   return (
     <div className="border-t border-[#E6DCCA] pt-5 mt-6">
-      <h2 className={`${heading} text-sm text-[#621B00] mb-3`}>{t('Materials Required (Samagri)', 'కావలసిన సామాగ్రి')}</h2>
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <h2 className={`${heading} text-sm text-[#621B00]`}>{t('Materials Required (Samagri)', 'కావలసిన సామాగ్రి')}</h2>
+        <Link to={`/book/${sevaId}/checklist`} className="inline-flex items-center gap-1.5 text-xs text-[#C43E00] hover:text-[#C43E00]/80 border border-[#C43E00]/30 rounded-full px-3 py-1 transition-colors shrink-0" data-testid="samagri-checklist-link">
+          <Printer className="h-3 w-3" /> {t('Printable Checklist', 'ప్రింట్ చెక్‌లిస్ట్')}
+        </Link>
+      </div>
       <ol className="list-decimal list-inside space-y-1.5">
         {items.map((item, i) => <SamagriItem key={i} item={item} t={t} />)}
       </ol>
+    </div>
+  );
+}
+
+function RegulationsNote({ t }) {
+  return (
+    <div className="border-t border-[#E6DCCA] pt-4 mt-6 flex gap-2 text-xs text-[#8D6E63] leading-relaxed">
+      <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+      <p>{t(
+        "Note: Pooja slot availability, duration of the pooja, and usage of materials brought by devotees are subject to the temple management's regulations.",
+        'గమనిక: పూజ స్లాట్ లభ్యత, పూజ వ్యవధి మరియు భక్తులు తీసుకువచ్చిన సామాగ్రి వినియోగం దేవస్థాన నిర్వహణ నిబంధనలకు లోబడి ఉంటాయి.'
+      )}</p>
     </div>
   );
 }
@@ -117,6 +134,7 @@ export default function SevaBooking() {
             <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> Max {seva.max_persons_per_ticket} persons/ticket</span>
           </div>
           <SamagriSection sevaId={sevaId} t={t} heading={heading} />
+          <RegulationsNote t={t} />
           <BookingPausedNotice />
         </div>
       </div>
@@ -139,8 +157,10 @@ export default function SevaBooking() {
               <IndianRupee className="h-4 w-4" /> {seva.base_price} per ticket
             </div>
           </div>
-          {error && <div className="bg-red-50 text-red-700 text-sm p-3 rounded-lg mb-4" data-testid="booking-error">{error}</div>}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <SamagriSection sevaId={sevaId} t={t} heading={heading} />
+          <RegulationsNote t={t} />
+          {error && <div className="bg-red-50 text-red-700 text-sm p-3 rounded-lg mb-4 mt-6" data-testid="booking-error">{error}</div>}
+          <form onSubmit={handleSubmit} className="space-y-5 mt-6">
             <div>
               <label className="block text-sm font-medium text-[#5D4037] mb-1" htmlFor={`${uid}-seva-0`}>{t('Seva Date', 'సేవ తేదీ')} <span className="text-red-500">*</span></label>
               <input id={`${uid}-seva-0`} type="date" className={inputCls} min={today} value={form.for_date} onChange={e => setForm({...form, for_date: e.target.value, slot_id: ''})} required data-testid="input-date" />

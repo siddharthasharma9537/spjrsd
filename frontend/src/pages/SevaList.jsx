@@ -9,6 +9,7 @@ import LoadState from "@/components/LoadState";
 import { useT } from "@/contexts/LanguageContext";
 import { Clock, IndianRupee, ChevronRight, Globe } from 'lucide-react';
 import { BOOKINGS_PAUSED } from '@/lib/bookingStatus';
+import { sortByPriority } from '@/lib/sevaSamagri';
 
 export default function SevaList({ paroksha = false }) {
   const { t, heading } = useT();
@@ -19,7 +20,7 @@ export default function SevaList({ paroksha = false }) {
 
   useEffect(() => {
     const url = paroksha ? '/sevas?paroksha=true' : '/sevas';
-    api.get(url).then(r => setSevas(r.data)).catch(() => setLoadError(true)).finally(() => setLoading(false));
+    api.get(url).then(r => setSevas(paroksha ? r.data : sortByPriority(r.data))).catch(() => setLoadError(true)).finally(() => setLoading(false));
   }, [paroksha]);
 
   return (

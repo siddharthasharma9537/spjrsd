@@ -10,6 +10,7 @@ import Home from "@/pages/Home";
 import DevoteeAuth from "@/pages/DevoteeAuth";
 import SevaList from "@/pages/SevaList";
 import SevaBooking from "@/pages/SevaBooking";
+import SevaSamagriChecklist from "@/pages/SevaSamagriChecklist";
 import BookingTicket from "@/pages/BookingTicket";
 import MyBookings from "@/pages/MyBookings";
 import Donations from "@/pages/Donations";
@@ -167,6 +168,7 @@ function App() {
               submit) - so they stay open rather than bouncing anonymous
               visitors to login before they can see anything. */}
           <Route path="/book/:sevaId" element={BOOKINGS_PAUSED ? <SevaBooking /> : <ProtectedDevotee><SevaBooking /></ProtectedDevotee>} />
+          <Route path="/book/:sevaId/checklist" element={<SevaSamagriChecklist />} />
           <Route path="/ticket/:bookingId" element={<ProtectedDevotee><BookingTicket /></ProtectedDevotee>} />
           <Route path="/my-bookings" element={<ProtectedDevotee><MyBookings /></ProtectedDevotee>} />
           <Route path="/accommodation/book/:accId" element={BOOKINGS_PAUSED ? <AccommodationBooking /> : <ProtectedDevotee><AccommodationBooking /></ProtectedDevotee>} />
