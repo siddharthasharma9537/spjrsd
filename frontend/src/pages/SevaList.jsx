@@ -20,7 +20,7 @@ export default function SevaList({ paroksha = false }) {
 
   useEffect(() => {
     const url = paroksha ? '/sevas?paroksha=true' : '/sevas';
-    api.get(url).then(r => setSevas(paroksha ? r.data : sortByPriority(r.data))).catch(() => setLoadError(true)).finally(() => setLoading(false));
+    api.get(url).then(r => setSevas(sortByPriority(r.data))).catch(() => setLoadError(true)).finally(() => setLoading(false));
   }, [paroksha]);
 
   return (
@@ -35,8 +35,11 @@ export default function SevaList({ paroksha = false }) {
                 <Globe className="h-6 w-6 text-[#621B00]" />
               </div>
               <h1 className={`${heading} text-2xl md:text-4xl text-[#621B00] mb-1`} data-testid="sevas-title">{t("Paroksha Seva", "పరోక్ష సేవ")}</h1>
-              <p className="text-sm text-[#5D4037] mt-2 max-w-lg mx-auto">
-                Worship Sri Ramalingeshwara Swamy from anywhere in the world. The priest will perform the seva on your behalf and prasadam can be arranged.
+              <p className="text-sm text-[#5D4037] mt-2 max-w-lg mx-auto leading-relaxed" data-testid="paroksha-explainer">
+                {t(
+                  "Paroksha Seva is a remote, online seva - you do not need to be present at the temple. The temple's archakas (priests) perform the pooja on your behalf, at the temple, on the scheduled date.",
+                  "పరోక్ష సేవ అనేది ఒక దూరస్థ, ఆన్‌లైన్ సేవ - మీరు దేవాలయంలో స్వయంగా ఉండవలసిన అవసరం లేదు. దేవస్థానం అర్చకులు నిర్ణీత తేదీన దేవాలయంలోనే మీ తరపున పూజను నిర్వహిస్తారు."
+                )}
               </p>
             </>
           ) : (

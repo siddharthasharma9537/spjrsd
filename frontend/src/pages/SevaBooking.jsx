@@ -4,10 +4,45 @@ import TopStrip from '@/components/TopStrip';
 import Navbar from '@/components/Navbar';
 import api from '@/lib/api';
 import { useT } from "@/contexts/LanguageContext";
-import { ArrowLeft, IndianRupee, AlertCircle, Clock, Users, Printer, Info } from 'lucide-react';
+import { ArrowLeft, IndianRupee, AlertCircle, Clock, Users, Printer, Info, Globe, Landmark, QrCode, Copy, Check } from 'lucide-react';
 import { BOOKINGS_PAUSED } from '@/lib/bookingStatus';
 import BookingPausedNotice from '@/components/BookingPausedNotice';
 import { SEVA_SAMAGRI } from '@/lib/sevaSamagri';
+
+// Same official account the Donations page pays into - kept as its own copy
+// here rather than imported, so this page doesn't reach into Donations.jsx's
+// internals for two constants.
+const TEMPLE_UPI_VPA = 'assis94910001@barodampay';
+const TEMPLE_UPI_PAYEE = 'Assistant Commissioner and EO SPJRSD';
+const TEMPLE_BANK = {
+  accountName: 'Assistant Commissioner & Executive Officer, SPJRSD',
+  bankName: 'Bank of Baroda',
+  branch: 'Narketpally Branch, Narketpalle - 508254',
+  accountNumber: '55010100000001',
+  ifsc: 'BARB0NARKET',
+};
+
+function CopyField({ label, value }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {}
+  };
+  return (
+    <div className="flex items-center justify-between gap-2 text-xs border-b border-[#E6DCCA] pb-1.5 last:border-b-0 last:pb-0">
+      <div>
+        <p className="text-[#8D6E63]">{label}</p>
+        <p className="font-medium text-[#2D1B0E] font-mono">{value}</p>
+      </div>
+      <button type="button" onClick={handleCopy} className="shrink-0 p-1.5 rounded hover:bg-[#D4AF37]/10 text-[#621B00]" aria-label={`Copy ${label}`}>
+        {copied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+      </button>
+    </div>
+  );
+}
 
 function SamagriLine({ item, t }) {
   return (
@@ -61,6 +96,115 @@ function RegulationsNote({ t }) {
         "Note: Pooja slot availability, duration of the pooja, and usage of materials brought by devotees are subject to the temple management's regulations.",
         'గమనిక: పూజ స్లాట్ లభ్యత, పూజ వ్యవధి మరియు భక్తులు తీసుకువచ్చిన సామాగ్రి వినియోగం దేవస్థాన నిర్వహణ నిబంధనలకు లోబడి ఉంటాయి.'
       )}</p>
+    </div>
+  );
+}
+
+function ParokshaSevaNote({ t }) {
+  return (
+    <div className="bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-lg p-4 mb-6 flex gap-2.5">
+      <Globe className="h-5 w-5 text-[#621B00] shrink-0 mt-0.5" />
+      <p className="text-sm text-[#621B00] leading-relaxed">{t(
+        "Paroksha Seva is a remote, online seva - you do not need to be present at the temple. The temple's archakas (priests) perform the pooja on your behalf at the scheduled time, on-site.",
+        'పరోక్ష సేవ అనేది ఒక దూరస్థ, ఆన్‌లైన్ సేవ - మీరు దేవాలయంలో స్వయంగా ఉండవలసిన అవసరం లేదు. దేవస్థానం అర్చకులు నిర్ణీత సమయంలో దేవాలయంలోనే మీ తరపున పూజను నిర్వహిస్తారు.'
+      )}</p>
+    </div>
+  );
+}
+
+function ParokshaPaymentSection({ seva, t, heading }) {
+  const [details, setDetails] = useState({ devoteeName: '', spouseName: '', childrenNames: '', gotram: '', village: '', contact: '' });
+  const [copied, setCopied] = useState(false);
+  const poojaName = t(seva.name_english, seva.name_telugu);
+
+  const note = [
+    `Pooja: ${poojaName}`,
+    details.devoteeName && `Devotee: ${details.devoteeName}`,
+    details.spouseName && `Spouse: ${details.spouseName}`,
+    details.childrenNames && `Children: ${details.childrenNames}`,
+    details.gotram && `Gotram: ${details.gotram}`,
+    details.village && `Village: ${details.village}`,
+    details.contact && `Contact: ${details.contact}`,
+  ].filter(Boolean).join(' | ');
+
+  const copyNote = async () => {
+    try { await navigator.clipboard.writeText(note); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch {}
+  };
+
+  const upiLink = `upi://pay?pa=${encodeURIComponent(TEMPLE_UPI_VPA)}&pn=${encodeURIComponent(TEMPLE_UPI_PAYEE)}&cu=INR&am=${encodeURIComponent(seva.base_price)}&tn=${encodeURIComponent(note)}`;
+
+  const fields = [
+    ['devoteeName', t('Devotee Name', 'భక్తుని పేరు'), 'input-devotee-name'],
+    ['spouseName', t('Spouse Name', 'జీవిత భాగస్వామి పేరు'), 'input-spouse-name'],
+    ['childrenNames', t("Children's Names", 'పిల్లల పేర్లు'), 'input-children-names'],
+    ['gotram', t('Gotram', 'గోత్రం'), 'input-paroksha-gotram'],
+    ['village', t('Village Name', 'గ్రామం పేరు'), 'input-village'],
+    ['contact', t('Contact Number', 'సంప్రదింపు నంబరు'), 'input-contact'],
+  ];
+
+  return (
+    <div className="border-t border-[#E6DCCA] pt-5 mt-6">
+      <h2 className={`${heading} text-sm text-[#621B00] mb-1`}>{t('Devotee Details for This Seva', 'ఈ సేవ కొరకు భక్తుని వివరాలు')}</h2>
+      <p className="text-xs text-[#8D6E63] mb-4 leading-relaxed">{t(
+        "Fill these in, then copy the note below and paste it into your UPI app's Message/Note field when you pay - this is how the temple identifies your payment.",
+        'వీటిని పూరించి, క్రింద గల నోట్‌ను కాపీ చేసి, చెల్లించేటప్పుడు మీ UPI యాప్ యొక్క మెసేజ్/నోట్ ఫీల్డ్‌లో అతికించండి - దీని ద్వారానే దేవస్థానం మీ చెల్లింపును గుర్తిస్తుంది.'
+      )}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+        {fields.map(([key, label, testid]) => (
+          <div key={key}>
+            <label className="block text-xs font-medium text-[#5D4037] mb-1">{label}</label>
+            <input
+              className="w-full h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg text-sm outline-none focus:border-[#C43E00] focus:ring-2 focus:ring-[#C43E00]/20 transition-all text-[#2D1B0E]"
+              value={details[key]}
+              onChange={e => setDetails({ ...details, [key]: e.target.value })}
+              data-testid={testid}
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-[#FDFBF7] border border-[#E6DCCA] rounded-lg p-3 mb-4">
+        <p className="text-[10px] text-[#8D6E63] uppercase tracking-wide mb-1">{t('Note to paste in UPI app', 'UPI యాప్‌లో అతికించవలసిన నోట్')}</p>
+        <p className="text-xs font-mono text-[#2D1B0E] break-words" data-testid="paroksha-note-text">{note}</p>
+        <button type="button" onClick={copyNote} className="mt-2 inline-flex items-center gap-1.5 text-xs text-[#621B00] hover:text-[#C43E00] transition-colors" data-testid="copy-paroksha-note-btn">
+          {copied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />} {copied ? t('Copied', 'కాపీ చేయబడింది') : t('Copy Note', 'నోట్ కాపీ చేయండి')}
+        </button>
+      </div>
+
+      <div className="bg-white border border-[#E6DCCA] rounded-xl p-5">
+        <h3 className="font-english-heading text-sm text-[#621B00] mb-1 flex items-center gap-1.5"><Landmark className="h-4 w-4" /> {t('Official Payment Details', 'అధికారిక చెల్లింపు వివరాలు')}</h3>
+        <div className="flex flex-col items-center bg-white border border-[#E6DCCA] rounded-xl p-3 my-3">
+          <img
+            src="/Assets/bank-of-baroda-upi-qr.webp"
+            alt={`Official Bank of Baroda UPI QR code for ${TEMPLE_UPI_PAYEE}`}
+            className="w-full max-w-[220px] h-auto rounded-lg"
+            loading="lazy"
+            data-testid="paroksha-upi-qr-code"
+          />
+          <p className="text-[10px] text-[#8D6E63] mt-2 text-center px-2">{t(
+            'Scan with any UPI app (GPay, PhonePe, Paytm, BHIM), then paste the note above into Message/Note before paying.',
+            'ఏదైనా UPI యాప్‌తో స్కాన్ చేయండి (GPay, PhonePe, Paytm, BHIM), చెల్లించే ముందు పైన గల నోట్‌ను మెసేజ్/నోట్‌లో అతికించండి.'
+          )}</p>
+        </div>
+        <div className="space-y-2 mb-3">
+          <CopyField label="Account Name" value={TEMPLE_BANK.accountName} />
+          <CopyField label="Bank & Branch" value={`${TEMPLE_BANK.bankName}, ${TEMPLE_BANK.branch}`} />
+          <CopyField label="Account Number" value={TEMPLE_BANK.accountNumber} />
+          <CopyField label="IFSC Code" value={TEMPLE_BANK.ifsc} />
+          <CopyField label="UPI ID (VPA)" value={TEMPLE_UPI_VPA} />
+        </div>
+        <a
+          href={upiLink}
+          className="inline-flex items-center justify-center gap-2 w-full h-10 bg-[#621B00] text-white rounded-full text-xs font-english-heading tracking-wide uppercase hover:bg-[#621B00]/90 transition-all"
+          data-testid="paroksha-upi-pay-link"
+        >
+          <QrCode className="h-4 w-4" /> {t('Pay via UPI App', 'UPI యాప్ ద్వారా చెల్లించండి')}
+        </a>
+        <p className="text-[10px] text-[#8D6E63] mt-2 leading-relaxed">{t(
+          'On mobile, this pre-fills the amount and note automatically. If you scan the QR code image above instead, enter the note manually.',
+          'మొబైల్‌లో, ఇది మొత్తం మరియు నోట్‌ను స్వయంచాలకంగా నింపుతుంది. పైన గల క్యూఆర్ కోడ్‌ను స్కాన్ చేస్తే, నోట్‌ను మీరే నమోదు చేయాలి.'
+        )}</p>
+      </div>
     </div>
   );
 }
@@ -128,6 +272,7 @@ export default function SevaBooking() {
               <IndianRupee className="h-4 w-4" /> {seva.base_price} per ticket
             </div>
           </div>
+          {isParoksha && <ParokshaSevaNote t={t} />}
           {seva.description && <p className="text-sm text-[#5D4037] leading-relaxed mb-4">{seva.description}</p>}
           <div className="flex items-center gap-4 text-xs text-[#8D6E63] mb-6">
             <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {seva.duration_minutes} min</span>
@@ -135,6 +280,7 @@ export default function SevaBooking() {
           </div>
           <SamagriSection sevaId={sevaId} t={t} heading={heading} />
           <RegulationsNote t={t} />
+          {isParoksha && <ParokshaPaymentSection seva={seva} t={t} heading={heading} />}
           <BookingPausedNotice />
         </div>
       </div>
@@ -157,8 +303,10 @@ export default function SevaBooking() {
               <IndianRupee className="h-4 w-4" /> {seva.base_price} per ticket
             </div>
           </div>
+          {isParoksha && <ParokshaSevaNote t={t} />}
           <SamagriSection sevaId={sevaId} t={t} heading={heading} />
           <RegulationsNote t={t} />
+          {isParoksha && <ParokshaPaymentSection seva={seva} t={t} heading={heading} />}
           {error && <div className="bg-red-50 text-red-700 text-sm p-3 rounded-lg mb-4 mt-6" data-testid="booking-error">{error}</div>}
           <form onSubmit={handleSubmit} className="space-y-5 mt-6">
             <div>
