@@ -811,10 +811,15 @@ async def get_live_streams():
 # ==================== SEED DATA ====================
 @api_router.post("/seed")
 async def seed_data():
-    admin_exists = await db.user_accounts.find_one({"username": "admin"})
+    admin_username = os.environ.get('ADMIN_USERNAME')
+    admin_password = os.environ.get('ADMIN_PASSWORD')
+    admin_mobile = os.environ.get('ADMIN_MOBILE')
+    if not admin_username or not admin_password or not admin_mobile:
+        raise HTTPException(status_code=500, detail="ADMIN_USERNAME, ADMIN_PASSWORD and ADMIN_MOBILE must be set in environment variables to seed the admin account")
+    admin_exists = await db.user_accounts.find_one({"username": admin_username})
     if admin_exists:
         return {"message": "Data already seeded"}
-    admin = {"id": str(uuid.uuid4()), "name": "Temple EO", "mobile": "9000000001", "role": "EO", "username": "admin", "password_hash": hash_password("admin123"), "active_flag": True}
+    admin = {"id": str(uuid.uuid4()), "name": "Temple EO", "mobile": admin_mobile, "role": "EO", "username": admin_username, "password_hash": hash_password(admin_password), "active_flag": True}
     await db.user_accounts.insert_one(admin)
     sevas = [
         {"id": str(uuid.uuid4()), "name_english": "Abhishekam", "name_telugu": "అభిషేకం", "description": "Sacred bathing ritual of Sri Ramalingeshwara Swamy", "base_price": 200, "duration_minutes": 45, "is_online_bookable": True, "is_paroksha_available": True, "max_per_slot_default": 10, "max_persons_per_ticket": 4, "special_instructions": "Please arrive 30 minutes before the scheduled time. Wear traditional attire.", "active_flag": True, "created_at": datetime.now(timezone.utc).isoformat()},
@@ -909,12 +914,6 @@ async def seed_data():
         {"id": str(uuid.uuid4()), "title": "Utsava Murthulu", "image_url": "/Assets/Utsava_Murthulu_1.webp", "category": "Festival", "media_type": "PHOTO", "active_flag": True, "created_at": datetime.now(timezone.utc).isoformat()},
     ]
     await db.gallery.insert_many(gallery_items)
-    # Seed live streams
-    live_streams = [
-        {"id": str(uuid.uuid4()), "name": "Temple Live Darshan", "description": "24x7 live darshan from the main sanctum", "stream_url": "https://www.youtube.com/embed/dQw4w9WgXcQ", "platform": "YouTube", "is_live": True, "schedule_info": "24x7 Live"},
-        {"id": str(uuid.uuid4()), "name": "Temple TV Channel", "description": "Devotional programs, bhajans, and temple events", "stream_url": "https://www.youtube.com/embed/dQw4w9WgXcQ", "platform": "YouTube", "is_live": True, "schedule_info": "6 AM - 10 PM Daily"},
-    ]
-    await db.live_streams.insert_many(live_streams)
     # Seed visitor stats
     await db.visitor_stats.insert_one({"key": "main", "total_visitors": 12847, "todays_visitors": 42, "last_reset_date": datetime.now(timezone.utc).strftime("%Y-%m-%d")})
     return {"message": "Seed data created successfully", "sevas": len(sevas), "profiles": len(profiles), "slots": len(slots), "accommodations": len(accommodations), "news": len(news_items), "gallery": len(gallery_items)}

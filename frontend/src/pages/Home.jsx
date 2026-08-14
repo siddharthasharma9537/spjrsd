@@ -28,7 +28,7 @@ export default function Home() {
     { icon: BookOpen, to: '/paroksha-seva', title: 'Paroksha Seva', titleTe: 'పరోక్ష సేవ', desc: 'Participate in sevas without being physically present', cta: BOOKINGS_PAUSED ? 'More Info' : 'Book Now', color: '#621B00' },
     { icon: Heart, to: '/donations/annaprasadam', title: 'AnnaPrasadam', titleTe: 'అన్నప్రసాదం', desc: 'Sponsor sacred food offering for devotees', cta: 'Donate Now', color: '#C43E00' },
     { icon: BedDouble, to: '/accommodation', title: 'Accommodation', titleTe: 'వసతి', desc: 'Rooms, cottages and guest houses for visiting pilgrims', cta: BOOKINGS_PAUSED ? 'More Info' : 'Book Now', color: '#621B00' },
-    { icon: Tv, to: '/media/live-tv', title: 'Temple TV', titleTe: 'ఆలయ టీవీ', desc: '24x7 live darshan and devotional programs', cta: 'Watch Now', color: '#C43E00' },
+    { icon: Tv, to: '/media/live-tv', title: 'Temple TV', titleTe: 'ఆలయ టీవీ', desc: '24x7 live darshan and devotional programs', cta: 'Coming Soon', color: '#C43E00' },
     { icon: Camera, to: '/gallery', title: 'Photo Gallery', titleTe: 'ఫోటో గ్యాలరీ', desc: 'Beautiful moments from the sacred temple', cta: 'View Gallery', color: '#D4AF37' },
   ];
 
