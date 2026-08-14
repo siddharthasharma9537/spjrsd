@@ -2,18 +2,20 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useT } from "@/contexts/LanguageContext";
+import { BOOKINGS_PAUSED } from '@/lib/bookingStatus';
 
 // A hand-picked set of photographs of the kshetram itself; captions describe
 // what is actually in each frame.
+const sevaCta = { label: BOOKINGS_PAUSED ? 'View Sevas' : 'Book Seva', to: '/sevas' };
 const slides = [
   { title: 'Ikshwadri — The Sacred Hill', subtitle: 'ఇక్ష్వాద్రి — పవిత్ర గిరి', desc: 'The steps path rising to the Swamy, guarded by Sri Ganapati', cta: { label: 'Temples of the Kshetram', to: '/temples' }, image: '/Assets/Ikshwadri_Hill_2.webp' },
-  { title: 'Sri Jadala Ramalingeshwara Swamy', subtitle: 'శ్రీ జడల రామలింగేశ్వర స్వామి', desc: 'The 108th and final Shiva Linga consecrated by Lord Parashurama', cta: { label: 'Book Seva', to: '/sevas' }, image: '/Assets/Sri_Swamy_Varu_Alankarm_1.webp' },
+  { title: 'Sri Jadala Ramalingeshwara Swamy', subtitle: 'శ్రీ జడల రామలింగేశ్వర స్వామి', desc: 'The 108th and final Shiva Linga consecrated by Lord Parashurama', cta: sevaCta, image: '/Assets/Sri_Swamy_Varu_Alankarm_1.webp' },
   { title: 'Sri Mallikarjuna Swamy', subtitle: 'శ్రీ మల్లిఖార్జున స్వామి', desc: 'Consort of Sri Bhramarambha Devi, at the foot of the hill', cta: { label: 'Temple History', to: '/temples' }, image: '/Assets/Mallikharjuna_Swamy_Down_Hill_2_Close_Up.webp' },
   { title: 'Moodu Gundlu', subtitle: 'మూడు గుండ్లు', desc: 'The revered Urdhva Lingam atop the three sacred rock pools', cta: { label: 'Read More', to: '/temples' }, image: '/Assets/Mudu_Gundlu_Shivalingam_4.webp', focus: '50% 45%' },
   { title: 'Sri Bhramarambha Devi', subtitle: 'శ్రీ భ్రమరాంబ దేవి', desc: 'Sri Parvathi Devi, at her shrine at the foot of the hill', cta: { label: 'Temple History', to: '/temples' }, image: '/Assets/Parvati_Devi_1.webp', focus: '50% 16%' },
   { title: 'Sri Maha Ganapati', subtitle: 'శ్రీ మహా గణపతి', desc: 'Adorned in floral alankaram during the festival days', cta: { label: 'View Gallery', to: '/gallery' }, image: '/Assets/Decorated_Ganapati.webp' },
   { title: 'Vaarshika Brahmotsavams', subtitle: 'వార్షిక బ్రహ్మోత్సవములు', desc: 'Five days of Kalyanotsavams drawing nearly five lakh devotees', cta: { label: 'View News', to: '/news' }, image: '/Assets/Brahmotsavama_Kalyana_Murthulu_3.webp' },
-  { title: 'Swamy Vari Kalyanam', subtitle: 'స్వామివారి కళ్యాణం', desc: 'The Kalyana Murthulu adorned for the celestial marriage', cta: { label: 'Book Seva', to: '/sevas' }, image: '/Assets/Kalyana_Murthulu.webp' },
+  { title: 'Swamy Vari Kalyanam', subtitle: 'స్వామివారి కళ్యాణం', desc: 'The Kalyana Murthulu adorned for the celestial marriage', cta: sevaCta, image: '/Assets/Kalyana_Murthulu.webp' },
   { title: 'Amavasya Laksha Pushparchana', subtitle: 'అమావాస్య లక్ష పుష్పార్చన', desc: 'A lakh of flowers offered to the Swamy every Amavasya evening', cta: { label: 'Festivals & Jatara', to: '/about#festivals' }, image: '/Assets/Amavasya_Laksha_Pushaparchana_2.webp' },
   { title: 'Cheruvugattu Kshetram', subtitle: 'చెరువుగట్టు క్షేత్రము', desc: 'Cheruvugattu, Narketpally Mandal, Nalgonda, Telangana', cta: { label: 'Plan Your Visit', to: '/about' }, image: '/Assets/Ikshwadri_Hill.webp' },
 ];

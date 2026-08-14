@@ -6,7 +6,8 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import api from '@/lib/api';
 import { useT } from "@/contexts/LanguageContext";
-import { HandCoins, Heart, IndianRupee, CheckCircle, FileCheck, Landmark, Copy, Check, QrCode } from 'lucide-react';
+import { HandCoins, Heart, IndianRupee, CheckCircle, FileCheck, Landmark, Copy, Check, QrCode, PauseCircle } from 'lucide-react';
+import { DONATION_FORM_PAUSED } from '@/lib/bookingStatus';
 
 const TEMPLE_UPI_VPA = 'assis94910001@barodampay';
 const TEMPLE_UPI_PAYEE = 'Assistant Commissioner and EO SPJRSD';
@@ -117,6 +118,28 @@ export default function Donations() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-2">
+              {DONATION_FORM_PAUSED ? (
+                <div className="bg-white border border-[#E6DCCA] rounded-xl p-6 shadow-sm" data-testid="donation-form-paused">
+                  <div className="flex items-start gap-3">
+                    <PauseCircle className="h-6 w-6 text-[#C43E00] shrink-0 mt-0.5" />
+                    <div>
+                      <h2 className={`${heading} text-lg text-[#621B00] mb-2`}>
+                        {t('Online Donation Form Temporarily Paused', 'ఆన్‌లైన్ దానం ఫారం తాత్కాలికంగా నిలిపివేయబడింది')}
+                      </h2>
+                      <p className="text-sm text-[#5D4037] leading-relaxed mb-2">
+                        {t(
+                          "This in-app donation form is temporarily unavailable. Please use the temple's official QR code, UPI ID, or bank transfer details alongside — those remain fully open — or contact the temple office for a receipt.",
+                          'ఈ ఇన్-యాప్ దానం ఫారం తాత్కాలికంగా అందుబాటులో లేదు. దయచేసి పక్కన గల దేవస్థానం అధికారిక క్యూఆర్ కోడ్, UPI ఐడీ లేదా బ్యాంకు వివరాలను ఉపయోగించండి — అవి పూర్తిగా అందుబాటులో ఉన్నాయి — లేదా రసీదు కొరకు దేవస్థాన కార్యాలయాన్ని సంప్రదించండి.'
+                        )}
+                      </p>
+                      <p className="text-xs text-[#8D6E63]">
+                        {t('Temple office:', 'దేవస్థాన కార్యాలయం:')}{' '}
+                        <a href="tel:+919491000701" className="text-[#C43E00] underline">+91 94910 00701</a>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
               <div className="bg-white border border-[#E6DCCA] rounded-xl p-6 shadow-sm" data-testid="donation-form">
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {/* Preset amounts */}
@@ -167,6 +190,7 @@ export default function Donations() {
                   </button>
                 </form>
               </div>
+              )}
             </div>
             <div className="space-y-4">
               <div className="bg-[#D4AF37]/10 border border-[#D4AF37]/20 rounded-xl p-5">
