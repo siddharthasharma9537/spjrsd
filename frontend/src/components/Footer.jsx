@@ -102,13 +102,13 @@ export default function Footer() {
           <div>
             <h4 className="font-english-heading text-xs tracking-widest text-[#D4AF37] mb-2">TEMPLE OFFICE</h4>
             <div className="text-xs text-[#FFE0B2]/50 space-y-1">
-              <p>Sri Varala Ramesh</p>
-              <p>Chairman, Dharmakartha Mandali</p>
-            </div>
-            <div className="text-xs text-[#FFE0B2]/50 space-y-1 mt-3 pt-3 border-t border-[#5D4037]/30">
               <p>Sri S. Mohan Babu</p>
               <p>Executive Officer</p>
               <p>Telangana Endowments Department</p>
+            </div>
+            <div className="text-xs text-[#FFE0B2]/50 space-y-1 mt-3 pt-3 border-t border-[#5D4037]/30">
+              <p>Sri Varala Ramesh</p>
+              <p>Chairman, Dharmakartha Mandali</p>
             </div>
           </div>
         </div>
