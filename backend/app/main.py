@@ -909,12 +909,6 @@ async def seed_data():
         {"id": str(uuid.uuid4()), "title": "Utsava Murthulu", "image_url": "/Assets/Utsava_Murthulu_1.webp", "category": "Festival", "media_type": "PHOTO", "active_flag": True, "created_at": datetime.now(timezone.utc).isoformat()},
     ]
     await db.gallery.insert_many(gallery_items)
-    # Seed live streams
-    live_streams = [
-        {"id": str(uuid.uuid4()), "name": "Temple Live Darshan", "description": "24x7 live darshan from the main sanctum", "stream_url": "https://www.youtube.com/embed/dQw4w9WgXcQ", "platform": "YouTube", "is_live": True, "schedule_info": "24x7 Live"},
-        {"id": str(uuid.uuid4()), "name": "Temple TV Channel", "description": "Devotional programs, bhajans, and temple events", "stream_url": "https://www.youtube.com/embed/dQw4w9WgXcQ", "platform": "YouTube", "is_live": True, "schedule_info": "6 AM - 10 PM Daily"},
-    ]
-    await db.live_streams.insert_many(live_streams)
     # Seed visitor stats
     await db.visitor_stats.insert_one({"key": "main", "total_visitors": 12847, "todays_visitors": 42, "last_reset_date": datetime.now(timezone.utc).strftime("%Y-%m-%d")})
     return {"message": "Seed data created successfully", "sevas": len(sevas), "profiles": len(profiles), "slots": len(slots), "accommodations": len(accommodations), "news": len(news_items), "gallery": len(gallery_items)}
