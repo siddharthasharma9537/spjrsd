@@ -1,11 +1,52 @@
 import { useState, useEffect , useId } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
+import TopStrip from '@/components/TopStrip';
 import Navbar from '@/components/Navbar';
 import api from '@/lib/api';
 import { useT } from "@/contexts/LanguageContext";
 import { ArrowLeft, IndianRupee, AlertCircle, Clock, Users } from 'lucide-react';
 import { BOOKINGS_PAUSED } from '@/lib/bookingStatus';
 import BookingPausedNotice from '@/components/BookingPausedNotice';
+import { SEVA_SAMAGRI } from '@/lib/sevaSamagri';
+
+function SamagriLine({ item, t }) {
+  return (
+    <>
+      <span>{t(item.en, item.te)}</span>
+      {item.qty && <span className="text-[#8D6E63]"> — {item.qty}</span>}
+      {item.optional && <span className="text-[#8D6E63] italic"> ({t('optional', 'ఐచ్ఛికం')})</span>}
+      {item.note && <span className="ml-1 text-[10px] uppercase tracking-wide text-[#C43E00] font-medium">{item.note}</span>}
+    </>
+  );
+}
+
+function SamagriItem({ item, t }) {
+  return (
+    <li className="text-sm text-[#5D4037] leading-relaxed">
+      <SamagriLine item={item} t={t} />
+      {item.children && (
+        <ol className="list-[lower-alpha] list-inside ml-4 mt-1 space-y-0.5">
+          {item.children.map((child, i) => (
+            <li key={i} className="text-sm text-[#5D4037] leading-relaxed"><SamagriLine item={child} t={t} /></li>
+          ))}
+        </ol>
+      )}
+    </li>
+  );
+}
+
+function SamagriSection({ sevaId, t, heading }) {
+  const items = SEVA_SAMAGRI[sevaId];
+  if (!items) return null;
+  return (
+    <div className="border-t border-[#E6DCCA] pt-5 mt-6">
+      <h2 className={`${heading} text-sm text-[#621B00] mb-3`}>{t('Materials Required (Samagri)', 'కావలసిన సామాగ్రి')}</h2>
+      <ol className="list-decimal list-inside space-y-1.5">
+        {items.map((item, i) => <SamagriItem key={i} item={item} t={t} />)}
+      </ol>
+    </div>
+  );
+}
 
 export default function SevaBooking() {
   const { t, heading } = useT();
@@ -56,6 +97,7 @@ export default function SevaBooking() {
 
   if (BOOKINGS_PAUSED) return (
     <div className="min-h-screen bg-[#FFFCF5]">
+      <TopStrip />
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-8">
         <Link to={isParoksha ? '/paroksha-seva' : '/sevas'} className="inline-flex items-center gap-1 text-sm text-[#8D6E63] hover:text-[#C43E00] mb-6 transition-colors">
@@ -74,6 +116,7 @@ export default function SevaBooking() {
             <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {seva.duration_minutes} min</span>
             <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> Max {seva.max_persons_per_ticket} persons/ticket</span>
           </div>
+          <SamagriSection sevaId={sevaId} t={t} heading={heading} />
           <BookingPausedNotice />
         </div>
       </div>
@@ -82,6 +125,7 @@ export default function SevaBooking() {
 
   return (
     <div className="min-h-screen bg-[#FFFCF5]">
+      <TopStrip />
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-8">
         <Link to={isParoksha ? '/paroksha-seva' : '/sevas'} className="inline-flex items-center gap-1 text-sm text-[#8D6E63] hover:text-[#C43E00] mb-6 transition-colors">
