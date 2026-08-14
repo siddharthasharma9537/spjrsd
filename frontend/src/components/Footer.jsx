@@ -113,20 +113,24 @@ export default function Footer() {
             the temple authority formally adopts the site. */}
         <div className="border-t border-[#5D4037]/30 pt-5 mt-6" data-testid="unofficial-notice">
           <p className="text-xs text-[#FFE0B2]/45 leading-relaxed max-w-4xl">
-            <span className="text-[#D4AF37]/70 font-medium">Please note:</span>{' '}
-            This website is an independent effort created for informational purposes and is
-            <strong className="font-medium"> not yet officially adopted or endorsed</strong> by
-            Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam or the Telangana Endowments
-            Department. Seva timings, rates and festival dates are reproduced from the
-            Devasthanam&apos;s published material and may change. For anything official — bookings,
-            donations or confirmations — please contact the temple office on{' '}
+            <span className="text-[#D4AF37]/70 font-medium">A note to devotees:</span>{' '}
+            this site is run independently by volunteers, purely to help pilgrims plan their
+            visit — it is <strong className="font-medium">not an official channel</strong> of the
+            temple or the Telangana Endowments Department. We&apos;ve done our best to keep seva
+            timings, rates and festival dates accurate from the Devasthanam&apos;s own material,
+            but please treat this as a guide, not the final word. For bookings, donations, or
+            anything that needs to be official, the temple office is always the right place to
+            call:{' '}
             <a href="tel:+919491000701" className="text-[#D4AF37]/80 hover:text-[#D4AF37] underline">
               +91 94910 00701
             </a>.
           </p>
           <p className="font-telugu-body text-xs text-[#FFE0B2]/45 leading-relaxed max-w-4xl mt-2">
-            గమనిక: ఈ వెబ్‌సైట్ కేవలం సమాచార ప్రయోజనం కొరకు రూపొందించబడినది. దీనిని దేవస్థానం ఇంకా
-            అధికారికంగా ఆమోదించలేదు. అధికారిక సమాచారం కొరకు దేవస్థాన కార్యాలయమును సంప్రదించగలరు.
+            భక్తులకు మనవి: ఈ వెబ్‌సైట్‌ను భక్తులు యాత్రను ప్రణాళిక చేసుకోవడంలో సహాయపడేందుకు స్వచ్ఛందంగా
+            నిర్వహిస్తున్నాము — ఇది దేవస్థానం లేదా దేవాదాయ శాఖ యొక్క అధికారిక మాధ్యమం కాదు. సేవా సమయాలు,
+            రేట్లు, పండుగ తేదీలను దేవస్థానం ప్రచురించిన సమాచారం నుండి వీలైనంత కచ్చితంగా అందించే ప్రయత్నం
+            చేశాము, అయినప్పటికీ దీనిని తుది సమాచారంగా కాక మార్గదర్శిగా భావించగలరు. బుకింగ్‌లు, విరాళాలు
+            లేదా అధికారిక అవసరాల కొరకు దయచేసి దేవస్థాన కార్యాలయం +91 94910 00701 నందు సంప్రదించండి.
           </p>
         </div>
 
