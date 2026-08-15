@@ -98,12 +98,9 @@ export default function Home() {
                 </div>
               </div>
               <p className="text-xs text-[#5D4037] mb-4 leading-relaxed">{c.desc}</p>
-              <div className="flex items-center gap-3">
-                <Link to={c.to} className="inline-flex items-center gap-1 px-4 py-2 bg-[#C43E00] text-white text-xs rounded-full hover:bg-[#C43E00]/90 transition-all" data-testid={`feature-cta-${i}`}>
-                  {c.cta} <ChevronRight className="h-3.5 w-3.5" />
-                </Link>
-                <Link to={c.to} className="text-xs text-[#8D6E63] hover:text-[#C43E00] transition-colors">More Info</Link>
-              </div>
+              <Link to={c.to} className="inline-flex items-center gap-1 px-4 py-2 bg-[#C43E00] text-white text-xs rounded-full hover:bg-[#C43E00]/90 transition-all" data-testid={`feature-cta-${i}`}>
+                {c.cta} <ChevronRight className="h-3.5 w-3.5" />
+              </Link>
             </div>
           ))}
         </div>
