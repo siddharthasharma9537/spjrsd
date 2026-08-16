@@ -911,8 +911,8 @@ async def seed_data():
     await db.gallery.insert_many(gallery_items)
     # Seed live streams
     live_streams = [
-        {"id": str(uuid.uuid4()), "name": "Temple Live Darshan", "description": "24x7 live darshan from the main sanctum", "stream_url": "https://www.youtube.com/embed/dQw4w9WgXcQ", "platform": "YouTube", "is_live": True, "schedule_info": "24x7 Live"},
-        {"id": str(uuid.uuid4()), "name": "Temple TV Channel", "description": "Devotional programs, bhajans, and temple events", "stream_url": "https://www.youtube.com/embed/dQw4w9WgXcQ", "platform": "YouTube", "is_live": True, "schedule_info": "6 AM - 10 PM Daily"},
+        {"id": str(uuid.uuid4()), "name": "Temple Live Darshan", "description": "24x7 live darshan from the main sanctum", "stream_url": "", "platform": "YouTube", "is_live": False, "schedule_info": "Coming soon"},
+        {"id": str(uuid.uuid4()), "name": "Temple TV Channel", "description": "Devotional programs, bhajans, and temple events", "stream_url": "", "platform": "YouTube", "is_live": False, "schedule_info": "Coming soon"},
     ]
     await db.live_streams.insert_many(live_streams)
     # Seed visitor stats

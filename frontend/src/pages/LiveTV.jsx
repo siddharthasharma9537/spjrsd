@@ -34,13 +34,21 @@ export default function LiveTV() {
             <div className="lg:col-span-2">
               {selected && (
                 <div data-testid="live-player">
-                  <div className="aspect-video rounded-xl overflow-hidden bg-black">
-                    <iframe src={selected.stream_url} className="w-full h-full" allow="autoplay; encrypted-media" allowFullScreen title={selected.name} />
-                  </div>
+                  {selected.is_live && selected.stream_url ? (
+                    <div className="aspect-video rounded-xl overflow-hidden bg-black">
+                      <iframe src={selected.stream_url} className="w-full h-full" allow="autoplay; encrypted-media" allowFullScreen title={selected.name} />
+                    </div>
+                  ) : (
+                    <div className="aspect-video rounded-xl overflow-hidden bg-[#2D1B0E] flex flex-col items-center justify-center text-center px-6" data-testid="live-player-unavailable">
+                      <Tv className="h-10 w-10 text-[#D4AF37]/60 mb-3" />
+                      <p className="text-[#FFE0B2] font-medium">{t('This channel is not live right now', 'ఈ ఛానల్ ప్రస్తుతం ప్రత్యక్ష ప్రసారంలో లేదు')}</p>
+                      <p className="text-xs text-[#FFE0B2]/60 mt-1">{t('Please check back during the schedule below.', 'దయచేసి క్రింద ఇవ్వబడిన సమయంలో మళ్ళీ చూడండి.')}</p>
+                    </div>
+                  )}
                   <div className="mt-4">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                      <span className="text-xs text-red-600 font-medium uppercase">Live</span>
+                      <span className={`w-2 h-2 rounded-full ${selected.is_live && selected.stream_url ? 'bg-red-500 animate-pulse' : 'bg-[#8D6E63]'}`} />
+                      <span className={`text-xs font-medium uppercase ${selected.is_live && selected.stream_url ? 'text-red-600' : 'text-[#8D6E63]'}`}>{selected.is_live && selected.stream_url ? 'Live' : 'Offline'}</span>
                     </div>
                     <h2 className="font-english-heading text-lg text-[#621B00]">{selected.name}</h2>
                     <p className="text-sm text-[#5D4037] mt-1">{selected.description}</p>
