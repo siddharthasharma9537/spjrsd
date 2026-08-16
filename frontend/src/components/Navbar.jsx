@@ -79,7 +79,15 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <nav data-testid="navbar">
+    // A Fragment, not a wrapping <nav>: position:sticky is constrained to
+    // stay within its own DOM parent's box. A <nav> wrapping both the banner
+    // and the sticky bar would only ever be as tall as the two of them
+    // combined (~200px) - the sticky bar would run out of room to stick in
+    // and scroll away the moment the page scrolls past that point. As a
+    // Fragment, the banner and the (now itself a <nav>) sticky bar become
+    // direct children of the page's own top-level wrapper, which spans the
+    // full page height, so the bar can stay pinned for the whole scroll.
+    <>
       {/* Title banner - the Swamy and Ammavaru flanking the name, in matching
           gold medallions. Photographs sit on a plain maroon ground rather than
           an illustrated one, so the two do not fight each other. */}
@@ -109,6 +117,9 @@ export default function Navbar() {
             <span className="block text-center leading-tight px-1 min-w-0">
               <span className="block font-telugu-heading temple-header-te text-lg sm:text-2xl md:text-[1.7rem] lg:text-[2rem] leading-snug">
                 శ్రీ పార్వతీ జడల రామలింగేశ్వర స్వామి దేవస్థానం
+              </span>
+              <span className="temple-header-divider" aria-hidden="true">
+                <span className="temple-header-divider-dot" />
               </span>
               <span className="block font-english-heading temple-header-en text-[11px] sm:text-sm md:text-base lg:text-lg tracking-[0.06em] uppercase mt-1 md:mt-1.5">
                 Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam
@@ -142,10 +153,17 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Menu bar - sticks to the top once the title scrolls past */}
-      <div className="bg-gradient-to-b from-[#B22F30] to-[#7B0406] text-white sticky top-0 z-50 shadow-lg border-y border-[#D4AF37]/30">
+      {/* Menu bar - sticks to the top once the title scrolls past. Its own
+          tag, not a wrapper's - see the Fragment comment above. */}
+      <nav data-testid="navbar" className="bg-gradient-to-b from-[#B22F30] to-[#7B0406] text-white sticky top-0 z-50 shadow-lg border-y border-[#D4AF37]/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-end lg:justify-center min-h-[2.75rem]">
+          <div className="flex items-center justify-between lg:justify-center min-h-[2.75rem]">
+            {/* Mobile-only Home shortcut - previously only reachable by opening
+                the hamburger menu. Hidden at lg+ since the full desktop row
+                below already has its own Home link. */}
+            <Link to="/" className="lg:hidden flex items-center gap-1.5 py-2.5 pr-2 text-xs hover:text-[#FFE0B2] transition-colors" data-testid="nav-home-mobile">
+              <Home className="h-4 w-4" /> Home
+            </Link>
             {/* Desktop */}
             <div className="hidden lg:flex items-center text-xs divide-x divide-white/15">
               <Link to="/" className="flex items-center gap-1.5 px-3 py-2.5 hover:bg-white/10 transition-colors whitespace-nowrap" data-testid="nav-home">
@@ -181,9 +199,6 @@ export default function Navbar() {
         </div>
       {mobileOpen && (
         <div className="lg:hidden bg-[#3D1F0A] border-t border-[#5D4037]/30 px-4 py-3 space-y-1 text-sm max-h-[70vh] overflow-y-auto">
-          <Link to="/" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-3 py-2 hover:bg-white/10 rounded">
-            <Home className="h-4 w-4" /> Home
-          </Link>
           {navGroups.map((g, i) => (
             g.children ? (
               <div key={i}>
@@ -204,7 +219,7 @@ export default function Navbar() {
           {!user && <Link to="/login" onClick={() => setMobileOpen(false)} className="block px-3 py-2 bg-[#D4AF37] text-[#2A1800] rounded text-center font-medium">Sign In</Link>}
         </div>
       )}
-      </div>
-    </nav>
+      </nav>
+    </>
   );
 }
