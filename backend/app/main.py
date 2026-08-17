@@ -12,6 +12,7 @@ import uuid
 import hashlib
 import jwt
 import pandas as pd
+from pymongo import UpdateOne
 from datetime import datetime, timezone, timedelta
 from app.routes import volunteer
 from app.database.db import db
@@ -859,7 +860,8 @@ async def bulk_import_panchangam(file: UploadFile = File(...), user=Depends(get_
     if "gregorian_date" not in df.columns or "tithi_tithi_name_english" not in df.columns or "nakshatra_nakshatra_name_english" not in df.columns:
         raise HTTPException(status_code=400, detail="File is missing required columns (gregorian_date, tithi_tithi_name_english, nakshatra_nakshatra_name_english)")
 
-    imported, updated, errors = 0, 0, []
+    errors = []
+    operations = []
     for idx, row in df.iterrows():
         row_num = idx + 2  # 1-indexed + header row
         try:
@@ -890,17 +892,22 @@ async def bulk_import_panchangam(file: UploadFile = File(...), user=Depends(get_
             if not doc["tithi"] or not doc["nakshatra"]:
                 errors.append(f"Row {row_num} ({date_val}): missing tithi or nakshatra")
                 continue
-            existing = await db.panchangam.find_one({"date": date_val}, {"_id": 0, "id": 1})
-            if existing:
-                await db.panchangam.update_one({"date": date_val}, {"$set": doc})
-                updated += 1
-            else:
-                doc["id"] = str(uuid.uuid4())
-                doc["created_at"] = datetime.now(timezone.utc).isoformat()
-                await db.panchangam.insert_one(doc)
-                imported += 1
+            operations.append(UpdateOne(
+                {"date": date_val},
+                {
+                    "$set": doc,
+                    "$setOnInsert": {"id": str(uuid.uuid4()), "created_at": datetime.now(timezone.utc).isoformat()}
+                },
+                upsert=True
+            ))
         except Exception as e:
             errors.append(f"Row {row_num}: {e}")
+
+    imported, updated = 0, 0
+    if operations:
+        result = await db.panchangam.bulk_write(operations, ordered=False)
+        imported = result.upserted_count
+        updated = result.modified_count
     return {"total_rows": len(df), "imported": imported, "updated": updated, "errors": errors}
 
 # ==================== LIVE BLOG ROUTES ====================
