@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '@/lib/api';
 import { useT } from '@/contexts/LanguageContext';
 import { stripLeadingName } from '@/lib/panchangam';
-import { Sun, Sunrise, Sunset, ChevronRight, Moon, CircleDot, CalendarClock } from 'lucide-react';
+import { Sun, Sunrise, Sunset, ChevronRight, CalendarClock } from 'lucide-react';
 
 /* "2026-08-21" -> "21 Aug" - short enough to sit next to a time on one line.
    Kept in en-IN regardless of the site language: Gregorian month names have
@@ -39,9 +39,17 @@ export default function PanchangamWidget() {
   // Whichever of Pournami/Amavasya falls sooner is listed first.
   const transitionCards = transitions
     ? [
-        transitions.purnima && { key: 'purnima', icon: Moon, label: t('Pournami', 'పౌర్ణమి'), ...transitions.purnima },
-        transitions.amavasya && { key: 'amavasya', icon: CircleDot, label: t('Amavasya', 'అమావాస్య'), ...transitions.amavasya },
-      ].filter(Boolean).sort((a, b) => a.date.localeCompare(b.date))
+        transitions.purnima && { key: 'purnima', label: t('Pournami', 'పౌర్ణమి'), ...transitions.purnima },
+        transitions.amavasya && { key: 'amavasya', label: t('Amavasya', 'అమావాస్య'), ...transitions.amavasya },
+      ]
+        .filter(Boolean)
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .map(c => ({
+          ...c,
+          end_time: stripLeadingName(c.end_time, [c.tithi, c.tithi_telugu]),
+          start_time: stripLeadingName(c.start_time, [c.start_tithi, c.start_tithi_telugu]),
+          start_label: t(c.start_tithi, c.start_tithi_telugu) || t('Chaturdashi', 'చతుర్దశి'),
+        }))
     : [];
 
   return (
@@ -80,17 +88,24 @@ export default function PanchangamWidget() {
           <h3 className={`${heading} text-sm text-[#621B00] flex items-center gap-2 mb-3`}>
             <CalendarClock className="h-4 w-4 text-[#D4AF37]" /> {t('Up Coming', 'రాబోయేవి')}
           </h3>
-          <div className="space-y-3">
+          <div className="grid grid-cols-[1fr_auto_auto] gap-x-4 gap-y-1.5 items-baseline">
+            <span />
+            <span className="text-[10px] uppercase tracking-wide text-[#8D6E63] text-right">{t('Date', 'తేదీ')}</span>
+            <span className="text-[10px] uppercase tracking-wide text-[#8D6E63] text-right">{t('Ends at', 'ముగింపు')}</span>
+
             {transitionCards.map(c => (
-              <div key={c.key} className="flex items-start gap-2">
-                <c.icon className="h-3.5 w-3.5 mt-0.5 text-[#D4AF37] shrink-0" />
-                <div className="text-xs text-[#5D4037] min-w-0">
-                  <span className="font-medium text-[#2D1B0E] text-sm">{c.label}</span>
-                  {c.start_date && (
-                    <span className="block">{t('Starts', 'ప్రారంభం')}: {formatShortDate(c.start_date)}{c.start_time ? `, ${c.start_time}` : ''}</span>
-                  )}
-                  <span className="block">{t('Ends', 'ముగింపు')}: {formatShortDate(c.date)}{c.end_time ? `, ${c.end_time}` : ''}</span>
-                </div>
+              <div key={c.key} className="contents">
+                <span className="text-sm font-medium text-[#2D1B0E] pt-2">{c.label}</span>
+                <span className="text-sm text-[#2D1B0E] text-right pt-2">{formatShortDate(c.date)}</span>
+                <span className="text-sm text-[#2D1B0E] text-right pt-2">{c.end_time}</span>
+
+                {c.start_date && (
+                  <>
+                    <span className="text-[11px] text-[#8D6E63]">{c.start_label}</span>
+                    <span className="text-[11px] text-[#8D6E63] text-right">{formatShortDate(c.start_date)}</span>
+                    <span className="text-[11px] text-[#8D6E63] text-right">{c.start_time}</span>
+                  </>
+                )}
               </div>
             ))}
           </div>
