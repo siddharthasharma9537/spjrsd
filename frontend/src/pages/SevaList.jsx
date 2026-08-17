@@ -45,15 +45,15 @@ export default function SevaList({ paroksha = false }) {
           ) : (
             <>
               <h1 className={`${heading} text-2xl md:text-4xl text-[#621B00] mb-1`} data-testid="sevas-title">{t("Pratyaksha Seva", "ప్రత్యక్ష సేవ")}</h1>
-              <p className="text-sm text-[#5D4037] mt-2">In-person seva at the temple. Book your slot online.</p>
+              <p className="text-sm text-[#5D4037] mt-2">{t('In-person seva at the temple. Book your slot online.', 'ఆలయంలో ప్రత్యక్షంగా చేసే సేవ. మీ స్లాట్‌ను ఆన్‌లైన్‌లో బుక్ చేయండి.')}</p>
             </>
           )}
         </div>
 
         {loading ? (
-          <div className="text-center py-12 text-[#8D6E63]">Loading sevas...</div>
+          <div className="text-center py-12 text-[#8D6E63]">{t('Loading sevas...', 'సేవలు లోడ్ అవుతున్నాయి...')}</div>
         ) : sevas.length === 0 ? (
-          <LoadState error={loadError} emptyText="No sevas are available at the moment." />
+          <LoadState error={loadError} emptyText={t('No sevas are available at the moment.', 'ప్రస్తుతం సేవలు అందుబాటులో లేవు.')} />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sevas.map((seva, i) => (
@@ -70,20 +70,20 @@ export default function SevaList({ paroksha = false }) {
                   <p className="text-sm text-[#5D4037] mb-4 line-clamp-2">{seva.description}</p>
                   <div className="flex items-center gap-4 text-xs text-[#8D6E63] mb-4">
                     <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {seva.duration_minutes} min</span>
-                    <span>Max {seva.max_persons_per_ticket} persons/ticket</span>
-                    {paroksha && <span className="px-2 py-0.5 bg-[#621B00]/10 rounded-full text-[#621B00]">Paroksha</span>}
+                    <span>{t(`Max ${seva.max_persons_per_ticket} persons/ticket`, `గరిష్టంగా ${seva.max_persons_per_ticket} మంది/టికెట్`)}</span>
+                    {paroksha && <span className="px-2 py-0.5 bg-[#621B00]/10 rounded-full text-[#621B00]">{t('Paroksha', 'పరోక్ష')}</span>}
                   </div>
                   {BOOKINGS_PAUSED ? (
                     <Link to={`/book/${seva.id}${paroksha ? '?paroksha=true' : ''}`} className="flex items-center justify-center gap-2 w-full h-11 border-2 border-[#C43E00] text-[#C43E00] font-english-heading text-sm tracking-wide uppercase rounded-full hover:bg-[#C43E00]/5 transition-all" data-testid={`info-btn-${seva.id}`}>
-                      More Info
+                      {t('More Info', 'మరిన్ని వివరాలు')}
                     </Link>
                   ) : user && userType === 'devotee' ? (
                     <Link to={`/book/${seva.id}${paroksha ? '?paroksha=true' : ''}`} className="flex items-center justify-center gap-2 w-full h-11 bg-[#C43E00] text-white font-english-heading text-sm tracking-wide uppercase rounded-full hover:bg-[#C43E00]/90 transition-all shadow-md" data-testid={`book-btn-${seva.id}`}>
-                      Book Now <ChevronRight className="h-4 w-4" />
+                      {t('Book Now', 'ఇప్పుడు బుక్ చేయండి')} <ChevronRight className="h-4 w-4" />
                     </Link>
                   ) : (
                     <Link to="/login" className="flex items-center justify-center gap-2 w-full h-11 border-2 border-[#C43E00] text-[#C43E00] font-english-heading text-sm tracking-wide uppercase rounded-full hover:bg-[#C43E00]/5 transition-all">
-                      Login to Book
+                      {t('Login to Book', 'బుక్ చేయడానికి లాగిన్ చేయండి')}
                     </Link>
                   )}
                 </div>

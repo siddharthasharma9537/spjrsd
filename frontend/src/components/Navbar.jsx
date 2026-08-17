@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage, useT } from '@/contexts/LanguageContext';
 import { Menu, X, ChevronDown, Home } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
@@ -37,33 +37,33 @@ function LangToggle({ className = '' }) {
 }
 
 const navGroups = [
-  { label: 'About', to: '/about' },
-  { label: 'Temples', to: '/temples' },
-  { label: 'Panchangam', to: '/panchangam' },
-  { label: 'Sevas & Darshanam', children: [
-    { to: '/sevas', label: 'Pratyaksha Seva' },
-    { to: '/paroksha-seva', label: 'Paroksha Seva' },
+  { label: 'About', labelTe: 'గురించి', to: '/about' },
+  { label: 'Temples', labelTe: 'ఆలయాలు', to: '/temples' },
+  { label: 'Panchangam', labelTe: 'పంచాంగం', to: '/panchangam' },
+  { label: 'Sevas & Darshanam', labelTe: 'సేవలు & దర్శనం', children: [
+    { to: '/sevas', label: 'Pratyaksha Seva', labelTe: 'ప్రత్యక్ష సేవ' },
+    { to: '/paroksha-seva', label: 'Paroksha Seva', labelTe: 'పరోక్ష సేవ' },
   ]},
-  { label: 'Donations', children: [
-    { to: '/donations', label: 'e-Hundi' },
-    { to: '/donations/annaprasadam', label: 'AnnaPrasadam' },
+  { label: 'Donations', labelTe: 'విరాళాలు', children: [
+    { to: '/donations', label: 'e-Hundi', labelTe: 'ఇ-హుండీ' },
+    { to: '/donations/annaprasadam', label: 'AnnaPrasadam', labelTe: 'అన్నప్రసాదం' },
   ]},
-  { label: 'Booking', children: [
-    { to: '/booking/quick', label: 'Quick Booking' },
-    { to: '/sevas', label: 'Seva Booking' },
-    { to: '/accommodation', label: 'Accommodation' },
+  { label: 'Booking', labelTe: 'బుకింగ్', children: [
+    { to: '/booking/quick', label: 'Quick Booking', labelTe: 'త్వరిత బుకింగ్' },
+    { to: '/sevas', label: 'Seva Booking', labelTe: 'సేవ బుకింగ్' },
+    { to: '/accommodation', label: 'Accommodation', labelTe: 'వసతి' },
   ]},
-  { label: 'Media', children: [
-    { to: '/news', label: 'News & Events' },
-    { to: '/live-blog', label: 'Live Blog' },
-    { to: '/gallery', label: 'Photo Gallery' },
-    { to: '/media/gallery/videos', label: 'Video Gallery' },
-    { to: '/media/live-tv', label: 'Live TV' },
+  { label: 'Media', labelTe: 'మీడియా', children: [
+    { to: '/news', label: 'News & Events', labelTe: 'వార్తలు & కార్యక్రమాలు' },
+    { to: '/live-blog', label: 'Live Blog', labelTe: 'లైవ్ బ్లాగ్' },
+    { to: '/gallery', label: 'Photo Gallery', labelTe: 'ఫోటో గ్యాలరీ' },
+    { to: '/media/gallery/videos', label: 'Video Gallery', labelTe: 'వీడియో గ్యాలరీ' },
+    { to: '/media/live-tv', label: 'Live TV', labelTe: 'లైవ్ టీవీ' },
   ]},
-  { label: 'Support', children: [
-    { to: '/support/contact', label: 'Contact Us' },
-    { to: '/support/faq', label: 'FAQ' },
-    { to: '/volunteer', label: 'Volunteer' },
+  { label: 'Support', labelTe: 'మద్దతు', children: [
+    { to: '/support/contact', label: 'Contact Us', labelTe: 'సంప్రదించండి' },
+    { to: '/support/faq', label: 'FAQ', labelTe: 'తరచుగా అడిగే ప్రశ్నలు' },
+    { to: '/volunteer', label: 'Volunteer', labelTe: 'స్వచ్ఛంద సేవ' },
   ]},
 ];
 
@@ -111,6 +111,7 @@ function Dropdown({ label, children }) {
 
 export default function Navbar() {
   const { user, userType, logout } = useAuth();
+  const { t } = useT();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -197,35 +198,37 @@ export default function Navbar() {
                 the hamburger menu. Hidden at lg+ since the full desktop row
                 below already has its own Home link. */}
             <Link to="/" className="lg:hidden flex items-center gap-1.5 py-2.5 pr-2 text-xs hover:text-[#FFE0B2] transition-colors" data-testid="nav-home-mobile">
-              <Home className="h-4 w-4" /> Home
+              <Home className="h-4 w-4" /> {t('Home', 'హోమ్')}
             </Link>
             {/* Desktop */}
             <div className="hidden lg:flex items-center text-xs divide-x divide-white/15">
               <Link to="/" className="flex items-center gap-1.5 px-3 py-2.5 hover:bg-white/10 transition-colors whitespace-nowrap" data-testid="nav-home">
-                <Home className="h-3.5 w-3.5" /> Home
+                <Home className="h-3.5 w-3.5" /> {t('Home', 'హోమ్')}
               </Link>
               {navGroups.map((g, i) => (
-                g.children ? <Dropdown key={i} label={g.label} children={g.children} /> : <Link key={i} to={g.to} className="px-3 py-2.5 hover:bg-white/10 transition-colors whitespace-nowrap">{g.label}</Link>
+                g.children
+                  ? <Dropdown key={i} label={t(g.label, g.labelTe)} children={g.children.map(c => ({ ...c, label: t(c.label, c.labelTe) }))} />
+                  : <Link key={i} to={g.to} className="px-3 py-2.5 hover:bg-white/10 transition-colors whitespace-nowrap">{t(g.label, g.labelTe)}</Link>
               ))}
               <span className="pl-3 pr-1">
                 <LangToggle />
               </span>
               {user && userType === 'devotee' && (
                 <>
-                  <Link to="/my-bookings" className="px-3 py-2.5 hover:bg-white/10 transition-colors">My Bookings</Link>
-                  <button onClick={logout} className="px-3 py-2.5 text-[#FFE0B2] hover:text-white">Logout</button>
+                  <Link to="/my-bookings" className="px-3 py-2.5 hover:bg-white/10 transition-colors">{t('My Bookings', 'నా బుకింగ్‌లు')}</Link>
+                  <button onClick={logout} className="px-3 py-2.5 text-[#FFE0B2] hover:text-white">{t('Logout', 'లాగ్ అవుట్')}</button>
                 </>
               )}
               {user && userType === 'admin' && (
                 <>
-                  <Link to="/admin" className="px-3 py-2.5 bg-[#D4AF37]/20 hover:bg-[#D4AF37]/30">Dashboard</Link>
-                  <button onClick={logout} className="px-3 py-2.5 text-[#FFE0B2]">Logout</button>
+                  <Link to="/admin" className="px-3 py-2.5 bg-[#D4AF37]/20 hover:bg-[#D4AF37]/30">{t('Dashboard', 'డాష్‌బోర్డ్')}</Link>
+                  <button onClick={logout} className="px-3 py-2.5 text-[#FFE0B2]">{t('Logout', 'లాగ్ అవుట్')}</button>
                 </>
               )}
               {!user && (
                 <>
-                  <Link to="/login" className="px-3 py-2.5 bg-[#D4AF37] text-[#2A1800] font-medium hover:bg-[#e6c44a] transition-colors" data-testid="nav-login">Sign In</Link>
-                  <Link to="/admin/login" className="px-3 py-2.5 text-[#FFE0B2]/60 hover:text-white text-xs" data-testid="nav-staff">Staff</Link>
+                  <Link to="/login" className="px-3 py-2.5 bg-[#D4AF37] text-[#2A1800] font-medium hover:bg-[#e6c44a] transition-colors" data-testid="nav-login">{t('Sign In', 'సైన్ ఇన్')}</Link>
+                  <Link to="/admin/login" className="px-3 py-2.5 text-[#FFE0B2]/60 hover:text-white text-xs" data-testid="nav-staff">{t('Staff', 'సిబ్బంది')}</Link>
                 </>
               )}
             </div>
@@ -242,29 +245,29 @@ export default function Navbar() {
           {navGroups.map((g, i) => (
             g.children ? (
               <div key={i}>
-                <p className="px-3 py-1 text-[#D4AF37] text-xs font-english-heading uppercase tracking-wide">{g.label}</p>
+                <p className="px-3 py-1 text-[#D4AF37] text-xs font-english-heading uppercase tracking-wide">{t(g.label, g.labelTe)}</p>
                 {g.children.map((c, j) => (
-                  <Link key={j} to={c.to} onClick={() => setMobileOpen(false)} className="block px-6 py-2 hover:bg-white/10 rounded">{c.label}</Link>
+                  <Link key={j} to={c.to} onClick={() => setMobileOpen(false)} className="block px-6 py-2 hover:bg-white/10 rounded">{t(c.label, c.labelTe)}</Link>
                 ))}
               </div>
-            ) : <Link key={i} to={g.to} onClick={() => setMobileOpen(false)} className="block px-3 py-2 hover:bg-white/10 rounded">{g.label}</Link>
+            ) : <Link key={i} to={g.to} onClick={() => setMobileOpen(false)} className="block px-3 py-2 hover:bg-white/10 rounded">{t(g.label, g.labelTe)}</Link>
           ))}
           {user && userType === 'devotee' && (
             <>
-              <Link to="/my-bookings" onClick={() => setMobileOpen(false)} className="block px-3 py-2">My Bookings</Link>
-              <button onClick={() => { logout(); setMobileOpen(false); }} className="block px-3 py-2 text-[#FFE0B2] w-full text-left">Logout</button>
+              <Link to="/my-bookings" onClick={() => setMobileOpen(false)} className="block px-3 py-2">{t('My Bookings', 'నా బుకింగ్‌లు')}</Link>
+              <button onClick={() => { logout(); setMobileOpen(false); }} className="block px-3 py-2 text-[#FFE0B2] w-full text-left">{t('Logout', 'లాగ్ అవుట్')}</button>
             </>
           )}
           {user && userType === 'admin' && (
             <>
-              <Link to="/admin" onClick={() => setMobileOpen(false)} className="block px-3 py-2 bg-[#D4AF37]/20 rounded">Dashboard</Link>
-              <button onClick={() => { logout(); setMobileOpen(false); }} className="block px-3 py-2 text-[#FFE0B2] w-full text-left">Logout</button>
+              <Link to="/admin" onClick={() => setMobileOpen(false)} className="block px-3 py-2 bg-[#D4AF37]/20 rounded">{t('Dashboard', 'డాష్‌బోర్డ్')}</Link>
+              <button onClick={() => { logout(); setMobileOpen(false); }} className="block px-3 py-2 text-[#FFE0B2] w-full text-left">{t('Logout', 'లాగ్ అవుట్')}</button>
             </>
           )}
           {!user && (
             <>
-              <Link to="/login" onClick={() => setMobileOpen(false)} className="block px-3 py-2 bg-[#D4AF37] text-[#2A1800] rounded text-center font-medium" data-testid="nav-login-mobile">Sign In</Link>
-              <Link to="/admin/login" onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-[#FFE0B2]/60 text-xs text-center" data-testid="nav-staff-mobile">Staff</Link>
+              <Link to="/login" onClick={() => setMobileOpen(false)} className="block px-3 py-2 bg-[#D4AF37] text-[#2A1800] rounded text-center font-medium" data-testid="nav-login-mobile">{t('Sign In', 'సైన్ ఇన్')}</Link>
+              <Link to="/admin/login" onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-[#FFE0B2]/60 text-xs text-center" data-testid="nav-staff-mobile">{t('Staff', 'సిబ్బంది')}</Link>
             </>
           )}
         </div>

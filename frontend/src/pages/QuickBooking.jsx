@@ -32,15 +32,15 @@ export default function QuickBooking() {
             <Zap className="h-8 w-8 text-[#D4AF37]" />
           </div>
           <h1 className={`${heading} text-2xl md:text-3xl text-[#621B00] mb-1`} data-testid="quick-booking-title">{t("Quick Booking", "త్వరిత బుకింగ్")}</h1>
-          <p className="text-sm text-[#5D4037] mt-2">Select a seva below to quickly book your slot</p>
+          <p className="text-sm text-[#5D4037] mt-2">{t('Select a seva below to quickly book your slot', 'మీ స్లాట్‌ను త్వరగా బుక్ చేయడానికి క్రింద ఒక సేవను ఎంచుకోండి')}</p>
         </div>
         {!user && (
           <div className="bg-[#D4AF37]/10 border border-[#D4AF37]/20 rounded-xl p-4 mb-6 text-center">
-            <p className="text-sm text-[#621B00]">Please <Link to="/login" className="text-[#C43E00] font-medium underline">sign in</Link> first to book a seva.</p>
+            <p className="text-sm text-[#621B00]">{t('Please', 'దయచేసి')} <Link to="/login" className="text-[#C43E00] font-medium underline">{t('sign in', 'సైన్ ఇన్ చేయండి')}</Link> {t('first to book a seva.', 'ముందుగా చేసి సేవ బుక్ చేయండి.')}</p>
           </div>
         )}
-        {loading ? <p className="text-center text-[#8D6E63]">Loading sevas...</p> : sevas.length === 0 ? (
-          <LoadState error={loadError} emptyText="No sevas are available for booking right now." />
+        {loading ? <p className="text-center text-[#8D6E63]">{t('Loading sevas...', 'సేవలు లోడ్ అవుతున్నాయి...')}</p> : sevas.length === 0 ? (
+          <LoadState error={loadError} emptyText={t('No sevas are available for booking right now.', 'ప్రస్తుతం బుకింగ్ కోసం సేవలు అందుబాటులో లేవు.')} />
         ) : (
           <div className="space-y-3">
             {sevas.map(seva => (
@@ -53,7 +53,7 @@ export default function QuickBooking() {
                     <h3 className="font-medium text-[#2D1B0E] text-sm">{t(seva.name_english, seva.name_telugu)}</h3>
                     <div className="flex items-center gap-3 text-xs text-[#8D6E63] mt-1">
                       <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {seva.duration_minutes} min</span>
-                      <span>Max {seva.max_persons_per_ticket} persons</span>
+                      <span>{t(`Max ${seva.max_persons_per_ticket} persons`, `గరిష్టంగా ${seva.max_persons_per_ticket} మంది`)}</span>
                     </div>
                   </div>
                 </div>
@@ -61,14 +61,14 @@ export default function QuickBooking() {
                   <span className="flex items-center gap-0.5 text-lg font-bold text-[#C43E00]"><IndianRupee className="h-4 w-4" />{seva.base_price}</span>
                   {BOOKINGS_PAUSED ? (
                     <Link to={`/book/${seva.id}`} className="inline-flex items-center gap-1 px-5 py-2 border-2 border-[#C43E00] text-[#C43E00] text-sm rounded-full hover:bg-[#C43E00]/5 transition-all" data-testid={`quick-info-${seva.id}`}>
-                      More Info
+                      {t('More Info', 'మరిన్ని వివరాలు')}
                     </Link>
                   ) : user && userType === 'devotee' ? (
                     <Link to={`/book/${seva.id}`} className="inline-flex items-center gap-1 px-5 py-2 bg-[#C43E00] text-white text-sm rounded-full hover:bg-[#C43E00]/90 transition-all" data-testid={`quick-book-${seva.id}`}>
-                      Book <ChevronRight className="h-4 w-4" />
+                      {t('Book', 'బుక్ చేయండి')} <ChevronRight className="h-4 w-4" />
                     </Link>
                   ) : (
-                    <Link to="/login" className="inline-flex items-center gap-1 px-5 py-2 border-2 border-[#C43E00] text-[#C43E00] text-sm rounded-full">Sign In</Link>
+                    <Link to="/login" className="inline-flex items-center gap-1 px-5 py-2 border-2 border-[#C43E00] text-[#C43E00] text-sm rounded-full">{t('Sign In', 'సైన్ ఇన్')}</Link>
                   )}
                 </div>
               </div>

@@ -25,6 +25,7 @@ function UnofficialTicker() {
 }
 
 export default function TopStrip() {
+  const { t } = useT();
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -48,12 +49,12 @@ export default function TopStrip() {
         <div className="flex items-center gap-3">
           <Link to="/media/live-tv" className="flex items-center gap-1 hover:text-[#D4AF37] transition-colors" data-testid="live-tv-link">
             <Tv className="h-3 w-3" />
-            <span className="hidden sm:inline">Live TV</span>
+            <span className="hidden sm:inline">{t('Live TV', 'లైవ్ టీవీ')}</span>
             <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
           </Link>
           <Link to="/print-ticket" className="flex items-center gap-1 hover:text-[#D4AF37] transition-colors" data-testid="top-print-ticket">
             <Printer className="h-3 w-3" />
-            <span className="hidden sm:inline">Print Ticket</span>
+            <span className="hidden sm:inline">{t('Print Ticket', 'టికెట్ ప్రింట్')}</span>
           </Link>
         </div>
       </div>

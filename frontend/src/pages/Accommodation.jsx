@@ -30,11 +30,11 @@ export default function Accommodation() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center mb-10">
           <h1 className={`${heading} text-2xl md:text-4xl text-[#621B00] mb-1`} data-testid="accommodation-title">{t("Accommodation", "వసతి సౌకర్యాలు")}</h1>
-          <p className="text-sm text-[#5D4037] mt-2 max-w-lg mx-auto">Comfortable and hygienic rooms, cottages and dormitories with all amenities to accommodate pilgrims at Cheruvugattu.</p>
+          <p className="text-sm text-[#5D4037] mt-2 max-w-lg mx-auto">{t('Comfortable and hygienic rooms, cottages and dormitories with all amenities to accommodate pilgrims at Cheruvugattu.', 'చెరువుగట్టులో యాత్రికుల కొరకు అన్ని సౌకర్యాలతో సౌకర్యవంతమైన, పరిశుభ్రమైన గదులు, కాటేజీలు మరియు డార్మిటరీలు.')}</p>
         </div>
 
-        {loading ? <p className="text-center text-[#8D6E63]">Loading...</p> : accommodations.length === 0 ? (
-          <LoadState error={loadError} emptyText="No accommodation is listed at the moment. Please contact the temple office." />
+        {loading ? <p className="text-center text-[#8D6E63]">{t('Loading...', 'లోడ్ అవుతోంది...')}</p> : accommodations.length === 0 ? (
+          <LoadState error={loadError} emptyText={t('No accommodation is listed at the moment. Please contact the temple office.', 'ప్రస్తుతం వసతి జాబితా లేదు. దయచేసి ఆలయ కార్యాలయాన్ని సంప్రదించండి.')} />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {accommodations.map((acc, i) => (
@@ -49,8 +49,8 @@ export default function Accommodation() {
                   </div>
                   <p className="text-sm text-[#5D4037] mb-4">{acc.description}</p>
                   <div className="flex flex-wrap items-center gap-3 text-xs text-[#8D6E63] mb-4">
-                    <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> Capacity: {acc.capacity}</span>
-                    <span className="flex items-center gap-1"><BedDouble className="h-3.5 w-3.5" /> {acc.total_rooms} rooms</span>
+                    <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {t('Capacity', 'సామర్థ్యం')}: {acc.capacity}</span>
+                    <span className="flex items-center gap-1"><BedDouble className="h-3.5 w-3.5" /> {t(`${acc.total_rooms} rooms`, `${acc.total_rooms} గదులు`)}</span>
                   </div>
                   {acc.amenities && (
                     <div className="flex flex-wrap gap-2 mb-4">
@@ -63,19 +63,19 @@ export default function Accommodation() {
                     <div className="flex items-center gap-1">
                       <IndianRupee className="h-4 w-4 text-[#C43E00]" />
                       <span className="text-xl font-bold text-[#C43E00]">{acc.price_per_day}</span>
-                      <span className="text-sm text-[#8D6E63]">/ day</span>
+                      <span className="text-sm text-[#8D6E63]">{t('/ day', '/ రోజుకు')}</span>
                     </div>
                     {BOOKINGS_PAUSED ? (
                       <Link to={`/accommodation/book/${acc.id}`} className="inline-flex items-center gap-1 px-5 py-2 border-2 border-[#C43E00] text-[#C43E00] text-sm rounded-full hover:bg-[#C43E00]/5 transition-all" data-testid={`info-acc-${acc.id}`}>
-                        More Info
+                        {t('More Info', 'మరిన్ని వివరాలు')}
                       </Link>
                     ) : user && userType === 'devotee' ? (
                       <Link to={`/accommodation/book/${acc.id}`} className="inline-flex items-center gap-1 px-5 py-2 bg-[#C43E00] text-white text-sm rounded-full hover:bg-[#C43E00]/90 transition-all" data-testid={`book-acc-${acc.id}`}>
-                        Book Now <ChevronRight className="h-4 w-4" />
+                        {t('Book Now', 'ఇప్పుడు బుక్ చేయండి')} <ChevronRight className="h-4 w-4" />
                       </Link>
                     ) : (
                       <Link to="/login" className="inline-flex items-center gap-1 px-5 py-2 border-2 border-[#C43E00] text-[#C43E00] text-sm rounded-full hover:bg-[#C43E00]/5 transition-all">
-                        Login to Book
+                        {t('Login to Book', 'బుక్ చేయడానికి లాగిన్ చేయండి')}
                       </Link>
                     )}
                   </div>

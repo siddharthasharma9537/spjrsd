@@ -32,7 +32,7 @@ export default function DevoteeAuth({ isRegister = false }) {
       }
       navigate('/sevas');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Something went wrong');
+      setError(err.response?.data?.detail || t('Something went wrong', 'ఏదో పొరపాటు జరిగింది'));
     } finally {
       setLoading(false);
     }
@@ -48,7 +48,7 @@ export default function DevoteeAuth({ isRegister = false }) {
       setResetMessage(t('Password reset successful. You can now login with your new password.', 'పాస్‌వర్డ్ విజయవంతంగా మార్చబడింది. కొత్త పాస్‌వర్డ్‌తో లాగిన్ చేయవచ్చు.'));
       setResetForm({ mobile: '', email: '', new_password: '' });
     } catch (err) {
-      setError(err.response?.data?.detail || 'Something went wrong');
+      setError(err.response?.data?.detail || t('Something went wrong', 'ఏదో పొరపాటు జరిగింది'));
     } finally {
       setLoading(false);
     }
@@ -60,7 +60,7 @@ export default function DevoteeAuth({ isRegister = false }) {
     <div className="min-h-screen bg-[#FFFCF5] flex flex-col">
       <div className="temple-gradient py-6 text-center text-white">
         <Link to="/" className="inline-flex items-center gap-2 text-[#FFE0B2] hover:text-white text-sm mb-4 transition-colors">
-          <ArrowLeft className="h-4 w-4" /> Home
+          <ArrowLeft className="h-4 w-4" /> {t('Home', 'హోమ్')}
         </Link>
         <div className="flex items-center justify-center gap-2 mb-1">
           <Flame className="h-5 w-5 text-[#D4AF37]" />
@@ -103,7 +103,7 @@ export default function DevoteeAuth({ isRegister = false }) {
                   className="w-full h-12 bg-[#C43E00] text-white font-english-heading tracking-wide uppercase rounded-full hover:bg-[#C43E00]/90 transition-all shadow-lg disabled:opacity-50"
                   data-testid="reset-submit-btn"
                 >
-                  {loading ? 'Please wait...' : t('Reset Password', 'పాస్‌వర్డ్ మార్చండి')}
+                  {loading ? t('Please wait...', 'దయచేసి వేచి ఉండండి...') : t('Reset Password', 'పాస్‌వర్డ్ మార్చండి')}
                 </button>
                 <button type="button" onClick={() => { setMode('login'); setError(''); setResetMessage(''); }} className="w-full text-center text-sm text-[#C43E00] font-medium hover:underline" data-testid="switch-to-login-from-reset">
                   {t('Back to login', 'లాగిన్‌కు తిరిగి వెళ్ళండి')}
@@ -136,7 +136,7 @@ export default function DevoteeAuth({ isRegister = false }) {
                 <label htmlFor={`${uid}-password`} className="block text-sm font-medium text-[#5D4037] mb-1">{t('Password', 'పాస్‌వర్డ్')}</label>
                 <div className="relative">
                   <input id={`${uid}-password`} name="password" className={inputCls} type={showPw ? 'text' : 'password'} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} value={form.password} onChange={e => setForm({...form, password: e.target.value})} required data-testid="input-password" />
-                  <button type="button" onClick={() => setShowPw(!showPw)} aria-label={showPw ? 'Hide password' : 'Show password'} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8D6E63]">
+                  <button type="button" onClick={() => setShowPw(!showPw)} aria-label={showPw ? t('Hide password', 'పాస్‌వర్డ్ దాచండి') : t('Show password', 'పాస్‌వర్డ్ చూపించు')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8D6E63]">
                     {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
@@ -152,16 +152,16 @@ export default function DevoteeAuth({ isRegister = false }) {
                 className="w-full h-12 bg-[#C43E00] text-white font-english-heading tracking-wide uppercase rounded-full hover:bg-[#C43E00]/90 transition-all shadow-lg disabled:opacity-50"
                 data-testid="auth-submit-btn"
               >
-                {loading ? 'Please wait...' : mode === 'register' ? 'Register' : 'Login'}
+                {loading ? t('Please wait...', 'దయచేసి వేచి ఉండండి...') : mode === 'register' ? t('Register', 'నమోదు చేయండి') : t('Login', 'లాగిన్')}
               </button>
             </form>
             )}
 
             <div className="text-center mt-6 text-sm text-[#5D4037] space-y-2">
               {mode === 'forgot' ? null : mode === 'login' ? (
-                <p>New devotee? <button onClick={() => setMode('register')} className="text-[#C43E00] font-medium hover:underline" data-testid="switch-to-register">Register here</button></p>
+                <p>{t('New devotee?', 'కొత్త భక్తులా?')} <button onClick={() => setMode('register')} className="text-[#C43E00] font-medium hover:underline" data-testid="switch-to-register">{t('Register here', 'ఇక్కడ నమోదు చేయండి')}</button></p>
               ) : (
-                <p>Already registered? <button onClick={() => setMode('login')} className="text-[#C43E00] font-medium hover:underline" data-testid="switch-to-login">Login here</button></p>
+                <p>{t('Already registered?', 'ఇప్పటికే నమోదు చేసుకున్నారా?')} <button onClick={() => setMode('login')} className="text-[#C43E00] font-medium hover:underline" data-testid="switch-to-login">{t('Login here', 'ఇక్కడ లాగిన్ చేయండి')}</button></p>
               )}
               <p className="pt-2 border-t border-[#E6DCCA]">
                 <Link to="/admin/login" className="inline-flex items-center gap-1.5 text-[#8D6E63] hover:text-[#621B00]" data-testid="staff-login-link">

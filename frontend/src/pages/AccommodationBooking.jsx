@@ -34,7 +34,7 @@ export default function AccommodationBooking() {
       const res = await api.post('/accommodation-bookings', { accommodation_id: accId, ...form, num_rooms: parseInt(form.num_rooms), num_guests: parseInt(form.num_guests) });
       setSuccess(res.data);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Booking failed');
+      setError(err.response?.data?.detail || t('Booking failed', 'బుకింగ్ విఫలమైంది'));
     } finally {
       setSubmitting(false);
     }
@@ -42,26 +42,26 @@ export default function AccommodationBooking() {
 
   const inputCls = "w-full h-12 px-4 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-2 focus:ring-[#C43E00]/20 outline-none transition-all text-[#2D1B0E]";
 
-  if (!acc) return <div className="min-h-screen bg-[#FFFCF5]"><Navbar /><p className="text-center py-12 text-[#8D6E63]">Loading...</p></div>;
+  if (!acc) return <div className="min-h-screen bg-[#FFFCF5]"><Navbar /><p className="text-center py-12 text-[#8D6E63]">{t('Loading...', 'లోడ్ అవుతోంది...')}</p></div>;
 
   if (BOOKINGS_PAUSED) return (
     <div className="min-h-screen bg-[#FFFCF5]">
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-8">
         <Link to="/accommodation" className="inline-flex items-center gap-1 text-sm text-[#8D6E63] hover:text-[#C43E00] mb-6 transition-colors">
-          <ArrowLeft className="h-4 w-4" /> Back to Accommodation
+          <ArrowLeft className="h-4 w-4" /> {t('Back to Accommodation', 'వసతికి తిరిగి వెళ్ళండి')}
         </Link>
         <div className="bg-white border border-[#E6DCCA] rounded-xl p-6 md:p-8 shadow-sm">
           <div className="border-b border-[#E6DCCA] pb-4 mb-6">
             <h1 className="font-english-heading text-xl text-[#621B00]" data-testid="acc-booking-name">{acc.name}</h1>
             <div className="flex items-center gap-1 text-[#C43E00] font-medium mt-2">
-              <IndianRupee className="h-4 w-4" /> {acc.price_per_day} / day
+              <IndianRupee className="h-4 w-4" /> {t(`${acc.price_per_day} / day`, `${acc.price_per_day} / రోజుకు`)}
             </div>
           </div>
           {acc.description && <p className="text-sm text-[#5D4037] leading-relaxed mb-4">{acc.description}</p>}
           <div className="flex flex-wrap items-center gap-4 text-xs text-[#8D6E63] mb-4">
-            <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> Capacity: {acc.capacity}</span>
-            <span className="flex items-center gap-1"><BedDouble className="h-3.5 w-3.5" /> {acc.total_rooms} rooms</span>
+            <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {t('Capacity', 'సామర్థ్యం')}: {acc.capacity}</span>
+            <span className="flex items-center gap-1"><BedDouble className="h-3.5 w-3.5" /> {t(`${acc.total_rooms} rooms`, `${acc.total_rooms} గదులు`)}</span>
             <span>{acc.room_type}</span>
           </div>
           {acc.amenities && (
@@ -82,26 +82,26 @@ export default function AccommodationBooking() {
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-8">
         <Link to="/accommodation" className="inline-flex items-center gap-1 text-sm text-[#8D6E63] hover:text-[#C43E00] mb-6 transition-colors">
-          <ArrowLeft className="h-4 w-4" /> Back to Accommodation
+          <ArrowLeft className="h-4 w-4" /> {t('Back to Accommodation', 'వసతికి తిరిగి వెళ్ళండి')}
         </Link>
 
         {success ? (
           <div className="bg-white border border-green-200 rounded-xl p-8 text-center" data-testid="acc-booking-success">
             <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
-            <h2 className="font-english-heading text-xl text-[#621B00] mb-2">Accommodation Booked!</h2>
-            <p className="text-sm text-[#5D4037] mb-1">Booking #: <span className="font-mono font-bold">{success.booking_number}</span></p>
+            <h2 className="font-english-heading text-xl text-[#621B00] mb-2">{t('Accommodation Booked!', 'వసతి బుక్ చేయబడింది!')}</h2>
+            <p className="text-sm text-[#5D4037] mb-1">{t('Booking #', 'బుకింగ్ #')}: <span className="font-mono font-bold">{success.booking_number}</span></p>
             <p className="text-sm text-[#5D4037]">{success.accommodation_name} ({success.room_type})</p>
-            <p className="text-sm text-[#5D4037]">{success.check_in_date} to {success.check_out_date} ({success.num_days} days)</p>
+            <p className="text-sm text-[#5D4037]">{t(`${success.check_in_date} to ${success.check_out_date} (${success.num_days} days)`, `${success.check_in_date} నుండి ${success.check_out_date} వరకు (${success.num_days} రోజులు)`)}</p>
             <p className="text-lg font-bold text-[#C43E00] mt-2">Rs. {success.amount}</p>
-            <p className="text-xs text-[#8D6E63] mt-1 mb-4">Payment: Paid (MOCKED)</p>
-            <Link to="/my-bookings" className="inline-block px-6 py-2 bg-[#C43E00] text-white rounded-full text-sm">My Bookings</Link>
+            <p className="text-xs text-[#8D6E63] mt-1 mb-4">{t('Payment: Paid (MOCKED)', 'చెల్లింపు: చెల్లించబడింది (మాక్)')}</p>
+            <Link to="/my-bookings" className="inline-block px-6 py-2 bg-[#C43E00] text-white rounded-full text-sm">{t('My Bookings', 'నా బుకింగ్‌లు')}</Link>
           </div>
         ) : (
           <div className="bg-white border border-[#E6DCCA] rounded-xl p-6 md:p-8 shadow-sm" data-testid="acc-booking-form">
             <div className="border-b border-[#E6DCCA] pb-4 mb-6">
               <h1 className="font-english-heading text-xl text-[#621B00]" data-testid="acc-booking-name">{acc.name}</h1>
-              
-              <p className="text-sm text-[#5D4037] mt-1">{acc.room_type} | Capacity: {acc.capacity} | Rs. {acc.price_per_day}/day</p>
+
+              <p className="text-sm text-[#5D4037] mt-1">{acc.room_type} | {t('Capacity', 'సామర్థ్యం')}: {acc.capacity} | Rs. {acc.price_per_day}{t('/day', '/రోజుకు')}</p>
             </div>
             {error && <div className="bg-red-50 text-red-700 text-sm p-3 rounded-lg mb-4">{error}</div>}
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -136,13 +136,13 @@ export default function AccommodationBooking() {
               {numDays > 0 && (
                 <div className="bg-[#FDFBF7] border border-[#E6DCCA] rounded-lg p-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-[#5D4037]">Rs. {acc.price_per_day} x {form.num_rooms} room(s) x {numDays} day(s)</span>
+                    <span className="text-sm text-[#5D4037]">{t(`Rs. ${acc.price_per_day} x ${form.num_rooms} room(s) x ${numDays} day(s)`, `Rs. ${acc.price_per_day} x ${form.num_rooms} గది(లు) x ${numDays} రోజు(లు)`)}</span>
                     <span className="flex items-center gap-1 text-xl font-bold text-[#C43E00]"><IndianRupee className="h-5 w-5" /> {totalAmount}</span>
                   </div>
                 </div>
               )}
               <button type="submit" disabled={submitting || numDays < 1} className="w-full h-12 bg-[#C43E00] text-white font-english-heading tracking-wide uppercase rounded-full hover:bg-[#C43E00]/90 transition-all shadow-lg disabled:opacity-50" data-testid="confirm-acc-booking-btn">
-                {submitting ? 'Booking...' : 'Confirm Booking'}
+                {submitting ? t('Booking...', 'బుక్ చేస్తోంది...') : t('Confirm Booking', 'బుకింగ్ ధృవీకరించండి')}
               </button>
             </form>
           </div>

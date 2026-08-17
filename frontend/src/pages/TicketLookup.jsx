@@ -44,22 +44,22 @@ export default function TicketLookup() {
             <Ticket className="h-8 w-8 text-[#D4AF37]" />
           </div>
           <h1 className={`${heading} text-2xl md:text-3xl text-[#621B00] mb-1`} data-testid="ticket-lookup-title">{t("Print a Ticket", "టికెట్ ప్రింట్ చేయండి")}</h1>
-          <p className="text-sm text-[#5D4037] mt-2">Look up and reprint your seva booking ticket</p>
+          <p className="text-sm text-[#5D4037] mt-2">{t('Look up and reprint your seva booking ticket', 'మీ సేవ బుకింగ్ టికెట్‌ను వెతికి మళ్ళీ ప్రింట్ చేయండి')}</p>
         </div>
 
         <div className="bg-white border border-[#E6DCCA] rounded-xl p-6 shadow-sm" data-testid="ticket-lookup-form">
           <form onSubmit={handleSearch} className="space-y-4">
             <div className="flex gap-2">
               <button type="button" onClick={() => setSearchType('booking_number')} className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${searchType === 'booking_number' ? 'bg-[#C43E00] text-white' : 'bg-[#FDFBF7] text-[#5D4037] border border-[#E6DCCA]'}`} data-testid="search-by-booking">
-                By Booking Number
+                {t('By Booking Number', 'బుకింగ్ నంబర్ ద్వారా')}
               </button>
               <button type="button" onClick={() => setSearchType('mobile')} className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${searchType === 'mobile' ? 'bg-[#C43E00] text-white' : 'bg-[#FDFBF7] text-[#5D4037] border border-[#E6DCCA]'}`} data-testid="search-by-mobile">
-                By Mobile Number
+                {t('By Mobile Number', 'మొబైల్ నంబర్ ద్వారా')}
               </button>
             </div>
             <div className="flex gap-2">
               <label htmlFor={`${uid}-ticket-search`} className="sr-only">
-                {searchType === 'booking_number' ? 'Booking number' : 'Mobile number'}
+                {searchType === 'booking_number' ? t('Booking number', 'బుకింగ్ నంబర్') : t('Mobile number', 'మొబైల్ నంబర్')}
               </label>
               <input
                 id={`${uid}-ticket-search`}
@@ -68,24 +68,24 @@ export default function TicketLookup() {
                 inputMode={searchType === 'booking_number' ? 'text' : 'numeric'}
                 autoComplete={searchType === 'booking_number' ? 'off' : 'tel'}
                 className={inputCls}
-                placeholder={searchType === 'booking_number' ? 'Enter booking number (e.g., SPJR-...)' : 'Enter mobile number'}
+                placeholder={searchType === 'booking_number' ? t('Enter booking number (e.g., SPJR-...)', 'బుకింగ్ నంబర్ నమోదు చేయండి (ఉదా., SPJR-...)') : t('Enter mobile number', 'మొబైల్ నంబర్ నమోదు చేయండి')}
                 value={query} onChange={e => setQuery(e.target.value)} required data-testid="input-ticket-search" />
-              <button type="submit" disabled={loading} aria-label="Search for ticket" className="px-6 bg-[#C43E00] text-white rounded-lg hover:bg-[#C43E00]/90 transition-all disabled:opacity-50" data-testid="search-ticket-btn">
+              <button type="submit" disabled={loading} aria-label={t('Search for ticket', 'టికెట్ కొరకు వెతకండి')} className="px-6 bg-[#C43E00] text-white rounded-lg hover:bg-[#C43E00]/90 transition-all disabled:opacity-50" data-testid="search-ticket-btn">
                 <Search className="h-5 w-5" />
               </button>
             </div>
           </form>
         </div>
 
-        {loading && <p className="text-center py-8 text-[#8D6E63]">Searching...</p>}
+        {loading && <p className="text-center py-8 text-[#8D6E63]">{t('Searching...', 'వెతుకుతోంది...')}</p>}
 
         {searched && !loading && results.length === 0 && (
-          <p className="text-center py-8 text-[#8D6E63]" data-testid="no-results">No tickets found. Check your booking number or mobile.</p>
+          <p className="text-center py-8 text-[#8D6E63]" data-testid="no-results">{t('No tickets found. Check your booking number or mobile.', 'టికెట్లు కనబడలేదు. మీ బుకింగ్ నంబర్ లేదా మొబైల్‌ను తనిఖీ చేయండి.')}</p>
         )}
 
         {results.length > 0 && (
           <div className="mt-6 space-y-3" data-testid="ticket-results">
-            <p className="text-sm text-[#8D6E63]">{results.length} ticket(s) found</p>
+            <p className="text-sm text-[#8D6E63]">{t(`${results.length} ticket(s) found`, `${results.length} టికెట్(లు) దొరికాయి`)}</p>
             {results.map(b => (
               <div key={b.id} className="bg-white border border-[#E6DCCA] rounded-xl p-5 hover:border-[#D4AF37]/50 transition-all">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -97,7 +97,7 @@ export default function TicketLookup() {
                   <div className="flex items-center gap-2">
                     <span className={`px-2 py-0.5 rounded-full text-xs ${statusColors[b.status] || 'bg-gray-100'}`}>{b.status}</span>
                     <Link to={`/ticket/${b.id}`} className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#621B00] text-white text-xs rounded-full hover:bg-[#621B00]/90">
-                      <Printer className="h-3 w-3" /> Print
+                      <Printer className="h-3 w-3" /> {t('Print', 'ప్రింట్')}
                     </Link>
                   </div>
                 </div>

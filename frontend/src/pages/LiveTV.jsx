@@ -26,10 +26,10 @@ export default function LiveTV() {
             <Tv className="h-8 w-8 text-red-600" />
           </div>
           <h1 className={`${heading} text-2xl md:text-4xl text-[#621B00] mb-1`} data-testid="live-tv-title">{t("Temple Live TV", "ఆలయ లైవ్ టీవీ")}</h1>
-          <p className="text-sm text-[#5D4037] mt-2">24x7 Live Darshan and Devotional Programs</p>
+          <p className="text-sm text-[#5D4037] mt-2">{t('24x7 Live Darshan and Devotional Programs', '24x7 ప్రత్యక్ష దర్శనం మరియు భక్తి కార్యక్రమాలు')}</p>
         </div>
 
-        {loading ? <p className="text-center text-[#8D6E63]">Loading...</p> : (
+        {loading ? <p className="text-center text-[#8D6E63]">{t('Loading...', 'లోడ్ అవుతోంది...')}</p> : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
               {selected && (
@@ -48,7 +48,7 @@ export default function LiveTV() {
                   <div className="mt-4">
                     <div className="flex items-center gap-2 mb-1">
                       <span className={`w-2 h-2 rounded-full ${selected.is_live && selected.stream_url ? 'bg-red-500 animate-pulse' : 'bg-[#8D6E63]'}`} />
-                      <span className={`text-xs font-medium uppercase ${selected.is_live && selected.stream_url ? 'text-red-600' : 'text-[#8D6E63]'}`}>{selected.is_live && selected.stream_url ? 'Live' : 'Offline'}</span>
+                      <span className={`text-xs font-medium uppercase ${selected.is_live && selected.stream_url ? 'text-red-600' : 'text-[#8D6E63]'}`}>{selected.is_live && selected.stream_url ? t('Live', 'ప్రత్యక్ష ప్రసారం') : t('Offline', 'ఆఫ్‌లైన్')}</span>
                     </div>
                     <h2 className="font-english-heading text-lg text-[#621B00]">{selected.name}</h2>
                     <p className="text-sm text-[#5D4037] mt-1">{selected.description}</p>
@@ -58,7 +58,7 @@ export default function LiveTV() {
               )}
             </div>
             <div>
-              <h3 className="font-english-heading text-sm text-[#621B00] mb-3 uppercase tracking-wide">Channels</h3>
+              <h3 className="font-english-heading text-sm text-[#621B00] mb-3 uppercase tracking-wide">{t('Channels', 'ఛానల్స్')}</h3>
               <div className="space-y-2">
                 {streams.map(s => (
                   <button key={s.id} onClick={() => setSelected(s)} className={`w-full text-left p-4 rounded-xl border transition-all ${selected?.id === s.id ? 'border-[#C43E00] bg-[#C43E00]/5' : 'border-[#E6DCCA] hover:border-[#D4AF37]'}`} data-testid={`stream-${s.id}`}>

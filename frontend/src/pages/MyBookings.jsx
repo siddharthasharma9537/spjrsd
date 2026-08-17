@@ -33,24 +33,24 @@ export default function MyBookings() {
             <span className="font-english-heading text-sm tracking-wide">SPJR Devasthanams</span>
           </Link>
           <div className="flex items-center gap-3 text-sm">
-            <Link to="/sevas" className="hover:text-[#D4AF37]">Book Seva</Link>
-            <button onClick={logout} className="text-[#FFE0B2] hover:text-white">Logout</button>
+            <Link to="/sevas" className="hover:text-[#D4AF37]">{t('Book Seva', 'సేవ బుక్ చేయండి')}</Link>
+            <button onClick={logout} className="text-[#FFE0B2] hover:text-white">{t('Logout', 'లాగ్ అవుట్')}</button>
           </div>
         </div>
       </nav>
 
       <div className="max-w-4xl mx-auto px-4 py-8">
         <Link to="/sevas" className="inline-flex items-center gap-1 text-sm text-[#8D6E63] hover:text-[#C43E00] mb-6 transition-colors">
-          <ArrowLeft className="h-4 w-4" /> Back to Sevas
+          <ArrowLeft className="h-4 w-4" /> {t('Back to Sevas', 'సేవలకు తిరిగి వెళ్ళండి')}
         </Link>
         <h1 className={`${heading} text-2xl text-[#621B00] mb-1`} data-testid="my-bookings-title">{t("My Bookings", "నా బుకింగ్‌లు")}</h1>
 
         {loading ? (
-          <p className="text-center py-12 text-[#8D6E63]">Loading...</p>
+          <p className="text-center py-12 text-[#8D6E63]">{t('Loading...', 'లోడ్ అవుతోంది...')}</p>
         ) : bookings.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-[#8D6E63] mb-4">{t('No bookings yet', 'ఇంకా బుకింగ్‌లు లేవు')}</p>
-            <Link to="/sevas" className="inline-flex items-center gap-2 px-6 py-3 bg-[#C43E00] text-white rounded-full font-english-heading text-sm tracking-wide uppercase hover:bg-[#C43E00]/90 transition-all">Book a Seva</Link>
+            <Link to="/sevas" className="inline-flex items-center gap-2 px-6 py-3 bg-[#C43E00] text-white rounded-full font-english-heading text-sm tracking-wide uppercase hover:bg-[#C43E00]/90 transition-all">{t('Book a Seva', 'ఒక సేవను బుక్ చేయండి')}</Link>
           </div>
         ) : (
           <div className="space-y-4">
@@ -64,15 +64,15 @@ export default function MyBookings() {
                     <div className="flex flex-wrap items-center gap-4 text-xs text-[#8D6E63]">
                       <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> {b.for_date}</span>
                       <span>{b.slot_start_time} - {b.slot_end_time}</span>
-                      <span>Gotram: {b.gotram}</span>
-                      <span>{b.number_of_persons} person(s)</span>
+                      <span>{t('Gotram', 'గోత్రం')}: {b.gotram}</span>
+                      <span>{t(`${b.number_of_persons} person(s)`, `${b.number_of_persons} వ్యక్తి(లు)`)}</span>
                       <span className="flex items-center gap-0.5"><IndianRupee className="h-3 w-3" />{b.amount}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[b.status] || 'bg-gray-100 text-gray-800'}`}>{b.status}</span>
                     <Link to={`/ticket/${b.id}`} className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#621B00] text-white text-xs rounded-full hover:bg-[#621B00]/90 transition-all" data-testid={`view-ticket-${b.id}`}>
-                      <Eye className="h-3.5 w-3.5" /> View Ticket
+                      <Eye className="h-3.5 w-3.5" /> {t('View Ticket', 'టికెట్ చూడండి')}
                     </Link>
                   </div>
                 </div>

@@ -28,20 +28,20 @@ export default function Gallery() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center mb-8">
           <h1 className={`${heading} text-2xl md:text-4xl text-[#621B00] mb-1`} data-testid="gallery-title">{t("Photo Gallery", "ఫోటో గ్యాలరీ")}</h1>
-          <p className="text-sm text-[#5D4037] mt-2">The Beauty of Sacred Cheruvugattu</p>
+          <p className="text-sm text-[#5D4037] mt-2">{t('The Beauty of Sacred Cheruvugattu', 'పవిత్ర చెరువుగట్టు సౌందర్యం')}</p>
         </div>
 
         {/* Category filters */}
         <div className="flex flex-wrap justify-center gap-2 mb-8">
           {categories.map(c => (
             <button key={c} onClick={() => setFilter(c)} className={`px-4 py-1.5 rounded-full text-sm transition-all ${filter === c ? 'bg-[#C43E00] text-white' : 'bg-white border border-[#E6DCCA] text-[#5D4037] hover:border-[#D4AF37]'}`} data-testid={`gallery-filter-${c}`}>
-              {c}
+              {c === 'All' ? t('All', 'అన్నీ') : c}
             </button>
           ))}
         </div>
 
-        {loading ? <p className="text-center text-[#8D6E63]">Loading...</p> : filtered.length === 0 ? (
-          <LoadState error={loadError} emptyText="No photographs have been published yet." />
+        {loading ? <p className="text-center text-[#8D6E63]">{t('Loading...', 'లోడ్ అవుతోంది...')}</p> : filtered.length === 0 ? (
+          <LoadState error={loadError} emptyText={t('No photographs have been published yet.', 'ఇంకా ఫోటోలు ప్రచురించలేదు.')} />
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {filtered.map((img, i) => (
