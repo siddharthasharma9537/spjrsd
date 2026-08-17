@@ -807,7 +807,7 @@ async def get_panchangam_by_date(date: str):
 
 @api_router.get("/admin/panchangam")
 async def admin_list_panchangam(user=Depends(get_current_admin)):
-    return await db.panchangam.find({}, {"_id": 0}).sort("date", -1).to_list(200)
+    return await db.panchangam.find({}, {"_id": 0}).sort("date", -1).to_list(1000)
 
 @api_router.post("/admin/panchangam")
 async def create_panchangam(data: PanchangamCreate, user=Depends(get_current_admin)):
