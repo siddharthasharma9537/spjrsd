@@ -6,6 +6,7 @@ import { useState, useRef, useEffect } from 'react';
 const navGroups = [
   { label: 'About', to: '/about' },
   { label: 'Temples', to: '/temples' },
+  { label: 'Panchangam', to: '/panchangam' },
   { label: 'Sevas & Darshanam', children: [
     { to: '/sevas', label: 'Pratyaksha Seva' },
     { to: '/paroksha-seva', label: 'Paroksha Seva' },
@@ -21,6 +22,7 @@ const navGroups = [
   ]},
   { label: 'Media', children: [
     { to: '/news', label: 'News & Events' },
+    { to: '/live-blog', label: 'Live Blog' },
     { to: '/gallery', label: 'Photo Gallery' },
     { to: '/media/gallery/videos', label: 'Video Gallery' },
     { to: '/media/live-tv', label: 'Live TV' },

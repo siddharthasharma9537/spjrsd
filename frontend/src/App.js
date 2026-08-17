@@ -23,6 +23,8 @@ import Gallery from "@/pages/Gallery";
 import TicketLookup from "@/pages/TicketLookup";
 import NewsPage from "@/pages/NewsPage";
 import LiveTV from "@/pages/LiveTV";
+import Panchangam from "@/pages/Panchangam";
+import LiveBlog from "@/pages/LiveBlog";
 import VideoGallery from "@/pages/VideoGallery";
 import ContactUs from "@/pages/ContactUs";
 import FAQ from "@/pages/FAQ";
@@ -36,6 +38,8 @@ import AdminSlots from "@/pages/admin/Slots";
 import AdminBookings from "@/pages/admin/Bookings";
 import AdminDevotees from "@/pages/admin/Devotees";
 import AdminNews from "@/pages/admin/News";
+import AdminPanchangam from "@/pages/admin/Panchangam";
+import AdminLiveBlog from "@/pages/admin/LiveBlog";
 import AdminAccommodations from "@/pages/admin/Accommodations";
 import AdminGallery from "@/pages/admin/GalleryAdmin";
 import AdminDonations from "@/pages/admin/Donations";
@@ -70,6 +74,8 @@ const ROUTE_META = [
   ['/print-ticket', { title: 'Print Your Ticket', description: 'Look up and reprint your seva booking ticket by booking number or mobile number.' }],
   ['/my-bookings', { title: 'My Bookings', noIndex: true }],
   ['/news', { title: 'News & Events', description: 'Latest announcements, festival notices and events from Cheruvugattu temple.' }],
+  ['/panchangam', { title: 'Daily Panchangam', description: 'Tithi, Nakshatra, sunrise/sunset and auspicious timings for Cheruvugattu temple.' }],
+  ['/live-blog', { title: 'Live Blog', description: 'Real-time updates from festivals and events at Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu.' }],
   ['/media/live-tv', { title: 'Live TV', description: 'Watch live darshan and temple broadcasts from Cheruvugattu.' }],
   ['/media/gallery/videos', { title: 'Video Gallery', description: 'Videos of festivals, sevas and Brahmotsavams at Cheruvugattu temple.' }],
   ['/gallery', { title: 'Photo Gallery', description: 'Photographs of the temple, festivals and Brahmotsavams at Cheruvugattu.' }],
@@ -154,6 +160,9 @@ function App() {
           <Route path="/media/live-tv" element={<LiveTV />} />
           <Route path="/news" element={<NewsPage />} />
           <Route path="/media/news" element={<NewsPage />} />
+          <Route path="/panchangam" element={<Panchangam />} />
+          <Route path="/live-blog" element={<LiveBlog />} />
+          <Route path="/media/live-blog" element={<LiveBlog />} />
           <Route path="/print-ticket" element={<TicketLookup />} />
           <Route path="/support/contact" element={<ContactUs />} />
           <Route path="/support/faq" element={<FAQ />} />
@@ -181,6 +190,8 @@ function App() {
           <Route path="/admin/bookings" element={<ProtectedAdmin><AdminBookings /></ProtectedAdmin>} />
           <Route path="/admin/devotees" element={<ProtectedAdmin><AdminDevotees /></ProtectedAdmin>} />
           <Route path="/admin/news" element={<ProtectedAdmin><AdminNews /></ProtectedAdmin>} />
+          <Route path="/admin/panchangam" element={<ProtectedAdmin><AdminPanchangam /></ProtectedAdmin>} />
+          <Route path="/admin/live-blog" element={<ProtectedAdmin><AdminLiveBlog /></ProtectedAdmin>} />
           <Route path="/admin/accommodations" element={<ProtectedAdmin><AdminAccommodations /></ProtectedAdmin>} />
           <Route path="/admin/gallery" element={<ProtectedAdmin><AdminGallery /></ProtectedAdmin>} />
           <Route path="/admin/donations" element={<ProtectedAdmin><AdminDonations /></ProtectedAdmin>} />

@@ -4,9 +4,10 @@ import TopStrip from '@/components/TopStrip';
 import Navbar from '@/components/Navbar';
 import HeroCarousel from '@/components/HeroCarousel';
 import Footer from '@/components/Footer';
+import PanchangamWidget from '@/components/PanchangamWidget';
 import api from '@/lib/api';
 import { useT } from "@/contexts/LanguageContext";
-import { Flame, BookOpen, Heart, ChevronRight, Camera, Newspaper, BedDouble, HandCoins, Tv, IndianRupee, Clock, Users, CalendarDays } from 'lucide-react';
+import { Flame, BookOpen, Heart, ChevronRight, Camera, Newspaper, BedDouble, HandCoins, Tv, IndianRupee, Clock, Users, CalendarDays, Radio } from 'lucide-react';
 import { BOOKINGS_PAUSED } from '@/lib/bookingStatus';
 
 export default function Home() {
@@ -15,12 +16,14 @@ export default function Home() {
   const [gallery, setGallery] = useState([]);
   const [sevas, setSevas] = useState([]);
   const [visitors, setVisitors] = useState(null);
+  const [liveBlogPosts, setLiveBlogPosts] = useState([]);
 
   useEffect(() => {
     api.get('/news').then(r => setNews(r.data.slice(0, 5))).catch(() => {});
     api.get('/gallery?media_type=PHOTO').then(r => setGallery(r.data.slice(0, 6))).catch(() => api.get('/gallery').then(r => setGallery(r.data.filter(g => !g.media_type || g.media_type === 'PHOTO').slice(0, 6))).catch(() => {}));
     api.get('/sevas').then(r => setSevas(r.data.slice(0, 4))).catch(() => {});
     api.get('/visitor-stats').then(r => setVisitors(r.data)).catch(() => {});
+    api.get('/live-blog').then(r => setLiveBlogPosts(r.data.slice(0, 3))).catch(() => {});
   }, []);
 
   const featureCards = [
@@ -80,6 +83,34 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Panchangam + Live Blog */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <PanchangamWidget />
+          {liveBlogPosts.length > 0 && (
+            <div className="bg-white border border-[#E6DCCA] rounded-xl p-5" data-testid="live-blog-preview">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className={`${heading} text-sm text-[#621B00] flex items-center gap-2`}>
+                  <Radio className="h-4 w-4 text-red-600" /> {t('Live Blog', 'లైవ్ బ్లాగ్')}
+                  <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+                </h3>
+                <Link to="/live-blog" className="text-xs text-[#C43E00] hover:underline flex items-center gap-0.5">
+                  {t('View All', 'అన్నీ చూడండి')} <ChevronRight className="h-3 w-3" />
+                </Link>
+              </div>
+              <div className="space-y-3">
+                {liveBlogPosts.map(p => (
+                  <Link key={p.id} to="/live-blog" className="block hover:opacity-80 transition-opacity">
+                    <p className="text-xs text-[#C43E00] font-medium uppercase tracking-wide">{t(p.event_name, p.event_name_telugu)}</p>
+                    <p className="text-sm text-[#2D1B0E]">{t(p.title, p.title_telugu)}</p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Key Feature Cards */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
