@@ -31,7 +31,9 @@ from app.routes import contact
 # 12. Volunteer / Newsletter / Contact
 # 13. Visitor Stats
 # 14. Live Streams
-# 15. Seed & Root
+# 15. Panchangam
+# 16. Live Blog
+# 17. Seed & Root
 # ======================
 
 ROOT_DIR = Path(__file__).parent
@@ -282,6 +284,77 @@ class ContactMessage(BaseModel):
     mobile: Optional[str] = ""
     subject: str
     message: str
+
+class PanchangamCreate(BaseModel):
+    date: str  # YYYY-MM-DD
+    vaaram: Optional[str] = ""
+    vaaram_telugu: Optional[str] = ""
+    masa: Optional[str] = ""
+    masa_telugu: Optional[str] = ""
+    paksha: Optional[str] = ""
+    paksha_telugu: Optional[str] = ""
+    tithi: str
+    tithi_telugu: Optional[str] = ""
+    nakshatra: str
+    nakshatra_telugu: Optional[str] = ""
+    yoga: Optional[str] = ""
+    yoga_telugu: Optional[str] = ""
+    karana: Optional[str] = ""
+    karana_telugu: Optional[str] = ""
+    sunrise: Optional[str] = ""
+    sunset: Optional[str] = ""
+    rahu_kalam: Optional[str] = ""
+    yamagandam: Optional[str] = ""
+    gulika_kalam: Optional[str] = ""
+    abhijit_muhurtam: Optional[str] = ""
+    special_note: Optional[str] = ""
+    special_note_telugu: Optional[str] = ""
+
+class PanchangamUpdate(BaseModel):
+    vaaram: Optional[str] = None
+    vaaram_telugu: Optional[str] = None
+    masa: Optional[str] = None
+    masa_telugu: Optional[str] = None
+    paksha: Optional[str] = None
+    paksha_telugu: Optional[str] = None
+    tithi: Optional[str] = None
+    tithi_telugu: Optional[str] = None
+    nakshatra: Optional[str] = None
+    nakshatra_telugu: Optional[str] = None
+    yoga: Optional[str] = None
+    yoga_telugu: Optional[str] = None
+    karana: Optional[str] = None
+    karana_telugu: Optional[str] = None
+    sunrise: Optional[str] = None
+    sunset: Optional[str] = None
+    rahu_kalam: Optional[str] = None
+    yamagandam: Optional[str] = None
+    gulika_kalam: Optional[str] = None
+    abhijit_muhurtam: Optional[str] = None
+    special_note: Optional[str] = None
+    special_note_telugu: Optional[str] = None
+
+class LiveBlogPostCreate(BaseModel):
+    event_name: str
+    event_name_telugu: Optional[str] = ""
+    title: str
+    title_telugu: Optional[str] = ""
+    content: str
+    content_telugu: Optional[str] = ""
+    image_url: Optional[str] = ""
+    is_pinned: bool = False
+    active_flag: bool = True
+
+class LiveBlogPostUpdate(BaseModel):
+    event_name: Optional[str] = None
+    event_name_telugu: Optional[str] = None
+    title: Optional[str] = None
+    title_telugu: Optional[str] = None
+    content: Optional[str] = None
+    content_telugu: Optional[str] = None
+    image_url: Optional[str] = None
+    is_pinned: Optional[bool] = None
+    active_flag: Optional[bool] = None
 
 # ==================== AUTH ROUTES ====================
 @api_router.post("/auth/devotee/register")
@@ -707,6 +780,105 @@ async def delete_news(news_id: str, user=Depends(get_current_admin)):
         raise HTTPException(status_code=404, detail="News not found")
     return {"message": "News deleted"}
 
+# ==================== PANCHANGAM ROUTES ====================
+@api_router.get("/panchangam/today")
+async def get_todays_panchangam():
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    item = await db.panchangam.find_one({"date": today}, {"_id": 0})
+    if not item:
+        raise HTTPException(status_code=404, detail="Panchangam not available for today")
+    return item
+
+@api_router.get("/panchangam")
+async def get_panchangam_by_date(date: str):
+    item = await db.panchangam.find_one({"date": date}, {"_id": 0})
+    if not item:
+        raise HTTPException(status_code=404, detail="Panchangam not available for this date")
+    return item
+
+@api_router.get("/admin/panchangam")
+async def admin_list_panchangam(user=Depends(get_current_admin)):
+    return await db.panchangam.find({}, {"_id": 0}).sort("date", -1).to_list(200)
+
+@api_router.post("/admin/panchangam")
+async def create_panchangam(data: PanchangamCreate, user=Depends(get_current_admin)):
+    existing = await db.panchangam.find_one({"date": data.date})
+    if existing:
+        raise HTTPException(status_code=400, detail="Panchangam already exists for this date")
+    item = {"id": str(uuid.uuid4()), **data.model_dump(), "created_at": datetime.now(timezone.utc).isoformat()}
+    await db.panchangam.insert_one(item)
+    return {k: v for k, v in item.items() if k != "_id"}
+
+@api_router.put("/admin/panchangam/{item_id}")
+async def update_panchangam(item_id: str, data: PanchangamUpdate, user=Depends(get_current_admin)):
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    result = await db.panchangam.update_one({"id": item_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Panchangam entry not found")
+    return await db.panchangam.find_one({"id": item_id}, {"_id": 0})
+
+@api_router.delete("/admin/panchangam/{item_id}")
+async def delete_panchangam(item_id: str, user=Depends(get_current_admin)):
+    result = await db.panchangam.delete_one({"id": item_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Panchangam entry not found")
+    return {"message": "Panchangam entry deleted"}
+
+# ==================== LIVE BLOG ROUTES ====================
+@api_router.get("/live-blog")
+async def list_live_blog(active_only: bool = True, event_name: Optional[str] = None, limit: int = 50):
+    query = {}
+    if active_only:
+        query["active_flag"] = True
+    if event_name:
+        query["event_name"] = event_name
+    return await db.live_blog.find(query, {"_id": 0}).sort([("is_pinned", -1), ("posted_at", -1)]).to_list(limit)
+
+@api_router.get("/live-blog/events")
+async def list_live_blog_events():
+    events = await db.live_blog.distinct("event_name", {"active_flag": True})
+    return events
+
+@api_router.get("/live-blog/{post_id}")
+async def get_live_blog_post(post_id: str):
+    item = await db.live_blog.find_one({"id": post_id}, {"_id": 0})
+    if not item:
+        raise HTTPException(status_code=404, detail="Live blog post not found")
+    return item
+
+@api_router.get("/admin/live-blog")
+async def admin_list_live_blog(user=Depends(get_current_admin)):
+    return await db.live_blog.find({}, {"_id": 0}).sort([("is_pinned", -1), ("posted_at", -1)]).to_list(200)
+
+@api_router.post("/admin/live-blog")
+async def create_live_blog_post(data: LiveBlogPostCreate, user=Depends(get_current_admin)):
+    item = {
+        "id": str(uuid.uuid4()), **data.model_dump(),
+        "posted_at": datetime.now(timezone.utc).isoformat(),
+        "posted_by": user.get("name", "")
+    }
+    await db.live_blog.insert_one(item)
+    return {k: v for k, v in item.items() if k != "_id"}
+
+@api_router.put("/admin/live-blog/{post_id}")
+async def update_live_blog_post(post_id: str, data: LiveBlogPostUpdate, user=Depends(get_current_admin)):
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    result = await db.live_blog.update_one({"id": post_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Live blog post not found")
+    return await db.live_blog.find_one({"id": post_id}, {"_id": 0})
+
+@api_router.delete("/admin/live-blog/{post_id}")
+async def delete_live_blog_post(post_id: str, user=Depends(get_current_admin)):
+    result = await db.live_blog.delete_one({"id": post_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Live blog post not found")
+    return {"message": "Live blog post deleted"}
+
 # ==================== GALLERY ROUTES ====================
 @api_router.get("/gallery")
 async def list_gallery(active_only: bool = True, media_type: Optional[str] = None):
@@ -917,7 +1089,32 @@ async def seed_data():
     await db.live_streams.insert_many(live_streams)
     # Seed visitor stats
     await db.visitor_stats.insert_one({"key": "main", "total_visitors": 12847, "todays_visitors": 42, "last_reset_date": datetime.now(timezone.utc).strftime("%Y-%m-%d")})
-    return {"message": "Seed data created successfully", "sevas": len(sevas), "profiles": len(profiles), "slots": len(slots), "accommodations": len(accommodations), "news": len(news_items), "gallery": len(gallery_items)}
+    # Seed today's panchangam
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    panchangam_today = {
+        "id": str(uuid.uuid4()), "date": today_str,
+        "vaaram": datetime.now(timezone.utc).strftime("%A"), "vaaram_telugu": "",
+        "masa": "Karthika Masam", "masa_telugu": "కార్తీక మాసం",
+        "paksha": "Shukla Paksha", "paksha_telugu": "శుక్ల పక్షం",
+        "tithi": "Panchami", "tithi_telugu": "పంచమి",
+        "nakshatra": "Rohini", "nakshatra_telugu": "రోహిణి",
+        "yoga": "Siddhi", "yoga_telugu": "సిద్ధి",
+        "karana": "Bava", "karana_telugu": "బవ",
+        "sunrise": "06:12 AM", "sunset": "06:02 PM",
+        "rahu_kalam": "10:30 AM - 12:00 PM", "yamagandam": "07:30 AM - 09:00 AM",
+        "gulika_kalam": "01:30 PM - 03:00 PM", "abhijit_muhurtam": "11:48 AM - 12:36 PM",
+        "special_note": "Sample entry - update daily from the admin panel.",
+        "special_note_telugu": "నమూనా వివరాలు - దయచేసి అడ్మిన్ ప్యానెల్ నుండి ప్రతిరోజూ నవీకరించండి.",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.panchangam.insert_one(panchangam_today)
+    # Seed live blog posts
+    live_blog_posts = [
+        {"id": str(uuid.uuid4()), "event_name": "Maha Shivaratri Brahmotsavams 2026", "event_name_telugu": "మహా శివరాత్రి బ్రహ్మోత్సవాలు 2026", "title": "Dhwajarohanam concludes successfully", "title_telugu": "ధ్వజారోహణం విజయవంతంగా ముగిసింది", "content": "The Brahmotsavams began this morning with the Dhwajarohanam ceremony atop the main temple, marking the formal start of the festival. Thousands of devotees gathered to witness the flag-hoisting ritual.", "content_telugu": "", "image_url": "/Assets/Brahmotsavam_Dhwajarohanam_1.webp", "is_pinned": True, "active_flag": True, "posted_at": datetime.now(timezone.utc).isoformat(), "posted_by": "Temple EO"},
+        {"id": str(uuid.uuid4()), "event_name": "Maha Shivaratri Brahmotsavams 2026", "event_name_telugu": "మహా శివరాత్రి బ్రహ్మోత్సవాలు 2026", "title": "Evening cultural programs begin at 6 PM", "title_telugu": "", "content": "Cultural dance performances and devotional music programs will be held every evening at 6 PM near the Mukha Mandapam through the duration of the festival.", "content_telugu": "", "image_url": "/Assets/Brahmotsavam_Cultural_Dance_1.webp", "is_pinned": False, "active_flag": True, "posted_at": datetime.now(timezone.utc).isoformat(), "posted_by": "Temple EO"},
+    ]
+    await db.live_blog.insert_many(live_blog_posts)
+    return {"message": "Seed data created successfully", "sevas": len(sevas), "profiles": len(profiles), "slots": len(slots), "accommodations": len(accommodations), "news": len(news_items), "gallery": len(gallery_items), "panchangam": 1, "live_blog": len(live_blog_posts)}
 
 @api_router.get("/")
 async def root():
