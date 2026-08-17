@@ -8,6 +8,7 @@ import { SEVA_SAMAGRI } from '@/lib/sevaSamagri';
 /* Same open/close pattern as the Navbar dropdown: click to toggle, closes on
    an outside click. */
 function DownloadMenu({ onPick }) {
+  const { t } = useT();
   const [open, setOpen] = useState(false);
   const ref = useRef();
 
@@ -28,7 +29,7 @@ function DownloadMenu({ onPick }) {
         className="inline-flex items-center gap-2 px-4 py-2 bg-[#621B00] text-white text-sm rounded-full hover:bg-[#621B00]/90 transition-all"
         data-testid="download-checklist-btn"
       >
-        <Download className="h-4 w-4" /> Download List <ChevronDown className={`h-3 w-3 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
+        <Download className="h-4 w-4" /> {t('Download List', 'జాబితా డౌన్‌లోడ్')} <ChevronDown className={`h-3 w-3 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
       </button>
       <div
         className={`absolute right-0 top-full mt-1.5 bg-white border border-[#E6DCCA] rounded-lg shadow-xl py-1 min-w-[160px] z-50 origin-top-right transition-all duration-200 ease-out ${
@@ -101,7 +102,7 @@ export default function SevaSamagriChecklist() {
     setDocLang(targetLang);
   };
 
-  if (loading) return <div className="min-h-screen bg-[#FFFCF5] flex items-center justify-center text-[#8D6E63]">Loading...</div>;
+  if (loading) return <div className="min-h-screen bg-[#FFFCF5] flex items-center justify-center text-[#8D6E63]">{t('Loading...', 'లోడ్ అవుతోంది...')}</div>;
   if (!seva || !items) return (
     <div className="min-h-screen bg-[#FFFCF5] flex flex-col items-center justify-center gap-3 text-center px-4">
       <p className="text-red-600">{t('No printable checklist is available for this seva.', 'ఈ సేవకు ప్రింట్ చెక్‌లిస్ట్ అందుబాటులో లేదు.')}</p>

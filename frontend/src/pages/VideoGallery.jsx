@@ -26,8 +26,8 @@ export default function VideoGallery() {
         <div className="text-center mb-8">
           <h1 className={`${heading} text-2xl md:text-4xl text-[#621B00] mb-1`} data-testid="video-gallery-title">{t("Video Gallery", "వీడియో గ్యాలరీ")}</h1>
         </div>
-        {loading ? <p className="text-center text-[#8D6E63]">Loading...</p> : videos.length === 0 ? (
-          <LoadState error={loadError} emptyText="No videos have been published yet." />
+        {loading ? <p className="text-center text-[#8D6E63]">{t('Loading...', 'లోడ్ అవుతోంది...')}</p> : videos.length === 0 ? (
+          <LoadState error={loadError} emptyText={t('No videos have been published yet.', 'ఇంకా వీడియోలు ప్రచురించలేదు.')} />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {videos.map(v => (

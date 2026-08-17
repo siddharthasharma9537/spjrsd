@@ -9,15 +9,15 @@ import { Radio, Pin } from 'lucide-react';
 
 const POLL_INTERVAL_MS = 30000;
 
-function timeAgo(iso) {
+function timeAgo(iso, t) {
   const diffMs = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return t('just now', 'ఇప్పుడే');
+  if (mins < 60) return t(`${mins}m ago`, `${mins} నిమిషాల క్రితం`);
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return t(`${hours}h ago`, `${hours} గంటల క్రితం`);
   const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  return t(`${days}d ago`, `${days} రోజుల క్రితం`);
 }
 
 export default function LiveBlog() {
@@ -53,8 +53,8 @@ export default function LiveBlog() {
           <p className="text-sm text-[#5D4037] mt-2">{t('Real-time updates from festivals and events at the temple', 'ఆలయ ఉత్సవాలు మరియు కార్యక్రమాల తాజా వార్తలు')}</p>
         </div>
 
-        {loading ? <p className="text-center text-[#8D6E63]">Loading...</p> : posts.length === 0 ? (
-          <LoadState error={loadError} emptyText="No live updates right now. Check back during the next festival or event." />
+        {loading ? <p className="text-center text-[#8D6E63]">{t('Loading...', 'లోడ్ అవుతోంది...')}</p> : posts.length === 0 ? (
+          <LoadState error={loadError} emptyText={t('No live updates right now. Check back during the next festival or event.', 'ప్రస్తుతం లైవ్ అప్‌డేట్‌లు లేవు. తదుపరి పండుగ లేదా కార్యక్రమంలో మళ్ళీ చూడండి.')} />
         ) : (
           <div className="relative space-y-6 before:absolute before:left-[15px] before:top-2 before:bottom-2 before:w-px before:bg-[#E6DCCA]">
             {posts.map(p => (
@@ -65,7 +65,7 @@ export default function LiveBlog() {
                 <div className="bg-white border border-[#E6DCCA] rounded-xl p-5">
                   <div className="flex items-center justify-between mb-1 gap-2 flex-wrap">
                     <span className="text-xs font-medium text-[#C43E00] uppercase tracking-wide">{t(p.event_name, p.event_name_telugu)}</span>
-                    <span className="text-xs text-[#8D6E63]">{timeAgo(p.posted_at)}</span>
+                    <span className="text-xs text-[#8D6E63]">{timeAgo(p.posted_at, t)}</span>
                   </div>
                   <h2 className="font-medium text-[#2D1B0E] mb-1">{t(p.title, p.title_telugu)}</h2>
                   <p className="text-sm text-[#5D4037] leading-relaxed">{t(p.content, p.content_telugu)}</p>

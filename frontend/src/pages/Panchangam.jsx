@@ -74,7 +74,7 @@ export default function Panchangam() {
         </div>
 
         {loading ? (
-          <p className="text-center text-[#8D6E63]">Loading...</p>
+          <p className="text-center text-[#8D6E63]">{t('Loading...', 'లోడ్ అవుతోంది...')}</p>
         ) : notFound || !data ? (
           <div className="bg-white border border-[#E6DCCA] rounded-xl p-10 text-center" data-testid="panchangam-not-found">
             <AlertCircle className="h-8 w-8 text-[#8D6E63] mx-auto mb-3" />

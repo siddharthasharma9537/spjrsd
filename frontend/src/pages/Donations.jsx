@@ -69,7 +69,7 @@ export default function Donations() {
       setSuccess(res.data);
       setForm(f => ({ ...f, amount: '', message: '' }));
     } catch (err) {
-      alert(err.response?.data?.detail || 'Donation failed');
+      alert(err.response?.data?.detail || t('Donation failed', 'దానం విఫలమైంది'));
     } finally {
       setSubmitting(false);
     }
@@ -93,8 +93,8 @@ export default function Donations() {
           </h1>
           <p className="text-sm text-[#5D4037] mt-2 max-w-lg mx-auto">
             {donationType === 'AnnaPrasadam'
-              ? 'Sponsor sacred food offering (Annadanam) at the temple. Your contribution feeds pilgrims and earns divine blessings.'
-              : 'e-Hundi allows devotees from across the globe to make donations for the welfare of the sacred temple.'}
+              ? t('Sponsor sacred food offering (Annadanam) at the temple. Your contribution feeds pilgrims and earns divine blessings.', 'ఆలయంలో పవిత్ర అన్నదానం స్పాన్సర్ చేయండి. మీ విరాళం యాత్రికులకు ఆహారం అందించి దివ్య ఆశీర్వాదాలు తెస్తుంది.')
+              : t("e-Hundi allows devotees from across the globe to make donations for the welfare of the sacred temple.", 'ఈ-హుండి ద్వారా ప్రపంచవ్యాప్తంగా ఉన్న భక్తులు పవిత్ర ఆలయ సంక్షేమం కొరకు విరాళాలు అందించవచ్చు.')}
           </p>
         </div>
 
@@ -102,16 +102,16 @@ export default function Donations() {
           <div className="bg-white border border-green-200 rounded-xl p-8 text-center max-w-md mx-auto" data-testid="donation-success">
             <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
             <h2 className={`${heading} text-xl text-[#621B00] mb-3`}>{t('Donation Received!', 'మీ దానం స్వీకరించబడింది!')}</h2>
-            <p className="text-sm text-[#5D4037] mb-1">Donation #: <span className="font-mono font-bold">{success.donation_number}</span></p>
+            <p className="text-sm text-[#5D4037] mb-1">{t('Donation #', 'దానం #')}: <span className="font-mono font-bold">{success.donation_number}</span></p>
             <p className="text-lg font-bold text-[#C43E00] mb-4">Rs. {success.amount}</p>
-            <p className="text-xs text-[#8D6E63] mb-4">Payment Status: Paid (MOCKED)</p>
+            <p className="text-xs text-[#8D6E63] mb-4">{t('Payment Status: Paid (MOCKED)', 'చెల్లింపు స్థితి: చెల్లించబడింది (మాక్)')}</p>
             <div className="flex flex-col gap-3 items-center">
               <Link to={`/donation-receipt/${success.id}`} className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#621B00] text-white rounded-full text-sm hover:bg-[#621B00]/90 transition-all shadow-md" data-testid="view-80g-receipt-btn">
-                <FileCheck className="h-4 w-4" /> Download 80G Receipt
+                <FileCheck className="h-4 w-4" /> {t('Download 80G Receipt', '80G రసీదు డౌన్‌లోడ్ చేయండి')}
               </Link>
               <div className="flex gap-3">
-                <button onClick={() => setSuccess(null)} className="px-6 py-2 bg-[#C43E00] text-white rounded-full text-sm" data-testid="donate-again-btn">Donate Again</button>
-                <Link to="/" className="px-6 py-2 border border-[#E6DCCA] rounded-full text-sm text-[#5D4037]">Home</Link>
+                <button onClick={() => setSuccess(null)} className="px-6 py-2 bg-[#C43E00] text-white rounded-full text-sm" data-testid="donate-again-btn">{t('Donate Again', 'మళ్ళీ దానం చేయండి')}</button>
+                <Link to="/" className="px-6 py-2 border border-[#E6DCCA] rounded-full text-sm text-[#5D4037]">{t('Home', 'హోమ్')}</Link>
               </div>
             </div>
           </div>
@@ -145,7 +145,7 @@ export default function Donations() {
                   {/* Preset amounts */}
                   <div>
                     <label htmlFor={`${uid}-amount`} className="block text-sm font-medium text-[#5D4037] mb-2">{t('Amount (Rs.)', 'మొత్తం')} <span className="text-red-500">*</span></label>
-                    <div className="flex flex-wrap gap-2 mb-2" role="group" aria-label="Preset donation amounts">
+                    <div className="flex flex-wrap gap-2 mb-2" role="group" aria-label={t('Preset donation amounts', 'ముందుగా నిర్ణయించిన దానం మొత్తాలు')}>
                       {presetAmounts.map(a => (
                         <button key={a} type="button" onClick={() => setForm({...form, amount: String(a)})}
                           aria-pressed={String(form.amount) === String(a)}
@@ -155,7 +155,7 @@ export default function Donations() {
                         </button>
                       ))}
                     </div>
-                    <input id={`${uid}-amount`} name="amount" type="number" inputMode="numeric" className={inputCls} placeholder="Or enter custom amount" value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} required min="1" data-testid="input-amount" />
+                    <input id={`${uid}-amount`} name="amount" type="number" inputMode="numeric" className={inputCls} placeholder={t('Or enter custom amount', 'లేదా అనుకూల మొత్తాన్ని నమోదు చేయండి')} value={form.amount} onChange={e => setForm({...form, amount: e.target.value})} required min="1" data-testid="input-amount" />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
@@ -179,14 +179,14 @@ export default function Donations() {
                   </div>
                   <div>
                     <label htmlFor={`${uid}-message`} className="block text-sm font-medium text-[#5D4037] mb-1">{t('Message', 'సందేశం')}</label>
-                    <textarea id={`${uid}-message`} name="message" className={`${inputCls} h-20 py-3`} value={form.message} onChange={e => setForm({...form, message: e.target.value})} placeholder="Optional message or prayer" />
+                    <textarea id={`${uid}-message`} name="message" className={`${inputCls} h-20 py-3`} value={form.message} onChange={e => setForm({...form, message: e.target.value})} placeholder={t('Optional message or prayer', 'ఐచ్ఛిక సందేశం లేదా ప్రార్థన')} />
                   </div>
                   <div className="flex items-center gap-2">
                     <input id={`${uid}-anon`} name="is_anonymous" type="checkbox" checked={form.is_anonymous} onChange={e => setForm({...form, is_anonymous: e.target.checked})} className="rounded w-6 h-6 shrink-0 accent-[#C43E00]" />
                     <label htmlFor={`${uid}-anon`} className="text-sm text-[#5D4037] cursor-pointer">{t('Anonymous Donation', 'అనామక దానం')}</label>
                   </div>
                   <button type="submit" disabled={submitting} className="w-full h-12 bg-[#C43E00] text-white font-english-heading tracking-wide uppercase rounded-full hover:bg-[#C43E00]/90 transition-all shadow-lg disabled:opacity-50" data-testid="donate-submit-btn">
-                    {submitting ? 'Processing...' : `Donate Rs. ${form.amount || '...'}`}
+                    {submitting ? t('Processing...', 'ప్రాసెస్ అవుతోంది...') : t(`Donate Rs. ${form.amount || '...'}`, `Rs. ${form.amount || '...'} దానం చేయండి`)}
                   </button>
                 </form>
               </div>
@@ -194,16 +194,16 @@ export default function Donations() {
             </div>
             <div className="space-y-4">
               <div className="bg-[#D4AF37]/10 border border-[#D4AF37]/20 rounded-xl p-5">
-                <h3 className="font-english-heading text-sm text-[#621B00] mb-2">{donationType === 'AnnaPrasadam' ? 'About AnnaPrasadam' : 'About e-Hundi'}</h3>
+                <h3 className="font-english-heading text-sm text-[#621B00] mb-2">{donationType === 'AnnaPrasadam' ? t('About AnnaPrasadam', 'అన్నప్రసాదం గురించి') : t('About e-Hundi', 'ఈ-హుండి గురించి')}</h3>
                 <p className="text-xs text-[#5D4037] leading-relaxed">
                   {donationType === 'AnnaPrasadam'
-                    ? 'Offering Annadhanam is one of the greatest acts of charity. Your donation helps feed thousands of devotees visiting the temple daily.'
-                    : 'The e-Hundi facility enables devotees worldwide to contribute to the temple\'s upkeep, festivals, and charitable activities.'}
+                    ? t('Offering Annadhanam is one of the greatest acts of charity. Your donation helps feed thousands of devotees visiting the temple daily.', 'అన్నదానం చేయడం గొప్ప దాన కార్యాలలో ఒకటి. మీ విరాళం ప్రతిరోజూ ఆలయాన్ని సందర్శించే వేలాది మంది భక్తులకు ఆహారం అందించడంలో సహాయపడుతుంది.')
+                    : t("The e-Hundi facility enables devotees worldwide to contribute to the temple's upkeep, festivals, and charitable activities.", 'ఈ-హుండి సదుపాయం ద్వారా ప్రపంచవ్యాప్తంగా ఉన్న భక్తులు ఆలయ నిర్వహణ, పండుగలు మరియు దాన కార్యక్రమాలకు తోడ్పడవచ్చు.')}
                 </p>
               </div>
               <div className="bg-white border border-[#E6DCCA] rounded-xl p-5" data-testid="bank-upi-details">
-                <h3 className="font-english-heading text-sm text-[#621B00] mb-1 flex items-center gap-1.5"><Landmark className="h-4 w-4" /> Direct Bank Transfer / UPI</h3>
-                <p className="text-xs text-[#5D4037] mb-3">You may also donate directly to the temple's official account via NEFT/RTGS or any UPI app.</p>
+                <h3 className="font-english-heading text-sm text-[#621B00] mb-1 flex items-center gap-1.5"><Landmark className="h-4 w-4" /> {t('Direct Bank Transfer / UPI', 'ప్రత్యక్ష బ్యాంక్ బదిలీ / UPI')}</h3>
+                <p className="text-xs text-[#5D4037] mb-3">{t("You may also donate directly to the temple's official account via NEFT/RTGS or any UPI app.", 'మీరు NEFT/RTGS లేదా ఏదైనా UPI యాప్ ద్వారా నేరుగా ఆలయ అధికారిక ఖాతాకు కూడా దానం చేయవచ్చు.')}</p>
 
                 {/* The Devasthanam's own BHIM Baroda Pay QR poster, as issued by
                     the bank - preferred over a generated code so devotees see the
@@ -216,7 +216,7 @@ export default function Donations() {
                     loading="lazy"
                     data-testid="upi-qr-code"
                   />
-                  <p className="text-[10px] text-[#8D6E63] mt-2 text-center px-2">Scan with any UPI app (GPay, PhonePe, Paytm, BHIM)</p>
+                  <p className="text-[10px] text-[#8D6E63] mt-2 text-center px-2">{t('Scan with any UPI app (GPay, PhonePe, Paytm, BHIM)', 'ఏదైనా UPI యాప్‌తో స్కాన్ చేయండి (GPay, PhonePe, Paytm, BHIM)')}</p>
                   {/* This site is an independent, unofficial project (see footer) - but
                       the QR code and bank details themselves are the temple's genuine,
                       official payment details, issued by the bank. Worth saying explicitly
@@ -231,48 +231,48 @@ export default function Donations() {
                 </div>
 
                 <div className="space-y-2 mb-3">
-                  <CopyField label="Account Name" value={TEMPLE_BANK.accountName} />
-                  <CopyField label="Bank & Branch" value={`${TEMPLE_BANK.bankName}, ${TEMPLE_BANK.branch}`} />
-                  <CopyField label="Account Number" value={TEMPLE_BANK.accountNumber} />
-                  <CopyField label="IFSC Code" value={TEMPLE_BANK.ifsc} />
-                  <CopyField label="UPI ID (VPA)" value={TEMPLE_UPI_VPA} />
+                  <CopyField label={t('Account Name', 'ఖాతా పేరు')} value={TEMPLE_BANK.accountName} />
+                  <CopyField label={t('Bank & Branch', 'బ్యాంక్ & శాఖ')} value={`${TEMPLE_BANK.bankName}, ${TEMPLE_BANK.branch}`} />
+                  <CopyField label={t('Account Number', 'ఖాతా సంఖ్య')} value={TEMPLE_BANK.accountNumber} />
+                  <CopyField label={t('IFSC Code', 'IFSC కోడ్')} value={TEMPLE_BANK.ifsc} />
+                  <CopyField label={t('UPI ID (VPA)', 'UPI ID (VPA)')} value={TEMPLE_UPI_VPA} />
                 </div>
                 <a
                   href={`upi://pay?pa=${encodeURIComponent(TEMPLE_UPI_VPA)}&pn=${encodeURIComponent(TEMPLE_UPI_PAYEE)}&cu=INR${form.amount ? `&am=${encodeURIComponent(form.amount)}` : ''}`}
                   className="inline-flex items-center justify-center gap-2 w-full h-10 bg-[#621B00] text-white rounded-full text-xs font-english-heading tracking-wide uppercase hover:bg-[#621B00]/90 transition-all"
                   data-testid="upi-pay-link"
                 >
-                  <QrCode className="h-4 w-4" /> Pay via UPI App
+                  <QrCode className="h-4 w-4" /> {t('Pay via UPI App', 'UPI యాప్ ద్వారా చెల్లించండి')}
                 </a>
-                <p className="text-[10px] text-[#8D6E63] mt-2">On mobile, the button above opens GPay / PhonePe / Paytm etc. with the temple's UPI ID pre-filled.</p>
+                <p className="text-[10px] text-[#8D6E63] mt-2">{t("On mobile, the button above opens GPay / PhonePe / Paytm etc. with the temple's UPI ID pre-filled.", 'మొబైల్‌లో, పైన ఉన్న బటన్ ఆలయ UPI ఐడీతో ముందే నింపిన GPay / PhonePe / Paytm మొదలైనవి తెరుస్తుంది.')}</p>
               </div>
               {donationType === 'AnnaPrasadam' && (
                 <div className="bg-white border border-[#E6DCCA] rounded-xl p-5">
                   <h3 className={`${heading} text-sm text-[#621B00] mb-3`}>{t('Permanent Annadanam Scheme', 'శాశ్వత నిత్యఅన్నదాన పథకం')}</h3>
-                  <p className="text-xs text-[#5D4037] mb-3">Devotees may become partners in Annadanam with a donation of Rs. 1,116 or more. Annadanam will be performed on the date requested by the donor.</p>
+                  <p className="text-xs text-[#5D4037] mb-3">{t('Devotees may become partners in Annadanam with a donation of Rs. 1,116 or more. Annadanam will be performed on the date requested by the donor.', 'భక్తులు Rs. 1,116 లేదా అంతకంటే ఎక్కువ దానంతో అన్నదానంలో భాగస్వాములు కావచ్చు. దాత అభ్యర్థించిన తేదీన అన్నదానం నిర్వహించబడుతుంది.')}</p>
                   <div className="space-y-2 text-xs">
-                    <div className="flex justify-between border-b border-[#E6DCCA] pb-1.5"><span className="text-[#5D4037]">Rs. 1,00,000 & above</span><span className="font-medium text-[#621B00]">Mahonnata Maharaja Poshakulu</span></div>
-                    <div className="flex justify-between border-b border-[#E6DCCA] pb-1.5"><span className="text-[#5D4037]">Rs. 50,000 & above</span><span className="font-medium text-[#621B00]">Mahonnata Raja Poshakulu</span></div>
-                    <div className="flex justify-between border-b border-[#E6DCCA] pb-1.5"><span className="text-[#5D4037]">Rs. 25,000 & above</span><span className="font-medium text-[#621B00]">Raja Poshakulu</span></div>
-                    <div className="flex justify-between"><span className="text-[#5D4037]">Rs. 10,000 & above</span><span className="font-medium text-[#621B00]">Poshakulu</span></div>
+                    <div className="flex justify-between border-b border-[#E6DCCA] pb-1.5"><span className="text-[#5D4037]">{t('Rs. 1,00,000 & above', 'Rs. 1,00,000 & పైన')}</span><span className="font-medium text-[#621B00]">Mahonnata Maharaja Poshakulu</span></div>
+                    <div className="flex justify-between border-b border-[#E6DCCA] pb-1.5"><span className="text-[#5D4037]">{t('Rs. 50,000 & above', 'Rs. 50,000 & పైన')}</span><span className="font-medium text-[#621B00]">Mahonnata Raja Poshakulu</span></div>
+                    <div className="flex justify-between border-b border-[#E6DCCA] pb-1.5"><span className="text-[#5D4037]">{t('Rs. 25,000 & above', 'Rs. 25,000 & పైన')}</span><span className="font-medium text-[#621B00]">Raja Poshakulu</span></div>
+                    <div className="flex justify-between"><span className="text-[#5D4037]">{t('Rs. 10,000 & above', 'Rs. 10,000 & పైన')}</span><span className="font-medium text-[#621B00]">Poshakulu</span></div>
                   </div>
                 </div>
               )}
               {donationType === 'e-Hundi' && (
                 <div className="bg-white border border-[#E6DCCA] rounded-xl p-5">
                   <h3 className={`${heading} text-sm text-[#621B00] mb-3`}>{t('New Accommodation Rooms', 'నూతన వసతి గదుల నిర్మాణము')}</h3>
-                  <p className="text-xs text-[#5D4037] mb-3">Donors may contribute towards the construction of new pilgrim accommodation rooms:</p>
+                  <p className="text-xs text-[#5D4037] mb-3">{t('Donors may contribute towards the construction of new pilgrim accommodation rooms:', 'దాతలు కొత్త యాత్రికుల వసతి గదుల నిర్మాణానికి తోడ్పడవచ్చు:')}</p>
                   <div className="space-y-2 text-xs">
-                    <div className="border-b border-[#E6DCCA] pb-1.5"><p className="font-medium text-[#621B00]">Rs. 4,50,000</p><p className="text-[#5D4037]">Name on the room + 12 free stay-days/year</p></div>
-                    <div className="border-b border-[#E6DCCA] pb-1.5"><p className="font-medium text-[#621B00]">Rs. 3,00,000 - 4,00,000</p><p className="text-[#5D4037]">Name on stone plaque + 8 free stay-days/year</p></div>
-                    <div className="border-b border-[#E6DCCA] pb-1.5"><p className="font-medium text-[#621B00]">Rs. 1,00,000 - 3,00,000</p><p className="text-[#5D4037]">Name on stone plaque + 5 free stay-days/year</p></div>
-                    <div><p className="font-medium text-[#621B00]">Rs. 50,000 - 1,00,000</p><p className="text-[#5D4037]">Name on stone plaque + 2 free stay-days/year</p></div>
+                    <div className="border-b border-[#E6DCCA] pb-1.5"><p className="font-medium text-[#621B00]">Rs. 4,50,000</p><p className="text-[#5D4037]">{t('Name on the room + 12 free stay-days/year', 'గదిపై పేరు + 12 ఉచిత బస దినాలు/సంవత్సరం')}</p></div>
+                    <div className="border-b border-[#E6DCCA] pb-1.5"><p className="font-medium text-[#621B00]">Rs. 3,00,000 - 4,00,000</p><p className="text-[#5D4037]">{t('Name on stone plaque + 8 free stay-days/year', 'రాతి ఫలకంపై పేరు + 8 ఉచిత బస దినాలు/సంవత్సరం')}</p></div>
+                    <div className="border-b border-[#E6DCCA] pb-1.5"><p className="font-medium text-[#621B00]">Rs. 1,00,000 - 3,00,000</p><p className="text-[#5D4037]">{t('Name on stone plaque + 5 free stay-days/year', 'రాతి ఫలకంపై పేరు + 5 ఉచిత బస దినాలు/సంవత్సరం')}</p></div>
+                    <div><p className="font-medium text-[#621B00]">Rs. 50,000 - 1,00,000</p><p className="text-[#5D4037]">{t('Name on stone plaque + 2 free stay-days/year', 'రాతి ఫలకంపై పేరు + 2 ఉచిత బస దినాలు/సంవత్సరం')}</p></div>
                   </div>
                 </div>
               )}
               {myDonations.length > 0 && (
                 <div className="bg-white border border-[#E6DCCA] rounded-xl p-5">
-                  <h3 className="text-sm font-medium text-[#2D1B0E] mb-3">My Recent Donations</h3>
+                  <h3 className="text-sm font-medium text-[#2D1B0E] mb-3">{t('My Recent Donations', 'నా ఇటీవలి దానాలు')}</h3>
                   <div className="space-y-2">
                     {myDonations.slice(0, 5).map(d => (
                       <div key={d.id} className="flex items-center justify-between text-xs">
@@ -282,7 +282,7 @@ export default function Donations() {
                         </div>
                         <div className="text-right">
                           <span className="font-bold text-[#C43E00]">Rs. {d.amount}</span>
-                          <Link to={`/donation-receipt/${d.id}`} className="block text-[#621B00] hover:underline mt-0.5">80G Receipt</Link>
+                          <Link to={`/donation-receipt/${d.id}`} className="block text-[#621B00] hover:underline mt-0.5">{t('80G Receipt', '80G రసీదు')}</Link>
                         </div>
                       </div>
                     ))}

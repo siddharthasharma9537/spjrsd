@@ -27,21 +27,21 @@ export default function Home() {
   }, []);
 
   const featureCards = [
-    { icon: HandCoins, to: '/donations', title: 'e-Hundi', titleTe: 'ఈ-హుండి', desc: 'Online donations from across the globe for temple welfare', cta: 'Donate Now', color: '#D4AF37' },
-    { icon: BookOpen, to: '/paroksha-seva', title: 'Paroksha Seva', titleTe: 'పరోక్ష సేవ', desc: 'Participate in sevas without being physically present', cta: BOOKINGS_PAUSED ? 'More Info' : 'Book Now', color: '#621B00' },
-    { icon: Heart, to: '/donations/annaprasadam', title: 'AnnaPrasadam', titleTe: 'అన్నప్రసాదం', desc: 'Sponsor sacred food offering for devotees', cta: 'Donate Now', color: '#C43E00' },
-    { icon: BedDouble, to: '/accommodation', title: 'Accommodation', titleTe: 'వసతి', desc: 'Rooms, cottages and guest houses for visiting pilgrims', cta: BOOKINGS_PAUSED ? 'More Info' : 'Book Now', color: '#621B00' },
-    { icon: Tv, to: '/media/live-tv', title: 'Temple TV', titleTe: 'ఆలయ టీవీ', desc: '24x7 live darshan and devotional programs', cta: 'Watch Now', color: '#C43E00' },
-    { icon: Camera, to: '/gallery', title: 'Photo Gallery', titleTe: 'ఫోటో గ్యాలరీ', desc: 'Beautiful moments from the sacred temple', cta: 'View Gallery', color: '#D4AF37' },
+    { icon: HandCoins, to: '/donations', title: 'e-Hundi', titleTe: 'ఈ-హుండి', desc: 'Online donations from across the globe for temple welfare', descTe: 'ఆలయ సంక్షేమం కొరకు ప్రపంచవ్యాప్తంగా ఆన్‌లైన్ విరాళాలు', cta: 'Donate Now', ctaTe: 'ఇప్పుడు విరాళం ఇవ్వండి', color: '#D4AF37' },
+    { icon: BookOpen, to: '/paroksha-seva', title: 'Paroksha Seva', titleTe: 'పరోక్ష సేవ', desc: 'Participate in sevas without being physically present', descTe: 'నేరుగా హాజరు కాకుండానే సేవలలో పాల్గొనండి', cta: BOOKINGS_PAUSED ? 'More Info' : 'Book Now', ctaTe: BOOKINGS_PAUSED ? 'మరిన్ని వివరాలు' : 'ఇప్పుడు బుక్ చేయండి', color: '#621B00' },
+    { icon: Heart, to: '/donations/annaprasadam', title: 'AnnaPrasadam', titleTe: 'అన్నప్రసాదం', desc: 'Sponsor sacred food offering for devotees', descTe: 'భక్తుల కొరకు పవిత్ర అన్నప్రసాద సేవను స్పాన్సర్ చేయండి', cta: 'Donate Now', ctaTe: 'ఇప్పుడు విరాళం ఇవ్వండి', color: '#C43E00' },
+    { icon: BedDouble, to: '/accommodation', title: 'Accommodation', titleTe: 'వసతి', desc: 'Rooms, cottages and guest houses for visiting pilgrims', descTe: 'యాత్రికుల కొరకు గదులు, కాటేజీలు మరియు అతిథి గృహాలు', cta: BOOKINGS_PAUSED ? 'More Info' : 'Book Now', ctaTe: BOOKINGS_PAUSED ? 'మరిన్ని వివరాలు' : 'ఇప్పుడు బుక్ చేయండి', color: '#621B00' },
+    { icon: Tv, to: '/media/live-tv', title: 'Temple TV', titleTe: 'ఆలయ టీవీ', desc: '24x7 live darshan and devotional programs', descTe: '24x7 ప్రత్యక్ష దర్శనం మరియు భక్తి కార్యక్రమాలు', cta: 'Watch Now', ctaTe: 'ఇప్పుడు చూడండి', color: '#C43E00' },
+    { icon: Camera, to: '/gallery', title: 'Photo Gallery', titleTe: 'ఫోటో గ్యాలరీ', desc: 'Beautiful moments from the sacred temple', descTe: 'పవిత్ర ఆలయం నుండి అందమైన క్షణాలు', cta: 'View Gallery', ctaTe: 'గ్యాలరీ చూడండి', color: '#D4AF37' },
   ];
 
   const mainOfferings = [
-    { name: "Abhishekam", nameTe: "అభిషేకం", desc: "Sacred bathing ritual with milk, water, honey" },
-    { name: "Archana", nameTe: "అర్చన", desc: "Flower offering with sacred names chanting" },
-    { name: "Kumkuma Archana", nameTe: "కుంకుమ అర్చన", desc: "Special archana with kumkum powder" },
-    { name: "Sahasranama", nameTe: "సహస్రనామ అర్చన", desc: "Chanting of 1000 divine names" },
-    { name: "Kalyanam", nameTe: "కల్యాణం", desc: "Celestial marriage ceremony" },
-    { name: "Rudra Abhishekam", nameTe: "రుద్ర అభిషేకం", desc: "Grand abhishekam with Rudra chanting" },
+    { name: "Abhishekam", nameTe: "అభిషేకం", desc: "Sacred bathing ritual with milk, water, honey", descTe: "పాలు, నీరు, తేనెతో పవిత్ర అభిషేకం" },
+    { name: "Archana", nameTe: "అర్చన", desc: "Flower offering with sacred names chanting", descTe: "పవిత్ర నామాల జపంతో పుష్పార్చన" },
+    { name: "Kumkuma Archana", nameTe: "కుంకుమ అర్చన", desc: "Special archana with kumkum powder", descTe: "కుంకుమ పొడితో ప్రత్యేక అర్చన" },
+    { name: "Sahasranama", nameTe: "సహస్రనామ అర్చన", desc: "Chanting of 1000 divine names", descTe: "1000 దివ్య నామాల జపం" },
+    { name: "Kalyanam", nameTe: "కల్యాణం", desc: "Celestial marriage ceremony", descTe: "దివ్య కల్యాణ మహోత్సవం" },
+    { name: "Rudra Abhishekam", nameTe: "రుద్ర అభిషేకం", desc: "Grand abhishekam with Rudra chanting", descTe: "రుద్ర జపంతో మహా అభిషేకం" },
   ];
 
   return (
@@ -57,7 +57,7 @@ export default function Home() {
         <div className="bg-[#D4AF37]/10 border-b border-[#D4AF37]/20 overflow-hidden" data-testid="news-ticker">
           <div className="max-w-7xl mx-auto px-4 flex items-center gap-3 py-2.5">
             <span className="bg-[#C43E00] text-white text-xs px-3 py-1 rounded-full font-medium shrink-0 flex items-center gap-1">
-              <Newspaper className="h-3 w-3" /> News
+              <Newspaper className="h-3 w-3" /> {t('News', 'వార్తలు')}
             </span>
             <div className="overflow-hidden whitespace-nowrap flex-1">
               <div className="inline-block animate-marquee">
@@ -76,10 +76,10 @@ export default function Home() {
             {visitors && (
               <span className="hidden sm:flex items-center gap-1.5 text-xs text-[#621B00]/70 border-l border-[#D4AF37]/30 pl-3 shrink-0" data-testid="ticker-visitors">
                 <Users className="h-3.5 w-3.5 text-[#C43E00]" />
-                {visitors.total_visitors?.toLocaleString()} visited
+                {t(`${visitors.total_visitors?.toLocaleString()} visited`, `${visitors.total_visitors?.toLocaleString()} సందర్శించారు`)}
               </span>
             )}
-            <Link to="/news" className="text-xs text-[#C43E00] hover:underline shrink-0 font-medium border-l border-[#D4AF37]/30 pl-3" data-testid="view-all-news">View All</Link>
+            <Link to="/news" className="text-xs text-[#C43E00] hover:underline shrink-0 font-medium border-l border-[#D4AF37]/30 pl-3" data-testid="view-all-news">{t('View All', 'అన్నీ చూడండి')}</Link>
           </div>
         </div>
       )}
@@ -130,9 +130,9 @@ export default function Home() {
                   <h3 className={`${heading} text-sm text-[#2D1B0E] tracking-wide group-hover:text-[#C43E00] transition-colors`}>{t(c.title, c.titleTe)}</h3>
                 </div>
               </div>
-              <p className="text-xs text-[#5D4037] mb-4 leading-relaxed">{c.desc}</p>
+              <p className="text-xs text-[#5D4037] mb-4 leading-relaxed">{t(c.desc, c.descTe)}</p>
               <Link to={c.to} className="inline-flex items-center gap-1 px-4 py-2 bg-[#C43E00] text-white text-xs rounded-full hover:bg-[#C43E00]/90 transition-all" data-testid={`feature-cta-${i}`}>
-                {c.cta} <ChevronRight className="h-3.5 w-3.5" />
+                {t(c.cta, c.ctaTe)} <ChevronRight className="h-3.5 w-3.5" />
               </Link>
             </div>
           ))}
@@ -201,7 +201,7 @@ export default function Home() {
             <h2 className={`${heading} text-2xl text-[#621B00] mb-1`}>{t("Pratyaksha Seva", "ప్రత్యక్ష సేవ")}</h2>
           </div>
           <Link to="/sevas" className="inline-flex items-center gap-1 text-sm text-[#C43E00] hover:underline" data-testid="explore-sevas-link">
-            Explore All <ChevronRight className="h-4 w-4" />
+            {t('Explore All', 'అన్నీ చూడండి')} <ChevronRight className="h-4 w-4" />
           </Link>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -224,7 +224,7 @@ export default function Home() {
             <div>
               <h2 className={`${heading} text-2xl text-[#621B00] mb-1`}>{t("Main Offerings", "ప్రధాన సేవలు")}</h2>
             </div>
-            <Link to="/sevas" className="inline-flex items-center gap-1 text-sm text-[#C43E00] hover:underline">View All Offerings <ChevronRight className="h-4 w-4" /></Link>
+            <Link to="/sevas" className="inline-flex items-center gap-1 text-sm text-[#C43E00] hover:underline">{t('View All Offerings', 'అన్నీ సేవలు చూడండి')} <ChevronRight className="h-4 w-4" /></Link>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {mainOfferings.map((o, i) => (
@@ -234,7 +234,7 @@ export default function Home() {
                 </div>
                 <div>
                   <h3 className="text-sm font-medium text-[#2D1B0E]">{t(o.name, o.nameTe)}</h3>
-                  <p className="text-xs text-[#8D6E63] mt-0.5">{o.desc}</p>
+                  <p className="text-xs text-[#8D6E63] mt-0.5">{t(o.desc, o.descTe)}</p>
                 </div>
               </div>
             ))}
@@ -249,7 +249,7 @@ export default function Home() {
             <div>
               <h2 className={`${heading} text-2xl text-[#621B00] mb-1`}>{t("The Beauty of Sacred Cheruvugattu", "పవిత్ర చెరువుగట్టు సౌందర్యం")}</h2>
             </div>
-            <Link to="/gallery" className="inline-flex items-center gap-1 text-sm text-[#C43E00] hover:underline">View All <ChevronRight className="h-4 w-4" /></Link>
+            <Link to="/gallery" className="inline-flex items-center gap-1 text-sm text-[#C43E00] hover:underline">{t('View All', 'అన్నీ చూడండి')} <ChevronRight className="h-4 w-4" /></Link>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             {gallery.map((img, i) => (

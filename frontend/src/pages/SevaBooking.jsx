@@ -187,11 +187,11 @@ function ParokshaPaymentSection({ seva, t, heading }) {
           )}</p>
         </div>
         <div className="space-y-2 mb-3">
-          <CopyField label="Account Name" value={TEMPLE_BANK.accountName} />
-          <CopyField label="Bank & Branch" value={`${TEMPLE_BANK.bankName}, ${TEMPLE_BANK.branch}`} />
-          <CopyField label="Account Number" value={TEMPLE_BANK.accountNumber} />
-          <CopyField label="IFSC Code" value={TEMPLE_BANK.ifsc} />
-          <CopyField label="UPI ID (VPA)" value={TEMPLE_UPI_VPA} />
+          <CopyField label={t('Account Name', 'ఖాతా పేరు')} value={TEMPLE_BANK.accountName} />
+          <CopyField label={t('Bank & Branch', 'బ్యాంక్ & శాఖ')} value={`${TEMPLE_BANK.bankName}, ${TEMPLE_BANK.branch}`} />
+          <CopyField label={t('Account Number', 'ఖాతా సంఖ్య')} value={TEMPLE_BANK.accountNumber} />
+          <CopyField label={t('IFSC Code', 'IFSC కోడ్')} value={TEMPLE_BANK.ifsc} />
+          <CopyField label={t('UPI ID (VPA)', 'UPI ID (VPA)')} value={TEMPLE_UPI_VPA} />
         </div>
         <a
           href={upiLink}
@@ -253,8 +253,8 @@ export default function SevaBooking() {
   const today = new Date().toISOString().split('T')[0];
   const inputCls = "w-full h-12 px-4 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-2 focus:ring-[#C43E00]/20 outline-none transition-all text-[#2D1B0E]";
 
-  if (loading) return <div className="min-h-screen bg-[#FFFCF5]"><Navbar /><div className="text-center py-12 text-[#8D6E63]">Loading...</div></div>;
-  if (!seva) return <div className="min-h-screen bg-[#FFFCF5]"><Navbar /><div className="text-center py-12 text-red-600">Seva not found</div></div>;
+  if (loading) return <div className="min-h-screen bg-[#FFFCF5]"><Navbar /><div className="text-center py-12 text-[#8D6E63]">{t('Loading...', 'లోడ్ అవుతోంది...')}</div></div>;
+  if (!seva) return <div className="min-h-screen bg-[#FFFCF5]"><Navbar /><div className="text-center py-12 text-red-600">{t('Seva not found', 'సేవ కనబడలేదు')}</div></div>;
 
   if (BOOKINGS_PAUSED) return (
     <div className="min-h-screen bg-[#FFFCF5]">
@@ -262,21 +262,21 @@ export default function SevaBooking() {
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-8">
         <Link to={isParoksha ? '/paroksha-seva' : '/sevas'} className="inline-flex items-center gap-1 text-sm text-[#8D6E63] hover:text-[#C43E00] mb-6 transition-colors">
-          <ArrowLeft className="h-4 w-4" /> Back to Sevas
+          <ArrowLeft className="h-4 w-4" /> {t('Back to Sevas', 'సేవలకు తిరిగి వెళ్ళండి')}
         </Link>
         <div className="bg-white border border-[#E6DCCA] rounded-xl p-6 md:p-8 shadow-sm">
           <div className="border-b border-[#E6DCCA] pb-4 mb-6">
             {isParoksha && <span className="inline-block px-3 py-0.5 bg-[#621B00]/10 text-[#621B00] text-xs rounded-full mb-2">Paroksha Seva / పరోక్ష సేవ</span>}
             <h1 className={`${heading} text-xl text-[#621B00]`} data-testid="booking-seva-name">{t(seva.name_english, seva.name_telugu)}</h1>
             <div className="flex items-center gap-1 text-[#C43E00] font-medium mt-2">
-              <IndianRupee className="h-4 w-4" /> {seva.base_price} per ticket
+              <IndianRupee className="h-4 w-4" /> {t(`${seva.base_price} per ticket`, `${seva.base_price} ఒక్కో టికెట్‌కు`)}
             </div>
           </div>
           {isParoksha && <ParokshaSevaNote t={t} />}
           {seva.description && <p className="text-sm text-[#5D4037] leading-relaxed mb-4">{seva.description}</p>}
           <div className="flex items-center gap-4 text-xs text-[#8D6E63] mb-6">
             <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {seva.duration_minutes} min</span>
-            <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> Max {seva.max_persons_per_ticket} persons/ticket</span>
+            <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {t(`Max ${seva.max_persons_per_ticket} persons/ticket`, `గరిష్టంగా ${seva.max_persons_per_ticket} మంది/టికెట్`)}</span>
           </div>
           <SamagriSection sevaId={sevaId} t={t} heading={heading} />
           <RegulationsNote t={t} />
@@ -293,14 +293,14 @@ export default function SevaBooking() {
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-8">
         <Link to={isParoksha ? '/paroksha-seva' : '/sevas'} className="inline-flex items-center gap-1 text-sm text-[#8D6E63] hover:text-[#C43E00] mb-6 transition-colors">
-          <ArrowLeft className="h-4 w-4" /> Back to Sevas
+          <ArrowLeft className="h-4 w-4" /> {t('Back to Sevas', 'సేవలకు తిరిగి వెళ్ళండి')}
         </Link>
         <div className="bg-white border border-[#E6DCCA] rounded-xl p-6 md:p-8 shadow-sm">
           <div className="border-b border-[#E6DCCA] pb-4 mb-6">
             {isParoksha && <span className="inline-block px-3 py-0.5 bg-[#621B00]/10 text-[#621B00] text-xs rounded-full mb-2">Paroksha Seva / పరోక్ష సేవ</span>}
             <h1 className={`${heading} text-xl text-[#621B00]`} data-testid="booking-seva-name">{t(seva.name_english, seva.name_telugu)}</h1>
             <div className="flex items-center gap-1 text-[#C43E00] font-medium mt-2">
-              <IndianRupee className="h-4 w-4" /> {seva.base_price} per ticket
+              <IndianRupee className="h-4 w-4" /> {t(`${seva.base_price} per ticket`, `${seva.base_price} ఒక్కో టికెట్‌కు`)}
             </div>
           </div>
           {isParoksha && <ParokshaSevaNote t={t} />}
@@ -315,13 +315,13 @@ export default function SevaBooking() {
             </div>
             <div>
               <label className="block text-sm font-medium text-[#5D4037] mb-1" htmlFor={`${uid}-time-1`}>{t('Time Slot', 'సమయ స్లాట్')} <span className="text-red-500">*</span></label>
-              {!form.for_date ? <p className="text-sm text-[#8D6E63] italic">Please select a date first</p> : slots.length === 0 ? <p className="text-sm text-red-600">No slots available</p> : (
+              {!form.for_date ? <p className="text-sm text-[#8D6E63] italic">{t('Please select a date first', 'ముందుగా తేదీని ఎంచుకోండి')}</p> : slots.length === 0 ? <p className="text-sm text-red-600">{t('No slots available', 'స్లాట్‌లు అందుబాటులో లేవు')}</p> : (
                 <div className="grid grid-cols-2 gap-2">
                   {slots.map(slot => (
                     <button key={slot.id} type="button" onClick={() => setForm({...form, slot_id: slot.id})}
                       className={`p-3 rounded-lg border text-sm text-left transition-all ${form.slot_id === slot.id ? 'border-[#C43E00] bg-[#C43E00]/5 text-[#C43E00]' : 'border-[#E6DCCA] hover:border-[#D4AF37] text-[#5D4037]'}`} data-testid={`slot-btn-${slot.id}`}>
                       <div className="font-medium">{slot.start_time} - {slot.end_time}</div>
-                      <div className="text-xs mt-1 text-[#8D6E63]">{slot.remaining_slots} slots left</div>
+                      <div className="text-xs mt-1 text-[#8D6E63]">{t(`${slot.remaining_slots} slots left`, `${slot.remaining_slots} స్లాట్‌లు మిగిలాయి`)}</div>
                     </button>
                   ))}
                 </div>
@@ -363,10 +363,10 @@ export default function SevaBooking() {
                 <span className="font-medium">Total / <span className="font-telugu-body">మొత్తం</span></span>
                 <span className="flex items-center gap-1 text-xl font-bold text-[#C43E00]"><IndianRupee className="h-5 w-5" /> {seva.base_price}</span>
               </div>
-              <p className="text-xs text-[#8D6E63] mt-1">Payment: Paid (MOCKED)</p>
+              <p className="text-xs text-[#8D6E63] mt-1">{t('Payment: Paid (MOCKED)', 'చెల్లింపు: చెల్లించబడింది (మాక్)')}</p>
             </div>
             <button type="submit" disabled={submitting || !form.slot_id} className="w-full h-12 bg-[#C43E00] text-white font-english-heading tracking-wide uppercase rounded-full hover:bg-[#C43E00]/90 transition-all shadow-lg disabled:opacity-50" data-testid="confirm-booking-btn">
-              {submitting ? 'Booking...' : 'Confirm & Pay'}
+              {submitting ? t('Booking...', 'బుక్ చేస్తోంది...') : t('Confirm & Pay', 'ధృవీకరించి చెల్లించండి')}
             </button>
           </form>
         </div>

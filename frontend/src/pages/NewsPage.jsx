@@ -25,8 +25,8 @@ export default function NewsPage() {
         <div className="text-center mb-8">
           <h1 className={`${heading} text-2xl md:text-4xl text-[#621B00] mb-1`} data-testid="news-title">{t("Temple News", "ఆలయ వార్తలు")}</h1>
         </div>
-        {loading ? <p className="text-center text-[#8D6E63]">Loading...</p> : news.length === 0 ? (
-          <LoadState error={loadError} emptyText="No news or announcements yet." />
+        {loading ? <p className="text-center text-[#8D6E63]">{t('Loading...', 'లోడ్ అవుతోంది...')}</p> : news.length === 0 ? (
+          <LoadState error={loadError} emptyText={t('No news or announcements yet.', 'ఇంకా వార్తలు లేదా ప్రకటనలు లేవు.')} />
         ) : (
           <div className="space-y-4">
             {news.map(n => (
@@ -35,11 +35,10 @@ export default function NewsPage() {
                   {n.is_important ? <AlertCircle className="h-5 w-5 text-[#C43E00] shrink-0 mt-0.5" /> : <Newspaper className="h-5 w-5 text-[#8D6E63] shrink-0 mt-0.5" />}
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h2 className="font-medium text-[#2D1B0E]">{n.title}</h2>
-                      {n.is_important && <span className="px-2 py-0.5 bg-[#C43E00] text-white text-xs rounded-full">Important</span>}
+                      <h2 className="font-medium text-[#2D1B0E]">{t(n.title, n.title_telugu)}</h2>
+                      {n.is_important && <span className="px-2 py-0.5 bg-[#C43E00] text-white text-xs rounded-full">{t('Important', 'ముఖ్యమైనది')}</span>}
                     </div>
-                    <p className="text-sm text-[#5D4037] leading-relaxed mb-2">{n.content}</p>
-                    {n.content_telugu && <p className="font-telugu-body text-sm text-[#8D6E63] leading-relaxed">{n.content_telugu}</p>}
+                    <p className="text-sm text-[#5D4037] leading-relaxed mb-2">{t(n.content, n.content_telugu)}</p>
                     <p className="text-xs text-[#8D6E63] mt-3">{new Date(n.created_at).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                   </div>
                 </div>
