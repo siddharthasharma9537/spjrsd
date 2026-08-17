@@ -5,7 +5,6 @@ import Navbar from '@/components/Navbar';
 import HeroCarousel from '@/components/HeroCarousel';
 import Footer from '@/components/Footer';
 import PanchangamWidget from '@/components/PanchangamWidget';
-import PanchangamAppWidget from '@/components/PanchangamAppWidget';
 import api from '@/lib/api';
 import { useT } from "@/contexts/LanguageContext";
 import { Flame, BookOpen, Heart, ChevronRight, Camera, Newspaper, BedDouble, HandCoins, Tv, IndianRupee, Clock, Users, CalendarDays, Radio } from 'lucide-react';
@@ -85,13 +84,8 @@ export default function Home() {
         </div>
       )}
 
-      {/* App-style Panchangam widget */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
-        <PanchangamAppWidget />
-      </section>
-
       {/* Panchangam + Live Blog */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <PanchangamWidget />
           {liveBlogPosts.length > 0 && (
