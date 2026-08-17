@@ -30,8 +30,8 @@ export default function Panchangam() {
     { label: t('Vaaram (Day)', 'వారం'), value: t(data.vaaram, data.vaaram_telugu) },
     { label: t('Masam (Month)', 'మాసం'), value: t(data.masa, data.masa_telugu) },
     { label: t('Paksha', 'పక్షం'), value: t(data.paksha, data.paksha_telugu) },
-    { label: t('Tithi', 'తిథి'), value: t(data.tithi, data.tithi_telugu) },
-    { label: t('Nakshatra', 'నక్షత్రం'), value: t(data.nakshatra, data.nakshatra_telugu) },
+    { label: t('Tithi', 'తిథి'), value: t(data.tithi, data.tithi_telugu), sub: data.tithi_timing },
+    { label: t('Nakshatra', 'నక్షత్రం'), value: t(data.nakshatra, data.nakshatra_telugu), sub: data.nakshatra_timing },
     { label: t('Yoga', 'యోగం'), value: t(data.yoga, data.yoga_telugu) },
     { label: t('Karana', 'కరణం'), value: t(data.karana, data.karana_telugu) },
   ].filter(d => d.value) : [];
@@ -43,6 +43,7 @@ export default function Panchangam() {
     { label: t('Yamagandam', 'యమగండం'), value: data.yamagandam },
     { label: t('Gulika Kalam', 'గుళిక కాలం'), value: data.gulika_kalam },
     { label: t('Abhijit Muhurtam', 'అభిజిత్ ముహూర్తం'), value: data.abhijit_muhurtam },
+    { label: t('Varjyam', 'వర్జ్యం'), value: data.varjyam },
   ].filter(d => d.value) : [];
 
   return (
@@ -86,6 +87,7 @@ export default function Panchangam() {
                   <div key={i}>
                     <dt className="text-[10px] uppercase tracking-wide text-[#8D6E63] mb-0.5">{d.label}</dt>
                     <dd className="text-sm text-[#2D1B0E] font-medium">{d.value}</dd>
+                    {d.sub && <dd className="text-xs text-[#8D6E63] mt-0.5">{d.sub}</dd>}
                   </div>
                 ))}
               </dl>
