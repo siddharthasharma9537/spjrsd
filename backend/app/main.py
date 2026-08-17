@@ -814,18 +814,39 @@ async def get_todays_panchangam():
         raise HTTPException(status_code=404, detail="Panchangam not available for today")
     return item
 
-@api_router.get("/panchangam/upcoming-festivals")
-async def get_upcoming_festivals(days: int = 60, limit: int = 3):
+_PURNIMA_NAMES = {"purnima", "pournami", "paurnami", "poornima", "purnami"}
+_AMAVASYA_NAMES = {"amavasya", "amavasye", "amavasi", "amavaasya"}
+
+@api_router.get("/panchangam/next-purnima-amavasya")
+async def get_next_purnima_amavasya(days: int = 45):
     today = datetime.now(timezone.utc).date()
     end = today + timedelta(days=days)
-    items = await db.panchangam.find(
-        {
-            "date": {"$gte": today.isoformat(), "$lte": end.isoformat()},
-            "special_note": {"$nin": [None, ""]},
-        },
-        {"_id": 0, "date": 1, "special_note": 1, "special_note_telugu": 1},
-    ).sort("date", 1).to_list(limit)
-    return items
+    docs = await db.panchangam.find(
+        {"date": {"$gte": today.isoformat(), "$lte": end.isoformat()}},
+        {"_id": 0, "date": 1, "tithi": 1, "tithi_telugu": 1, "tithi_timing": 1},
+    ).sort("date", 1).to_list(days + 1)
+
+    async def _find(names):
+        for doc in docs:
+            if (doc.get("tithi") or "").strip().lower() in names:
+                prev_date = (datetime.strptime(doc["date"], "%Y-%m-%d").date() - timedelta(days=1)).isoformat()
+                prev = await db.panchangam.find_one(
+                    {"date": prev_date, "tithi": {"$exists": True}},
+                    {"_id": 0, "date": 1, "tithi": 1, "tithi_timing": 1},
+                )
+                return {
+                    "date": doc["date"],
+                    "tithi": doc.get("tithi"),
+                    "tithi_telugu": doc.get("tithi_telugu"),
+                    "end_time": doc.get("tithi_timing") or "",
+                    "start_date": prev["date"] if prev else None,
+                    "start_time": (prev.get("tithi_timing") or "") if prev else "",
+                }
+        return None
+
+    purnima = await _find(_PURNIMA_NAMES)
+    amavasya = await _find(_AMAVASYA_NAMES)
+    return {"purnima": purnima, "amavasya": amavasya}
 
 @api_router.get("/panchangam")
 async def get_panchangam_by_date(date: str):
