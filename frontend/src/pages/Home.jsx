@@ -11,7 +11,7 @@ import { Flame, BookOpen, Heart, ChevronRight, Camera, Newspaper, BedDouble, Han
 import { BOOKINGS_PAUSED } from '@/lib/bookingStatus';
 
 export default function Home() {
-  const { t, heading } = useT();
+  const { t, te, heading } = useT();
   const [news, setNews] = useState([]);
   const [gallery, setGallery] = useState([]);
   const [sevas, setSevas] = useState([]);
@@ -144,15 +144,23 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
             <div>
-              <h2 className={`${heading} text-2xl md:text-3xl mb-4`}>{t("Sthala Puranam: The 108th Parashurama Linga", "స్థలపురాణము")}</h2>
+              <h2 className={`${heading} text-2xl md:text-3xl mb-4`}>{t("Sthala Puranam: The 108th Parashurama Linga", "స్థలపురాణము: 108వ పరశురామ లింగం")}</h2>
               <p className="text-[#FFE0B2]/80 leading-relaxed mb-3 text-sm">
-                In the sacred Treta Yuga, the sixth incarnation of Lord Vishnu, <strong>Lord Parashurama</strong>, undertook a divine pilgrimage to cleanse the earth and restore cosmic balance. Following the guidance of Sage Jamadagni, he consecrated exactly 108 Shiva Lingas across Bharata Varsha.
+                {te ? (
+                  <>త్రేతాయుగమున, శ్రీమహావిష్ణువు ఆరవ అవతారమైన <strong>శ్రీ పరశురాముడు</strong> భూమిని శుద్ధిచేసి సృష్టి సమతుల్యతను పునరుద్ధరించుటకు పవిత్ర యాత్ర చేపట్టెను. జమదగ్ని మహర్షి ఉపదేశము మేరకు, భారతదేశమంతట సరిగ్గా <strong>108 శివలింగములను</strong> ప్రతిష్ఠించెను.</>
+                ) : (
+                  <>In the sacred Treta Yuga, the sixth incarnation of Lord Vishnu, <strong>Lord Parashurama</strong>, undertook a divine pilgrimage to cleanse the earth and restore cosmic balance. Following the guidance of Sage Jamadagni, he consecrated exactly 108 Shiva Lingas across Bharata Varsha.</>
+                )}
               </p>
               <p className="text-[#FFE0B2]/80 leading-relaxed mb-6 text-sm">
-                Arriving at the spiritually potent hill of <strong>Ikshwadri (Cheruvugattu)</strong>, Lord Parashurama installed the <strong>108th and final Shiva Linga</strong> within a cave in a rare west-facing direction. Through his intense penance, Lord Shiva manifested with radiant matted locks (<em>Jadala</em>) to grant him absolution.
+                {te ? (
+                  <>ఆధ్యాత్మిక శక్తిగల <strong>ఇక్ష్వాద్రి (చెరువుగట్టు)</strong> గిరిని చేరుకొని, పరశురాముడు ఆ కొండపైగల గుహలో అరుదైన పశ్చిమాభిముఖముగా <strong>108వ మరియు చివరి శివలింగమును</strong> ప్రతిష్ఠించెను. తీవ్ర తపస్సు ఫలితంగా, పరమేశ్వరుడు ప్రకాశవంతమైన <em>జడలతో</em> ప్రత్యక్షమై అతనికి పాపవిమోచనము ప్రసాదించెను.</>
+                ) : (
+                  <>Arriving at the spiritually potent hill of <strong>Ikshwadri (Cheruvugattu)</strong>, Lord Parashurama installed the <strong>108th and final Shiva Linga</strong> within a cave in a rare west-facing direction. Through his intense penance, Lord Shiva manifested with radiant matted locks (<em>Jadala</em>) to grant him absolution.</>
+                )}
               </p>
               <Link to="/about" className="inline-flex items-center gap-2 px-5 py-2 border border-[#D4AF37] text-[#D4AF37] rounded-full text-sm hover:bg-[#D4AF37]/10 transition-all" data-testid="read-more-about">
-                Read Full History <ChevronRight className="h-4 w-4" />
+                {t('Read Full History', 'పూర్తి చరిత్ర చదవండి')} <ChevronRight className="h-4 w-4" />
               </Link>
             </div>
             
