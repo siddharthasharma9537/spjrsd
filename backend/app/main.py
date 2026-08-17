@@ -17,7 +17,6 @@ from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 from app.routes import volunteer
 from app.database.db import db
-from app.routes import newsletter
 from app.routes import contact
 
 IST = ZoneInfo("Asia/Kolkata")
@@ -1301,7 +1300,6 @@ async def root():
 
 app.include_router(api_router)
 app.include_router(volunteer.router)
-app.include_router(newsletter.router)
 app.include_router(contact.router)
 
 @app.on_event("shutdown")
