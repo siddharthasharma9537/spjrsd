@@ -14,10 +14,13 @@ import jwt
 import pandas as pd
 from pymongo import UpdateOne
 from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
 from app.routes import volunteer
 from app.database.db import db
 from app.routes import newsletter
 from app.routes import contact
+
+IST = ZoneInfo("Asia/Kolkata")
 
 # ===== FILE INDEX =====
 # 1. Setup & DB
@@ -810,7 +813,10 @@ async def delete_news(news_id: str, user=Depends(get_current_admin)):
 # ==================== PANCHANGAM ROUTES ====================
 @api_router.get("/panchangam/today")
 async def get_todays_panchangam():
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    # Panchangam dates are calendar days in India, not UTC - using UTC's date
+    # here would show yesterday's entry for the ~5.5 hours after midnight IST
+    # each night, until UTC's own date rolls over.
+    today = datetime.now(IST).strftime("%Y-%m-%d")
     item = await db.panchangam.find_one({"date": today}, {"_id": 0})
     if not item:
         raise HTTPException(status_code=404, detail="Panchangam not available for today")
@@ -821,7 +827,7 @@ _AMAVASYA_NAMES = {"amavasya", "amavasye", "amavasi", "amavaasya"}
 
 @api_router.get("/panchangam/next-purnima-amavasya")
 async def get_next_purnima_amavasya(days: int = 45):
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(IST).date()
     end = today + timedelta(days=days)
     docs = await db.panchangam.find(
         {"date": {"$gte": today.isoformat(), "$lte": end.isoformat()}},
