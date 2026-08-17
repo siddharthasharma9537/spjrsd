@@ -1,8 +1,9 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Query
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Query, UploadFile, File
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 import os
+import io
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field
@@ -10,6 +11,7 @@ from typing import List, Optional
 import uuid
 import hashlib
 import jwt
+import pandas as pd
 from datetime import datetime, timezone, timedelta
 from app.routes import volunteer
 from app.database.db import db
@@ -295,8 +297,10 @@ class PanchangamCreate(BaseModel):
     paksha_telugu: Optional[str] = ""
     tithi: str
     tithi_telugu: Optional[str] = ""
+    tithi_timing: Optional[str] = ""
     nakshatra: str
     nakshatra_telugu: Optional[str] = ""
+    nakshatra_timing: Optional[str] = ""
     yoga: Optional[str] = ""
     yoga_telugu: Optional[str] = ""
     karana: Optional[str] = ""
@@ -307,6 +311,7 @@ class PanchangamCreate(BaseModel):
     yamagandam: Optional[str] = ""
     gulika_kalam: Optional[str] = ""
     abhijit_muhurtam: Optional[str] = ""
+    varjyam: Optional[str] = ""
     special_note: Optional[str] = ""
     special_note_telugu: Optional[str] = ""
 
@@ -319,8 +324,10 @@ class PanchangamUpdate(BaseModel):
     paksha_telugu: Optional[str] = None
     tithi: Optional[str] = None
     tithi_telugu: Optional[str] = None
+    tithi_timing: Optional[str] = None
     nakshatra: Optional[str] = None
     nakshatra_telugu: Optional[str] = None
+    nakshatra_timing: Optional[str] = None
     yoga: Optional[str] = None
     yoga_telugu: Optional[str] = None
     karana: Optional[str] = None
@@ -331,6 +338,7 @@ class PanchangamUpdate(BaseModel):
     yamagandam: Optional[str] = None
     gulika_kalam: Optional[str] = None
     abhijit_muhurtam: Optional[str] = None
+    varjyam: Optional[str] = None
     special_note: Optional[str] = None
     special_note_telugu: Optional[str] = None
 
@@ -825,6 +833,75 @@ async def delete_panchangam(item_id: str, user=Depends(get_current_admin)):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Panchangam entry not found")
     return {"message": "Panchangam entry deleted"}
+
+_WEEKDAY_TELUGU = {
+    "Sunday": "ఆదివారం", "Monday": "సోమవారం", "Tuesday": "మంగళవారం", "Wednesday": "బుధవారం",
+    "Thursday": "గురువారం", "Friday": "శుక్రవారం", "Saturday": "శనివారం"
+}
+_PAKSHA_TELUGU = {"Shukla": "శుక్ల పక్షం", "Bahula": "బహుళ పక్షం", "Krishna": "బహుళ పక్షం"}
+
+def _clean_cell(v) -> str:
+    if v is None or (isinstance(v, float) and pd.isna(v)):
+        return ""
+    return str(v).strip()
+
+@api_router.post("/admin/panchangam/bulk-import")
+async def bulk_import_panchangam(file: UploadFile = File(...), user=Depends(get_current_admin)):
+    filename = (file.filename or "").lower()
+    if not filename.endswith((".xlsx", ".xls", ".csv")):
+        raise HTTPException(status_code=400, detail="Upload an Excel (.xlsx/.xls) or CSV file")
+    contents = await file.read()
+    try:
+        df = pd.read_csv(io.BytesIO(contents)) if filename.endswith(".csv") else pd.read_excel(io.BytesIO(contents))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Could not read file: {e}")
+
+    if "gregorian_date" not in df.columns or "tithi_tithi_name_english" not in df.columns or "nakshatra_nakshatra_name_english" not in df.columns:
+        raise HTTPException(status_code=400, detail="File is missing required columns (gregorian_date, tithi_tithi_name_english, nakshatra_nakshatra_name_english)")
+
+    imported, updated, errors = 0, 0, []
+    for idx, row in df.iterrows():
+        row_num = idx + 2  # 1-indexed + header row
+        try:
+            date_val = _clean_cell(row.get("gregorian_date"))
+            if not date_val:
+                errors.append(f"Row {row_num}: missing date")
+                continue
+            date_val = str(pd.to_datetime(date_val).date())
+            weekday = _clean_cell(row.get("weekday"))
+            paksha = _clean_cell(row.get("pakshamu"))
+            notes = [_clean_cell(row.get("festivals_or_notes")), _clean_cell(row.get("symbols_detected"))]
+            doc = {
+                "date": date_val,
+                "vaaram": weekday, "vaaram_telugu": _WEEKDAY_TELUGU.get(weekday, ""),
+                "masa": _clean_cell(row.get("telugu_masamu")), "masa_telugu": "",
+                "paksha": paksha, "paksha_telugu": _PAKSHA_TELUGU.get(paksha, ""),
+                "tithi": _clean_cell(row.get("tithi_tithi_name_english")),
+                "tithi_telugu": _clean_cell(row.get("tithi_tithi_name_telugu")),
+                "tithi_timing": _clean_cell(row.get("tithi_source_text")),
+                "nakshatra": _clean_cell(row.get("nakshatra_nakshatra_name_english")),
+                "nakshatra_telugu": _clean_cell(row.get("nakshatra_nakshatra_name_telugu")),
+                "nakshatra_timing": _clean_cell(row.get("nakshatra_source_text")),
+                "varjyam": _clean_cell(row.get("varjyam_source_text")),
+                "sunrise": _clean_cell(row.get("suryodayam")),
+                "sunset": _clean_cell(row.get("suryasthamayam")),
+                "special_note": "; ".join(n for n in notes if n),
+            }
+            if not doc["tithi"] or not doc["nakshatra"]:
+                errors.append(f"Row {row_num} ({date_val}): missing tithi or nakshatra")
+                continue
+            existing = await db.panchangam.find_one({"date": date_val}, {"_id": 0, "id": 1})
+            if existing:
+                await db.panchangam.update_one({"date": date_val}, {"$set": doc})
+                updated += 1
+            else:
+                doc["id"] = str(uuid.uuid4())
+                doc["created_at"] = datetime.now(timezone.utc).isoformat()
+                await db.panchangam.insert_one(doc)
+                imported += 1
+        except Exception as e:
+            errors.append(f"Row {row_num}: {e}")
+    return {"total_rows": len(df), "imported": imported, "updated": updated, "errors": errors}
 
 # ==================== LIVE BLOG ROUTES ====================
 @api_router.get("/live-blog")
