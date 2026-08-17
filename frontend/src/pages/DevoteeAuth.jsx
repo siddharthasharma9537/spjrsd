@@ -3,13 +3,15 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api';
 import { useT } from "@/contexts/LanguageContext";
-import { Flame, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { Flame, ArrowLeft, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 
 export default function DevoteeAuth({ isRegister = false }) {
   const { t, heading } = useT();
   const uid = useId();
   const [mode, setMode] = useState(isRegister ? 'register' : 'login');
   const [form, setForm] = useState({ name: '', mobile: '', email: '', gotram: '', password: '' });
+  const [resetForm, setResetForm] = useState({ mobile: '', email: '', new_password: '' });
+  const [resetMessage, setResetMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPw, setShowPw] = useState(false);
@@ -36,6 +38,22 @@ export default function DevoteeAuth({ isRegister = false }) {
     }
   };
 
+  const handleResetSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setResetMessage('');
+    setLoading(true);
+    try {
+      await api.post('/auth/devotee/forgot-password', resetForm);
+      setResetMessage(t('Password reset successful. You can now login with your new password.', 'పాస్‌వర్డ్ విజయవంతంగా మార్చబడింది. కొత్త పాస్‌వర్డ్‌తో లాగిన్ చేయవచ్చు.'));
+      setResetForm({ mobile: '', email: '', new_password: '' });
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Something went wrong');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const inputCls = "w-full h-12 px-4 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-2 focus:ring-[#C43E00]/20 outline-none transition-all text-[#2D1B0E]";
 
   return (
@@ -54,11 +72,44 @@ export default function DevoteeAuth({ isRegister = false }) {
         <div className="w-full max-w-md">
           <div className="bg-white border border-[#E6DCCA] rounded-xl p-8 shadow-sm">
             <h1 className={`${heading} text-xl text-[#621B00] text-center mb-6`} data-testid="auth-title">
-              {mode === 'register' ? t('Devotee Registration', 'భక్తుల నమోదు') : t('Devotee Login', 'భక్తుల లాగిన్')}
+              {mode === 'register'
+                ? t('Devotee Registration', 'భక్తుల నమోదు')
+                : mode === 'forgot'
+                ? t('Reset Password', 'పాస్‌వర్డ్ మార్చండి')
+                : t('Devotee Login', 'భక్తుల లాగిన్')}
             </h1>
 
             {error && <div className="bg-red-50 text-red-700 text-sm p-3 rounded-lg mb-4" data-testid="auth-error">{error}</div>}
+            {resetMessage && <div className="bg-green-50 text-green-700 text-sm p-3 rounded-lg mb-4" data-testid="reset-success">{resetMessage}</div>}
 
+            {mode === 'forgot' ? (
+              <form onSubmit={handleResetSubmit} className="space-y-4">
+                <p className="text-xs text-[#8D6E63]">{t('Enter the mobile number and email on your account to set a new password.', 'మీ ఖాతాలో ఉన్న మొబైల్ నంబర్ మరియు ఇమెయిల్‌ను నమోదు చేసి కొత్త పాస్‌వర్డ్ సెట్ చేయండి.')}</p>
+                <div>
+                  <label htmlFor={`${uid}-reset-mobile`} className="block text-sm font-medium text-[#5D4037] mb-1">{t('Mobile', 'మొబైల్')}</label>
+                  <input id={`${uid}-reset-mobile`} name="mobile" type="tel" inputMode="numeric" autoComplete="tel" className={inputCls} value={resetForm.mobile} onChange={e => setResetForm({...resetForm, mobile: e.target.value})} required placeholder="9XXXXXXXXX" data-testid="reset-input-mobile" />
+                </div>
+                <div>
+                  <label htmlFor={`${uid}-reset-email`} className="block text-sm font-medium text-[#5D4037] mb-1">{t('Email', 'ఇమెయిల్')}</label>
+                  <input id={`${uid}-reset-email`} name="email" type="email" autoComplete="email" className={inputCls} value={resetForm.email} onChange={e => setResetForm({...resetForm, email: e.target.value})} required data-testid="reset-input-email" />
+                </div>
+                <div>
+                  <label htmlFor={`${uid}-reset-new-password`} className="block text-sm font-medium text-[#5D4037] mb-1">{t('New Password', 'కొత్త పాస్‌వర్డ్')}</label>
+                  <input id={`${uid}-reset-new-password`} name="new_password" type="password" autoComplete="new-password" className={inputCls} value={resetForm.new_password} onChange={e => setResetForm({...resetForm, new_password: e.target.value})} required minLength={4} data-testid="reset-input-new-password" />
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full h-12 bg-[#C43E00] text-white font-english-heading tracking-wide uppercase rounded-full hover:bg-[#C43E00]/90 transition-all shadow-lg disabled:opacity-50"
+                  data-testid="reset-submit-btn"
+                >
+                  {loading ? 'Please wait...' : t('Reset Password', 'పాస్‌వర్డ్ మార్చండి')}
+                </button>
+                <button type="button" onClick={() => { setMode('login'); setError(''); setResetMessage(''); }} className="w-full text-center text-sm text-[#C43E00] font-medium hover:underline" data-testid="switch-to-login-from-reset">
+                  {t('Back to login', 'లాగిన్‌కు తిరిగి వెళ్ళండి')}
+                </button>
+              </form>
+            ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               {mode === 'register' && (
                 <>
@@ -89,6 +140,11 @@ export default function DevoteeAuth({ isRegister = false }) {
                     {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                {mode === 'login' && (
+                  <button type="button" onClick={() => { setMode('forgot'); setError(''); }} className="mt-1.5 text-xs text-[#C43E00] hover:underline" data-testid="switch-to-forgot">
+                    {t('Forgot password?', 'పాస్‌వర్డ్ మర్చిపోయారా?')}
+                  </button>
+                )}
               </div>
               <button
                 type="submit"
@@ -99,13 +155,19 @@ export default function DevoteeAuth({ isRegister = false }) {
                 {loading ? 'Please wait...' : mode === 'register' ? 'Register' : 'Login'}
               </button>
             </form>
+            )}
 
-            <div className="text-center mt-6 text-sm text-[#5D4037]">
-              {mode === 'login' ? (
+            <div className="text-center mt-6 text-sm text-[#5D4037] space-y-2">
+              {mode === 'forgot' ? null : mode === 'login' ? (
                 <p>New devotee? <button onClick={() => setMode('register')} className="text-[#C43E00] font-medium hover:underline" data-testid="switch-to-register">Register here</button></p>
               ) : (
                 <p>Already registered? <button onClick={() => setMode('login')} className="text-[#C43E00] font-medium hover:underline" data-testid="switch-to-login">Login here</button></p>
               )}
+              <p className="pt-2 border-t border-[#E6DCCA]">
+                <Link to="/admin/login" className="inline-flex items-center gap-1.5 text-[#8D6E63] hover:text-[#621B00]" data-testid="staff-login-link">
+                  <ShieldCheck className="h-3.5 w-3.5" /> {t('Temple staff? Sign in here', 'దేవస్థానం సిబ్బందా? ఇక్కడ సైన్ ఇన్ చేయండి')}
+                </Link>
+              </p>
             </div>
           </div>
         </div>
