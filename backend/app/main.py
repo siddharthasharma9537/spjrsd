@@ -820,7 +820,7 @@ async def get_todays_panchangam():
     item = await db.panchangam.find_one({"date": today}, {"_id": 0})
     if not item:
         raise HTTPException(status_code=404, detail="Panchangam not available for today")
-    return item
+    return _enrich_panchangam_item(item)
 
 _PURNIMA_NAMES = {"purnima", "pournami", "paurnami", "poornima", "purnami"}
 _AMAVASYA_NAMES = {"amavasya", "amavasye", "amavasi", "amavaasya"}
@@ -863,11 +863,12 @@ async def get_panchangam_by_date(date: str):
     item = await db.panchangam.find_one({"date": date}, {"_id": 0})
     if not item:
         raise HTTPException(status_code=404, detail="Panchangam not available for this date")
-    return item
+    return _enrich_panchangam_item(item)
 
 @api_router.get("/admin/panchangam")
 async def admin_list_panchangam(user=Depends(get_current_admin)):
-    return await db.panchangam.find({}, {"_id": 0}).sort("date", -1).to_list(1000)
+    items = await db.panchangam.find({}, {"_id": 0}).sort("date", -1).to_list(1000)
+    return [_enrich_panchangam_item(item) for item in items]
 
 @api_router.post("/admin/panchangam")
 async def create_panchangam(data: PanchangamCreate, user=Depends(get_current_admin)):
@@ -900,6 +901,39 @@ _WEEKDAY_TELUGU = {
     "Thursday": "గురువారం", "Friday": "శుక్రవారం", "Saturday": "శనివారం"
 }
 _PAKSHA_TELUGU = {"Shukla": "శుక్ల పక్షం", "Bahula": "బహుళ పక్షం", "Krishna": "బహుళ పక్షం"}
+
+# Keyed on a normalized (lowercased, "masam"/"masamu" suffix stripped) form of
+# whatever romanized name ends up in the masa field, since the bulk-import
+# source spreadsheet only carries one (romanized) spelling per month, not a
+# native-script one. Several common spelling variants are listed per month.
+_MASA_TELUGU = {
+    "chaitra": "చైత్రము", "chaitramu": "చైత్రము",
+    "vaisakha": "వైశాఖము", "vaisakhamu": "వైశాఖము", "vaishakha": "వైశాఖము", "vaishakhamu": "వైశాఖము",
+    "jyeshta": "జ్యేష్ఠము", "jyeshtamu": "జ్యేష్ఠము", "jyeshtha": "జ్యేష్ఠము", "jesta": "జ్యేష్ఠము",
+    "ashadha": "ఆషాఢము", "ashadhamu": "ఆషాఢము", "asadha": "ఆషాఢము",
+    "sravana": "శ్రావణము", "sravanamu": "శ్రావణము", "shravana": "శ్రావణము", "shravanamu": "శ్రావణము",
+    "bhadrapada": "భాద్రపదము", "bhadrapadamu": "భాద్రపదము",
+    "asvayuja": "ఆశ్వయుజము", "asvayujamu": "ఆశ్వయుజము", "aswayuja": "ఆశ్వయుజము", "ashwayuja": "ఆశ్వయుజము",
+    "karthika": "కార్తీకము", "karthikamu": "కార్తీకము", "kartika": "కార్తీకము", "kartikamu": "కార్తీకము",
+    "margasira": "మార్గశిరము", "margasiramu": "మార్గశిరము", "margashira": "మార్గశిరము", "margashiramu": "మార్గశిరము",
+    "pushya": "పుష్యము", "pushyamu": "పుష్యము",
+    "magha": "మాఘము", "maghamu": "మాఘము",
+    "phalguna": "ఫాల్గుణము", "phalgunamu": "ఫాల్గుణము",
+}
+
+def _normalize_masa_key(masa: str) -> str:
+    key = (masa or "").strip().lower()
+    for suffix in (" masamu", " masam", "masamu", "masam"):
+        if key.endswith(suffix):
+            return key[: -len(suffix)].strip()
+    return key
+
+def _enrich_panchangam_item(item):
+    """Backfills masa_telugu on read for entries imported before this field
+    existed, so old data displays correctly without needing a re-import."""
+    if item and not item.get("masa_telugu") and item.get("masa"):
+        item["masa_telugu"] = _MASA_TELUGU.get(_normalize_masa_key(item["masa"]), "")
+    return item
 
 def _clean_cell(v) -> str:
     if v is None or (isinstance(v, float) and pd.isna(v)):
@@ -936,7 +970,8 @@ async def bulk_import_panchangam(file: UploadFile = File(...), user=Depends(get_
             doc = {
                 "date": date_val,
                 "vaaram": weekday, "vaaram_telugu": _WEEKDAY_TELUGU.get(weekday, ""),
-                "masa": _clean_cell(row.get("telugu_masamu")), "masa_telugu": "",
+                "masa": _clean_cell(row.get("telugu_masamu")),
+                "masa_telugu": _MASA_TELUGU.get(_normalize_masa_key(_clean_cell(row.get("telugu_masamu")))) or "",
                 "paksha": paksha, "paksha_telugu": _PAKSHA_TELUGU.get(paksha, ""),
                 "tithi": _clean_cell(row.get("tithi_tithi_name_english")),
                 "tithi_telugu": _clean_cell(row.get("tithi_tithi_name_telugu")),

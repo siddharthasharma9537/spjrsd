@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '@/lib/api';
 import { useT } from '@/contexts/LanguageContext';
-import { stripLeadingName } from '@/lib/panchangam';
+import { stripLeadingName, formatTiming } from '@/lib/panchangam';
 import { Sun, Sunrise, Sunset, ChevronRight, CalendarClock } from 'lucide-react';
 
 /* "2026-08-21" -> "21 Aug" - short enough to sit next to a time on one line.
@@ -15,7 +15,7 @@ function formatShortDate(dateStr) {
 }
 
 export default function PanchangamWidget() {
-  const { t, heading } = useT();
+  const { t, te, heading } = useT();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [transitions, setTransitions] = useState(null);
@@ -28,12 +28,12 @@ export default function PanchangamWidget() {
   if (loading || !data) return null;
 
   const rows = [
-    { label: t('Tithi', 'తిథి'), value: t(data.tithi, data.tithi_telugu), timing: stripLeadingName(data.tithi_timing, [data.tithi, data.tithi_telugu]) },
-    { label: t('Nakshatra', 'నక్షత్రం'), value: t(data.nakshatra, data.nakshatra_telugu), timing: stripLeadingName(data.nakshatra_timing, [data.nakshatra, data.nakshatra_telugu]) },
+    { label: t('Tithi', 'తిథి'), value: t(data.tithi, data.tithi_telugu), timing: formatTiming(stripLeadingName(data.tithi_timing, [data.tithi, data.tithi_telugu]), !te) },
+    { label: t('Nakshatra', 'నక్షత్రం'), value: t(data.nakshatra, data.nakshatra_telugu), timing: formatTiming(stripLeadingName(data.nakshatra_timing, [data.nakshatra, data.nakshatra_telugu]), !te) },
     { label: t('Paksha', 'పక్షం'), value: t(data.paksha, data.paksha_telugu) },
     { label: t('Masam', 'మాసం'), value: t(data.masa, data.masa_telugu) },
-    { label: t('Varjyam', 'వర్జ్యం'), value: data.varjyam },
-    { label: t('Durmuhurtham', 'దుర్ముహూర్తం'), value: data.durmuhurtham },
+    { label: t('Varjyam', 'వర్జ్యం'), value: formatTiming(data.varjyam, !te) },
+    { label: t('Durmuhurtham', 'దుర్ముహూర్తం'), value: formatTiming(data.durmuhurtham, !te) },
   ].filter(r => r.value);
 
   // Whichever of Pournami/Amavasya falls sooner is listed first.
@@ -46,14 +46,14 @@ export default function PanchangamWidget() {
         .sort((a, b) => a.date.localeCompare(b.date))
         .map(c => ({
           ...c,
-          end_time: stripLeadingName(c.end_time, [c.tithi, c.tithi_telugu]),
-          start_time: stripLeadingName(c.start_time, [c.start_tithi, c.start_tithi_telugu]),
+          end_time: formatTiming(stripLeadingName(c.end_time, [c.tithi, c.tithi_telugu]), !te),
+          start_time: formatTiming(stripLeadingName(c.start_time, [c.start_tithi, c.start_tithi_telugu]), !te),
           start_label: t(c.start_tithi, c.start_tithi_telugu) || t('Chaturdashi', 'చతుర్దశి'),
         }))
     : [];
 
   return (
-    <div className="space-y-5">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
       <div className="bg-white border border-[#E6DCCA] rounded-xl p-5" data-testid="panchangam-widget">
         <div className="flex items-center justify-between mb-3">
           <h3 className={`${heading} text-sm text-[#621B00] flex items-center gap-2`}>
