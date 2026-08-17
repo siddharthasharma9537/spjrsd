@@ -1,7 +1,40 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Menu, X, ChevronDown, Home } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+
+function LangToggle({ className = '' }) {
+  const { lang, setLang } = useLanguage();
+  return (
+    <div
+      role="group"
+      aria-label="Site language"
+      className={`flex items-center rounded-full bg-black/25 p-0.5 ${className}`}
+      data-testid="nav-language-selector"
+    >
+      {[
+        { code: 'en', label: 'En', full: 'English' },
+        { code: 'te', label: 'తె', full: 'తెలుగు' },
+      ].map(({ code, label, full }) => (
+        <button
+          key={code}
+          type="button"
+          onClick={() => setLang(code)}
+          aria-pressed={lang === code}
+          aria-label={full}
+          title={full}
+          className={`px-2 py-1 rounded-full text-xs leading-5 transition-colors ${
+            lang === code ? 'bg-[#D4AF37] text-[#2A1800] font-medium' : 'text-white/80 hover:text-white'
+          }`}
+          data-testid={`nav-lang-${code}`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 const navGroups = [
   { label: 'About', to: '/about' },
@@ -174,7 +207,9 @@ export default function Navbar() {
               {navGroups.map((g, i) => (
                 g.children ? <Dropdown key={i} label={g.label} children={g.children} /> : <Link key={i} to={g.to} className="px-3 py-2.5 hover:bg-white/10 transition-colors whitespace-nowrap">{g.label}</Link>
               ))}
-              <Link to="/print-ticket" className="px-3 py-2.5 hover:bg-white/10 text-[#F5D061] transition-colors">Print Ticket</Link>
+              <span className="pl-3 pr-1">
+                <LangToggle />
+              </span>
               {user && userType === 'devotee' && (
                 <>
                   <Link to="/my-bookings" className="px-3 py-2.5 hover:bg-white/10 transition-colors">My Bookings</Link>
@@ -194,9 +229,12 @@ export default function Navbar() {
                 </>
               )}
             </div>
-            <button className="lg:hidden p-2" onClick={() => setMobileOpen(!mobileOpen)} data-testid="mobile-menu-btn">
-              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
+            <div className="lg:hidden flex items-center gap-2">
+              <LangToggle />
+              <button className="p-2" onClick={() => setMobileOpen(!mobileOpen)} data-testid="mobile-menu-btn">
+                {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
+            </div>
           </div>
         </div>
       {mobileOpen && (
@@ -211,7 +249,6 @@ export default function Navbar() {
               </div>
             ) : <Link key={i} to={g.to} onClick={() => setMobileOpen(false)} className="block px-3 py-2 hover:bg-white/10 rounded">{g.label}</Link>
           ))}
-          <Link to="/print-ticket" onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-[#D4AF37]">Print Ticket</Link>
           {user && userType === 'devotee' && (
             <>
               <Link to="/my-bookings" onClick={() => setMobileOpen(false)} className="block px-3 py-2">My Bookings</Link>

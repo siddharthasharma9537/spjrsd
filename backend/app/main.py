@@ -125,6 +125,11 @@ class DevoteeLogin(BaseModel):
     mobile: str
     password: str
 
+class DevoteeForgotPassword(BaseModel):
+    mobile: str
+    email: str
+    new_password: str
+
 class AdminLogin(BaseModel):
     username: str
     password: str
@@ -390,6 +395,17 @@ async def devotee_login(data: DevoteeLogin):
     await db.devotees.update_one({"id": devotee["id"]}, {"$set": {"last_login_at": datetime.now(timezone.utc).isoformat()}})
     token = create_token({"sub": devotee["id"], "name": devotee["name"], "mobile": devotee["mobile"], "role": "devotee"})
     return {"token": token, "devotee": {k: v for k, v in devotee.items() if k not in ["_id", "password_hash"]}}
+
+@api_router.post("/auth/devotee/forgot-password")
+async def devotee_forgot_password(data: DevoteeForgotPassword):
+    devotee = await db.devotees.find_one({"mobile": data.mobile})
+    registered_email = (devotee or {}).get("email", "").strip().lower()
+    if not devotee or not registered_email or registered_email != data.email.strip().lower():
+        raise HTTPException(status_code=400, detail="No devotee account matches that mobile number and email")
+    if len(data.new_password) < 4:
+        raise HTTPException(status_code=400, detail="Password must be at least 4 characters")
+    await db.devotees.update_one({"id": devotee["id"]}, {"$set": {"password_hash": hash_password(data.new_password)}})
+    return {"message": "Password reset successful"}
 
 @api_router.post("/auth/admin/login")
 async def admin_login(data: AdminLogin):
@@ -797,6 +813,19 @@ async def get_todays_panchangam():
     if not item:
         raise HTTPException(status_code=404, detail="Panchangam not available for today")
     return item
+
+@api_router.get("/panchangam/upcoming-festivals")
+async def get_upcoming_festivals(days: int = 60, limit: int = 3):
+    today = datetime.now(timezone.utc).date()
+    end = today + timedelta(days=days)
+    items = await db.panchangam.find(
+        {
+            "date": {"$gte": today.isoformat(), "$lte": end.isoformat()},
+            "special_note": {"$nin": [None, ""]},
+        },
+        {"_id": 0, "date": 1, "special_note": 1, "special_note_telugu": 1},
+    ).sort("date", 1).to_list(limit)
+    return items
 
 @api_router.get("/panchangam")
 async def get_panchangam_by_date(date: str):
