@@ -218,7 +218,18 @@ export default function Navbar() {
               <button onClick={() => { logout(); setMobileOpen(false); }} className="block px-3 py-2 text-[#FFE0B2] w-full text-left">Logout</button>
             </>
           )}
-          {!user && <Link to="/login" onClick={() => setMobileOpen(false)} className="block px-3 py-2 bg-[#D4AF37] text-[#2A1800] rounded text-center font-medium">Sign In</Link>}
+          {user && userType === 'admin' && (
+            <>
+              <Link to="/admin" onClick={() => setMobileOpen(false)} className="block px-3 py-2 bg-[#D4AF37]/20 rounded">Dashboard</Link>
+              <button onClick={() => { logout(); setMobileOpen(false); }} className="block px-3 py-2 text-[#FFE0B2] w-full text-left">Logout</button>
+            </>
+          )}
+          {!user && (
+            <>
+              <Link to="/login" onClick={() => setMobileOpen(false)} className="block px-3 py-2 bg-[#D4AF37] text-[#2A1800] rounded text-center font-medium" data-testid="nav-login-mobile">Sign In</Link>
+              <Link to="/admin/login" onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-[#FFE0B2]/60 text-xs text-center" data-testid="nav-staff-mobile">Staff</Link>
+            </>
+          )}
         </div>
       )}
       </nav>
