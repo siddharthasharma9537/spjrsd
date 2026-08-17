@@ -1062,7 +1062,7 @@ async def admin_list_devotees(user=Depends(get_current_admin)):
 async def admin_stats(user=Depends(get_current_admin)):
     total_devotees = await db.devotees.count_documents({})
     total_bookings = await db.bookings.count_documents({})
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today = datetime.now(IST).strftime("%Y-%m-%d")
     today_bookings = await db.bookings.count_documents({"for_date": today})
     total_sevas = await db.sevas.count_documents({"active_flag": True})
     confirmed_bookings = await db.bookings.count_documents({"status": "Confirmed"})
@@ -1097,8 +1097,8 @@ async def newsletter_subscribe(data: NewsletterSubscribe):
 async def get_visitor_stats():
     stats = await db.visitor_stats.find_one({"key": "main"}, {"_id": 0})
     if not stats:
-        stats = {"total_visitors": 12847, "todays_visitors": 0, "last_reset_date": datetime.now(timezone.utc).strftime("%Y-%m-%d")}
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        stats = {"total_visitors": 12847, "todays_visitors": 0, "last_reset_date": datetime.now(IST).strftime("%Y-%m-%d")}
+    today = datetime.now(IST).strftime("%Y-%m-%d")
     if stats.get("last_reset_date") != today:
         await db.visitor_stats.update_one({"key": "main"}, {"$set": {"todays_visitors": 0, "last_reset_date": today}}, upsert=True)
         stats["todays_visitors"] = 0
@@ -1106,7 +1106,7 @@ async def get_visitor_stats():
 
 @api_router.post("/visitor-stats/track")
 async def track_visitor():
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today = datetime.now(IST).strftime("%Y-%m-%d")
     result = await db.visitor_stats.find_one({"key": "main"})
     if not result:
         await db.visitor_stats.insert_one({"key": "main", "total_visitors": 12848, "todays_visitors": 1, "last_reset_date": today})
@@ -1230,12 +1230,12 @@ async def seed_data():
     ]
     await db.live_streams.insert_many(live_streams)
     # Seed visitor stats
-    await db.visitor_stats.insert_one({"key": "main", "total_visitors": 12847, "todays_visitors": 42, "last_reset_date": datetime.now(timezone.utc).strftime("%Y-%m-%d")})
+    await db.visitor_stats.insert_one({"key": "main", "total_visitors": 12847, "todays_visitors": 42, "last_reset_date": datetime.now(IST).strftime("%Y-%m-%d")})
     # Seed today's panchangam
-    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today_str = datetime.now(IST).strftime("%Y-%m-%d")
     panchangam_today = {
         "id": str(uuid.uuid4()), "date": today_str,
-        "vaaram": datetime.now(timezone.utc).strftime("%A"), "vaaram_telugu": "",
+        "vaaram": datetime.now(IST).strftime("%A"), "vaaram_telugu": "",
         "masa": "Karthika Masam", "masa_telugu": "కార్తీక మాసం",
         "paksha": "Shukla Paksha", "paksha_telugu": "శుక్ల పక్షం",
         "tithi": "Panchami", "tithi_telugu": "పంచమి",
