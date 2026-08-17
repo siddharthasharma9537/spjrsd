@@ -4,6 +4,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import api from '@/lib/api';
 import { useT } from '@/contexts/LanguageContext';
+import { stripLeadingName } from '@/lib/panchangam';
 import { Sun, Sunrise, Sunset, AlertCircle, Calendar } from 'lucide-react';
 
 function toISODate(d) {
@@ -30,8 +31,8 @@ export default function Panchangam() {
     { label: t('Vaaram (Day)', 'వారం'), value: t(data.vaaram, data.vaaram_telugu) },
     { label: t('Masam (Month)', 'మాసం'), value: t(data.masa, data.masa_telugu) },
     { label: t('Paksha', 'పక్షం'), value: t(data.paksha, data.paksha_telugu) },
-    { label: t('Tithi', 'తిథి'), value: t(data.tithi, data.tithi_telugu), sub: data.tithi_timing },
-    { label: t('Nakshatra', 'నక్షత్రం'), value: t(data.nakshatra, data.nakshatra_telugu), sub: data.nakshatra_timing },
+    { label: t('Tithi', 'తిథి'), value: t(data.tithi, data.tithi_telugu), sub: stripLeadingName(data.tithi_timing, [data.tithi, data.tithi_telugu]) },
+    { label: t('Nakshatra', 'నక్షత్రం'), value: t(data.nakshatra, data.nakshatra_telugu), sub: stripLeadingName(data.nakshatra_timing, [data.nakshatra, data.nakshatra_telugu]) },
     { label: t('Yoga', 'యోగం'), value: t(data.yoga, data.yoga_telugu) },
     { label: t('Karana', 'కరణం'), value: t(data.karana, data.karana_telugu) },
   ].filter(d => d.value) : [];
@@ -44,6 +45,7 @@ export default function Panchangam() {
     { label: t('Gulika Kalam', 'గుళిక కాలం'), value: data.gulika_kalam },
     { label: t('Abhijit Muhurtam', 'అభిజిత్ ముహూర్తం'), value: data.abhijit_muhurtam },
     { label: t('Varjyam', 'వర్జ్యం'), value: data.varjyam },
+    { label: t('Durmuhurtham', 'దుర్ముహూర్తం'), value: data.durmuhurtham },
   ].filter(d => d.value) : [];
 
   return (

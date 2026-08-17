@@ -318,6 +318,7 @@ class PanchangamCreate(BaseModel):
     gulika_kalam: Optional[str] = ""
     abhijit_muhurtam: Optional[str] = ""
     varjyam: Optional[str] = ""
+    durmuhurtham: Optional[str] = ""
     special_note: Optional[str] = ""
     special_note_telugu: Optional[str] = ""
 
@@ -345,6 +346,7 @@ class PanchangamUpdate(BaseModel):
     gulika_kalam: Optional[str] = None
     abhijit_muhurtam: Optional[str] = None
     varjyam: Optional[str] = None
+    durmuhurtham: Optional[str] = None
     special_note: Optional[str] = None
     special_note_telugu: Optional[str] = None
 
@@ -935,6 +937,7 @@ async def bulk_import_panchangam(file: UploadFile = File(...), user=Depends(get_
                 "nakshatra_telugu": _clean_cell(row.get("nakshatra_nakshatra_name_telugu")),
                 "nakshatra_timing": _clean_cell(row.get("nakshatra_source_text")),
                 "varjyam": _clean_cell(row.get("varjyam_source_text")),
+                "durmuhurtham": _clean_cell(row.get("durmuhurtham_source_text")),
                 "sunrise": _clean_cell(row.get("suryodayam")),
                 "sunset": _clean_cell(row.get("suryasthamayam")),
                 "special_note": "; ".join(n for n in notes if n),
