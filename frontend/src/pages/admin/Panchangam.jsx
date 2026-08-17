@@ -10,7 +10,7 @@ const EMPTY_FORM = {
   paksha: '', paksha_telugu: '', tithi: '', tithi_telugu: '', tithi_timing: '',
   nakshatra: '', nakshatra_telugu: '', nakshatra_timing: '', yoga: '', yoga_telugu: '',
   karana: '', karana_telugu: '', sunrise: '', sunset: '',
-  rahu_kalam: '', yamagandam: '', gulika_kalam: '', abhijit_muhurtam: '', varjyam: '',
+  rahu_kalam: '', yamagandam: '', gulika_kalam: '', abhijit_muhurtam: '', varjyam: '', durmuhurtham: '',
   special_note: '', special_note_telugu: ''
 };
 
@@ -27,7 +27,7 @@ const FIELDS = [
   { key: 'sunrise', label: 'Sunrise' }, { key: 'sunset', label: 'Sunset' },
   { key: 'rahu_kalam', label: 'Rahu Kalam' }, { key: 'yamagandam', label: 'Yamagandam' },
   { key: 'gulika_kalam', label: 'Gulika Kalam' }, { key: 'abhijit_muhurtam', label: 'Abhijit Muhurtam' },
-  { key: 'varjyam', label: 'Varjyam' },
+  { key: 'varjyam', label: 'Varjyam' }, { key: 'durmuhurtham', label: 'Durmuhurtham' },
 ];
 
 export default function AdminPanchangam() {
@@ -130,7 +130,7 @@ export default function AdminPanchangam() {
       </div>
 
       <p className="text-xs text-[#8D6E63] mb-4">
-        Bulk-load a full year at once. Expected columns: <code className="bg-[#F5EDE0] px-1 rounded">gregorian_date, weekday, telugu_masamu, pakshamu, suryodayam, suryasthamayam, festivals_or_notes, tithi_tithi_name_english, tithi_tithi_name_telugu, tithi_source_text, nakshatra_nakshatra_name_english, nakshatra_nakshatra_name_telugu, nakshatra_source_text, varjyam_source_text</code>. Existing entries for the same date are updated in place.
+        Bulk-load a full year at once. Expected columns: <code className="bg-[#F5EDE0] px-1 rounded">gregorian_date, weekday, telugu_masamu, pakshamu, suryodayam, suryasthamayam, festivals_or_notes, tithi_tithi_name_english, tithi_tithi_name_telugu, tithi_source_text, nakshatra_nakshatra_name_english, nakshatra_nakshatra_name_telugu, nakshatra_source_text, varjyam_source_text, durmuhurtham_source_text</code>. Existing entries for the same date are updated in place.
       </p>
 
       {importResult && (
