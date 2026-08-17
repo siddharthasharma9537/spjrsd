@@ -840,7 +840,7 @@ async def get_next_purnima_amavasya(days: int = 45):
                 prev_date = (datetime.strptime(doc["date"], "%Y-%m-%d").date() - timedelta(days=1)).isoformat()
                 prev = await db.panchangam.find_one(
                     {"date": prev_date, "tithi": {"$exists": True}},
-                    {"_id": 0, "date": 1, "tithi": 1, "tithi_timing": 1},
+                    {"_id": 0, "date": 1, "tithi": 1, "tithi_telugu": 1, "tithi_timing": 1},
                 )
                 return {
                     "date": doc["date"],
@@ -849,6 +849,8 @@ async def get_next_purnima_amavasya(days: int = 45):
                     "end_time": doc.get("tithi_timing") or "",
                     "start_date": prev["date"] if prev else None,
                     "start_time": (prev.get("tithi_timing") or "") if prev else "",
+                    "start_tithi": prev.get("tithi") if prev else None,
+                    "start_tithi_telugu": prev.get("tithi_telugu") if prev else None,
                 }
         return None
 
