@@ -43,6 +43,7 @@ import AdminLiveBlog from "@/pages/admin/LiveBlog";
 import AdminAccommodations from "@/pages/admin/Accommodations";
 import AdminGallery from "@/pages/admin/GalleryAdmin";
 import AdminDonations from "@/pages/admin/Donations";
+import AdminNewsletter from "@/pages/admin/Newsletter";
 import "@/App.css";
 
 function ProtectedDevotee({ children }) {
@@ -195,6 +196,7 @@ function App() {
           <Route path="/admin/accommodations" element={<ProtectedAdmin><AdminAccommodations /></ProtectedAdmin>} />
           <Route path="/admin/gallery" element={<ProtectedAdmin><AdminGallery /></ProtectedAdmin>} />
           <Route path="/admin/donations" element={<ProtectedAdmin><AdminDonations /></ProtectedAdmin>} />
+          <Route path="/admin/newsletter" element={<ProtectedAdmin><AdminNewsletter /></ProtectedAdmin>} />
 
           {/* Catch-all: anything unmatched gets a real page, not a blank screen */}
           <Route path="*" element={<NotFound />} />

@@ -11,6 +11,7 @@ from typing import List, Optional
 import uuid
 import hashlib
 import jwt
+import requests
 import pandas as pd
 from pymongo import UpdateOne
 from datetime import datetime, timezone, timedelta
@@ -47,6 +48,9 @@ load_dotenv(ROOT_DIR / '.env')
 JWT_SECRET = os.environ.get('JWT_SECRET')
 if not JWT_SECRET:
     raise ValueError('JWT_SECRET is not set in environment variables')
+
+SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
+SENDGRID_FROM_EMAIL = os.environ.get('SENDGRID_FROM_EMAIL')
 
 app = FastAPI()
 origins = [
@@ -287,6 +291,10 @@ class VolunteerRegister(BaseModel):
 
 class NewsletterSubscribe(BaseModel):
     email: str
+
+class NewsletterAlert(BaseModel):
+    subject: str
+    message: str
 
 class ContactMessage(BaseModel):
     name: str
@@ -1127,6 +1135,44 @@ async def newsletter_subscribe(data: NewsletterSubscribe):
         return {"message": "Already subscribed"}
     await db.newsletter.insert_one({"id": str(uuid.uuid4()), "email": data.email, "subscribed_at": datetime.now(timezone.utc).isoformat()})
     return {"message": "Subscribed successfully"}
+
+@api_router.get("/admin/newsletter/subscribers")
+async def count_newsletter_subscribers(user=Depends(get_current_admin)):
+    count = await db.newsletter.count_documents({})
+    return {"count": count}
+
+@api_router.post("/admin/newsletter/send-alert")
+async def send_newsletter_alert(data: NewsletterAlert, user=Depends(get_current_admin)):
+    if not SENDGRID_API_KEY or not SENDGRID_FROM_EMAIL:
+        raise HTTPException(status_code=500, detail="Email sending is not configured (missing SENDGRID_API_KEY/SENDGRID_FROM_EMAIL)")
+
+    subscribers = await db.newsletter.find({}, {"_id": 0, "email": 1}).to_list(None)
+    emails = [s["email"] for s in subscribers]
+    if not emails:
+        return {"message": "No subscribers to send to", "sent": 0}
+
+    sent = 0
+    # SendGrid caps personalizations at 1000 per request; each recipient gets
+    # their own personalization so they never see each other's addresses.
+    for i in range(0, len(emails), 900):
+        batch = emails[i:i + 900]
+        payload = {
+            "personalizations": [{"to": [{"email": email}]} for email in batch],
+            "from": {"email": SENDGRID_FROM_EMAIL, "name": "Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam"},
+            "subject": data.subject,
+            "content": [{"type": "text/plain", "value": data.message}],
+        }
+        resp = requests.post(
+            "https://api.sendgrid.com/v3/mail/send",
+            headers={"Authorization": f"Bearer {SENDGRID_API_KEY}", "Content-Type": "application/json"},
+            json=payload,
+            timeout=15,
+        )
+        if resp.status_code >= 300:
+            raise HTTPException(status_code=502, detail=f"SendGrid error ({resp.status_code}): {resp.text}")
+        sent += len(batch)
+
+    return {"message": "Alert sent", "sent": sent}
 
 # ==================== VISITOR STATS ROUTES ====================
 @api_router.get("/visitor-stats")
