@@ -56,12 +56,19 @@
   -webkit-text-stroke: 1px #FFFFFF;
 }
 
-/* Header banner — plain maroon gradient. A photographed seal/portrait sitting
-   on an illustrated background never reads well, so no decorative art here;
-   the medallions below carry the ornamentation instead. */
+/* Header banner - maroon gradient, gold-framed top and bottom like a temple
+   gopuram border. A photographed seal/portrait sitting on an illustrated
+   background never reads well, so still no decorative art behind it - the
+   warmth here comes from a soft radial glow, drawn in CSS, plus the double
+   gold rule top and bottom. */
 .temple-header-banner {
-  background: linear-gradient(to bottom, #7A2400, #621B00 55%, #4A1400);
-  border-bottom: 1px solid rgba(212, 175, 55, 0.45);
+  position: relative;
+  background:
+    /* Soft glow centred behind the name/logo - like diya light, not a spotlight. */
+    radial-gradient(ellipse 70% 100% at 50% 40%, rgba(212, 175, 55, 0.16), transparent 70%),
+    linear-gradient(to bottom, #7A2400, #621B00 55%, #4A1400);
+  border-top: 3px double rgba(212, 175, 55, 0.55);
+  border-bottom: 3px double rgba(212, 175, 55, 0.55);
   box-shadow: inset 0 -1px 0 rgba(255, 224, 130, 0.2);
 }
 
@@ -84,6 +91,36 @@
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
 
+/* Small ornamental rule between the Telugu and English name lines - a thin
+   gold line with a diamond at its centre, echoing temple invitation cards. */
+.temple-header-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 220px;
+  margin: 0.4rem auto;
+}
+.temple-header-divider::before,
+.temple-header-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(212, 175, 55, 0.6));
+}
+.temple-header-divider::after {
+  background: linear-gradient(to left, transparent, rgba(212, 175, 55, 0.6));
+}
+.temple-header-divider-dot {
+  width: 5px;
+  height: 5px;
+  transform: rotate(45deg);
+  background: #D4AF37;
+  box-shadow: 0 0 4px rgba(212, 175, 55, 0.7);
+  flex-shrink: 0;
+}
+
 /* Location line */
 .temple-header-loc {
   color: #fff8e7;
@@ -91,14 +128,20 @@
   letter-spacing: 0.02em;
 }
 
-/* Matching gold-ring medallions for the Swamy and Ammavaru photographs. */
+/* Matching gold-ring medallions for the Swamy and Ammavaru photographs - a
+   double ring (bright inner line, soft outer halo) rather than a single flat
+   border, so they read as gilded rather than just outlined. */
 .temple-header-medallion {
   display: block;
   border-radius: 9999px;
   overflow: hidden;
   border: 2px solid #D4AF37;
   background: linear-gradient(180deg, #7A2400, #3D1000);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 224, 130, 0.25);
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 224, 130, 0.25),
+    0 0 0 4px rgba(212, 175, 55, 0.18),
+    0 0 16px rgba(212, 175, 55, 0.25);
 }
 
 body {
@@ -133,6 +176,30 @@ body {
 }
 .animate-fade-in-up {
   animation: fadeInUp 0.5s ease-out forwards;
+}
+
+/* Slow zoom, running on every hero slide from the moment it mounts rather
+   than restarting each time it becomes the active one (see the comment in
+   HeroCarousel.jsx on why). 60s is long relative to the 5s a slide spends
+   visible per rotation, so the zoom-in reads as gradual across repeat views
+   rather than as a visible jump. */
+@keyframes heroKenBurns {
+  from { transform: scale(1); }
+  to { transform: scale(1.12); }
+}
+.hero-kenburns {
+  animation: heroKenBurns 60s ease-out forwards;
+}
+
+/* Fills the active carousel dot left-to-right over 5s, matching the
+   auto-advance timer, like a stories progress bar. */
+@keyframes heroDotFill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.hero-dot-fill {
+  transform-origin: left;
+  animation: heroDotFill 5s linear forwards;
 }
 
 @keyframes marquee {

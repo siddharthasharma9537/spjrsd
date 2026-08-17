@@ -27,29 +27,35 @@ export default function HeroCarousel() {
   const next = useCallback(() => setCurrent(c => (c + 1) % slides.length), []);
   const prev = () => setCurrent(c => (c - 1 + slides.length) % slides.length);
 
+  // Restarts on every slide change, not just on mount - so a manual arrow/dot
+  // click gives the new slide its own full 5s before advancing again, instead
+  // of cutting it short mid-way through whatever the old timer had left.
   useEffect(() => {
-    const id = setInterval(next, 5000);
-    return () => clearInterval(id);
-  }, [next]);
+    const id = setTimeout(next, 5000);
+    return () => clearTimeout(id);
+  }, [current, next]);
 
   const slide = slides[current];
 
   return (
     <section className="relative h-[400px] md:h-[500px] overflow-hidden" data-testid="hero-carousel">
-      {/* Background */}
+      {/* Slide photo, full-bleed. */}
       {slides.map((s, i) => (
-        <div key={i} className={`absolute inset-0 transition-opacity duration-1000 ${i === current ? 'opacity-100' : 'opacity-0'}`}>
-          {s.image
-            ? <img
-                src={s.image}
-                alt={s.title}
-                className="w-full h-full object-cover"
-                /* Portrait shots crop to a narrow band in this wide frame, so each
-                   slide can pull the crop up to keep the deity's face in view. */
-                style={{ objectPosition: s.focus || 'center' }}
-                loading={i === 0 ? 'eager' : 'lazy'}
-              />
-            : <div className="w-full h-full temple-gradient" />}
+        <div key={i} className={`absolute inset-0 overflow-hidden transition-opacity duration-1000 ${i === current ? 'opacity-100' : 'opacity-0'}`}>
+          {s.image ? (
+            // Runs continuously from mount, at a duration long relative to
+            // the 5s a slide is visible per rotation, so the zoom-in reads as
+            // gradual across repeat views rather than as a visible restart.
+            <img
+              src={s.image}
+              alt={s.title}
+              className="w-full h-full object-cover hero-kenburns"
+              /* Portrait shots crop to a narrow band in this wide frame, so each
+                 slide can pull the crop up to keep the deity's face in view. */
+              style={{ objectPosition: s.focus || 'center' }}
+              loading={i === 0 ? 'eager' : 'lazy'}
+            />
+          ) : <div className="w-full h-full temple-gradient" />}
           {/* Overlay is tuned for the light-toned temple artwork - the gold Telugu
               subtitle needs contrast even over the brightest part of the image. */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/60 to-black/45" />
@@ -58,27 +64,35 @@ export default function HeroCarousel() {
 
       {/* Content */}
       <div className="relative h-full flex items-center justify-center text-center text-white px-4">
-        <div className="max-w-3xl animate-fade-in-up" key={current}>
-          <h1 className={`${heading} text-2xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-3`}>{t(slide.title, slide.subtitle)}</h1>
-          <p className="text-[#FFE0B2]/80 text-sm md:text-base mb-6">{t(slide.desc, slide.descTe)}</p>
-          <Link to={slide.cta.to} className="inline-flex items-center gap-2 bg-[#D4AF37] text-[#2A1800] font-english-heading tracking-wide uppercase text-sm px-6 py-2.5 rounded-full hover:bg-[#e6c44a] transition-all shadow-lg" data-testid="hero-cta">
+        <div className="max-w-3xl" key={current}>
+          <h1 className={`${heading} text-2xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-3 animate-fade-in-up`}>{t(slide.title, slide.subtitle)}</h1>
+          <p className="text-[#FFE0B2]/80 text-sm md:text-base mb-6 animate-fade-in-up" style={{ animationDelay: '120ms', animationFillMode: 'backwards' }}>{t(slide.desc, slide.descTe)}</p>
+          <Link
+            to={slide.cta.to}
+            className="inline-flex items-center gap-2 bg-[#D4AF37] text-[#2A1800] font-english-heading tracking-wide uppercase text-sm px-6 py-2.5 rounded-full hover:bg-[#e6c44a] hover:scale-105 transition-all shadow-lg animate-fade-in-up"
+            style={{ animationDelay: '240ms', animationFillMode: 'backwards' }}
+            data-testid="hero-cta"
+          >
             {t(slide.cta.label, slide.cta.labelTe)}
           </Link>
         </div>
       </div>
 
       {/* Nav arrows */}
-      <button onClick={prev} className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/30 hover:bg-black/50 rounded-full flex items-center justify-center text-white transition-all" data-testid="carousel-prev">
+      <button onClick={prev} className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/30 hover:bg-black/50 hover:scale-110 rounded-full flex items-center justify-center text-white transition-all" data-testid="carousel-prev">
         <ChevronLeft className="h-5 w-5" />
       </button>
-      <button onClick={next} className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/30 hover:bg-black/50 rounded-full flex items-center justify-center text-white transition-all" data-testid="carousel-next">
+      <button onClick={next} className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/30 hover:bg-black/50 hover:scale-110 rounded-full flex items-center justify-center text-white transition-all" data-testid="carousel-next">
         <ChevronRight className="h-5 w-5" />
       </button>
 
-      {/* Dots */}
+      {/* Dots - the active one fills over 5s, tracking the auto-advance timer
+          above, like a story progress bar. */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
         {slides.map((_, i) => (
-          <button key={i} onClick={() => setCurrent(i)} className={`w-2.5 h-2.5 rounded-full transition-all ${i === current ? 'bg-[#D4AF37] w-6' : 'bg-white/40 hover:bg-white/60'}`} data-testid={`carousel-dot-${i}`} />
+          <button key={i} onClick={() => setCurrent(i)} className={`relative h-1.5 rounded-full overflow-hidden bg-white/30 transition-all ${i === current ? 'w-8' : 'w-2.5 hover:bg-white/50'}`} data-testid={`carousel-dot-${i}`}>
+            {i === current && <span key={current} className="absolute inset-0 bg-[#D4AF37] hero-dot-fill" />}
+          </button>
         ))}
       </div>
     </section>
