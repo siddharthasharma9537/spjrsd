@@ -9,6 +9,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Optional
 import uuid
+import secrets
 import hashlib
 import jwt
 import requests
@@ -52,6 +53,16 @@ if not JWT_SECRET:
 SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
 SENDGRID_FROM_EMAIL = os.environ.get('SENDGRID_FROM_EMAIL')
 
+# OTP login channels: MSG91 for SMS/Email, direct Meta WhatsApp Cloud API for WhatsApp.
+MSG91_AUTH_KEY = os.environ.get('MSG91_AUTH_KEY')
+MSG91_EMAIL_DOMAIN = os.environ.get('MSG91_EMAIL_DOMAIN')
+MSG91_EMAIL_FROM = os.environ.get('MSG91_EMAIL_FROM')
+WHATSAPP_TOKEN = os.environ.get('WHATSAPP_TOKEN')
+WHATSAPP_PHONE_NUMBER_ID = os.environ.get('WHATSAPP_PHONE_NUMBER_ID')
+# Must match the name of an approved Meta "authentication" category template.
+WHATSAPP_OTP_TEMPLATE_NAME = os.environ.get('WHATSAPP_OTP_TEMPLATE_NAME', 'otp_verification')
+OTP_TTL_MINUTES = 5
+
 app = FastAPI()
 origins = [
     "https://cheruvugattu.online",
@@ -76,6 +87,60 @@ def hash_password(pw: str) -> str:
 
 def verify_password(pw: str, hashed: str) -> bool:
     return hash_password(pw) == hashed
+
+def generate_otp_code() -> str:
+    return f"{secrets.randbelow(1000000):06d}"
+
+def send_sms_otp(mobile: str, code: str):
+    if not MSG91_AUTH_KEY:
+        raise HTTPException(status_code=500, detail="SMS OTP is not configured (missing MSG91_AUTH_KEY)")
+    resp = requests.post(
+        "https://api.msg91.com/api/v5/otp",
+        params={"otp": code, "mobile": f"91{mobile}", "authkey": MSG91_AUTH_KEY},
+        timeout=15,
+    )
+    if resp.status_code >= 300:
+        raise HTTPException(status_code=502, detail=f"MSG91 SMS error ({resp.status_code}): {resp.text}")
+
+def send_email_otp(email: str, code: str):
+    if not MSG91_AUTH_KEY or not MSG91_EMAIL_DOMAIN or not MSG91_EMAIL_FROM:
+        raise HTTPException(status_code=500, detail="Email OTP is not configured (missing MSG91_AUTH_KEY/MSG91_EMAIL_DOMAIN/MSG91_EMAIL_FROM)")
+    resp = requests.post(
+        "https://control.msg91.com/api/v5/email/send",
+        headers={"authkey": MSG91_AUTH_KEY, "Content-Type": "application/json"},
+        json={
+            "recipients": [{"to": [{"email": email}], "variables": {"OTP": code}}],
+            "from": {"email": MSG91_EMAIL_FROM, "name": "Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam"},
+            "domain": MSG91_EMAIL_DOMAIN,
+            "subject": "Your verification code",
+        },
+        timeout=15,
+    )
+    if resp.status_code >= 300:
+        raise HTTPException(status_code=502, detail=f"MSG91 Email error ({resp.status_code}): {resp.text}")
+
+def send_whatsapp_otp(mobile: str, code: str):
+    if not WHATSAPP_TOKEN or not WHATSAPP_PHONE_NUMBER_ID:
+        raise HTTPException(status_code=500, detail="WhatsApp OTP is not configured (missing WHATSAPP_TOKEN/WHATSAPP_PHONE_NUMBER_ID)")
+    resp = requests.post(
+        f"https://graph.facebook.com/v18.0/{WHATSAPP_PHONE_NUMBER_ID}/messages",
+        headers={"Authorization": f"Bearer {WHATSAPP_TOKEN}", "Content-Type": "application/json"},
+        json={
+            "messaging_product": "whatsapp",
+            "to": f"91{mobile}",
+            "type": "template",
+            "template": {
+                "name": WHATSAPP_OTP_TEMPLATE_NAME,
+                "language": {"code": "en"},
+                "components": [
+                    {"type": "body", "parameters": [{"type": "text", "text": code}]},
+                ],
+            },
+        },
+        timeout=15,
+    )
+    if resp.status_code >= 300:
+        raise HTTPException(status_code=502, detail=f"WhatsApp OTP error ({resp.status_code}): {resp.text}")
 
 def create_token(payload: dict, hours: int = 24) -> str:
     payload["exp"] = datetime.now(timezone.utc) + timedelta(hours=hours)
@@ -135,6 +200,18 @@ class DevoteeForgotPassword(BaseModel):
     mobile: str
     email: str
     new_password: str
+
+class DevoteeOTPSend(BaseModel):
+    mobile: str
+    channel: str  # "sms" | "whatsapp" | "email"
+    # Only required when this mobile has no existing devotee account yet.
+    name: Optional[str] = None
+    email: Optional[str] = None
+    gotram: Optional[str] = ""
+
+class DevoteeOTPVerify(BaseModel):
+    mobile: str
+    code: str
 
 class AdminLogin(BaseModel):
     username: str
@@ -418,6 +495,78 @@ async def devotee_forgot_password(data: DevoteeForgotPassword):
         raise HTTPException(status_code=400, detail="Password must be at least 4 characters")
     await db.devotees.update_one({"id": devotee["id"]}, {"$set": {"password_hash": hash_password(data.new_password)}})
     return {"message": "Password reset successful"}
+
+@api_router.post("/auth/devotee/send-otp")
+async def devotee_send_otp(data: DevoteeOTPSend):
+    if data.channel not in ("sms", "whatsapp", "email"):
+        raise HTTPException(status_code=400, detail="channel must be one of: sms, whatsapp, email")
+
+    existing = await db.devotees.find_one({"mobile": data.mobile}, {"_id": 0})
+    if not existing and not data.name:
+        raise HTTPException(status_code=400, detail="name is required to register a new devotee")
+
+    email_for_otp = (existing or {}).get("email") or data.email
+    if data.channel == "email" and not email_for_otp:
+        raise HTTPException(status_code=400, detail="email is required to receive an OTP by email")
+
+    code = generate_otp_code()
+    await db.otp_codes.update_one(
+        {"mobile": data.mobile},
+        {"$set": {
+            "mobile": data.mobile,
+            "code_hash": hash_password(code),
+            "channel": data.channel,
+            "pending_registration": None if existing else {
+                "name": data.name, "email": data.email or "", "gotram": data.gotram or ""
+            },
+            "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=OTP_TTL_MINUTES)).isoformat(),
+            "attempts": 0,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }},
+        upsert=True,
+    )
+
+    if data.channel == "sms":
+        send_sms_otp(data.mobile, code)
+    elif data.channel == "whatsapp":
+        send_whatsapp_otp(data.mobile, code)
+    elif data.channel == "email":
+        send_email_otp(email_for_otp, code)
+
+    return {"message": "OTP sent", "channel": data.channel}
+
+@api_router.post("/auth/devotee/verify-otp")
+async def devotee_verify_otp(data: DevoteeOTPVerify):
+    record = await db.otp_codes.find_one({"mobile": data.mobile})
+    if not record:
+        raise HTTPException(status_code=400, detail="No OTP was requested for this number")
+    if datetime.now(timezone.utc) > datetime.fromisoformat(record["expires_at"]):
+        await db.otp_codes.delete_one({"mobile": data.mobile})
+        raise HTTPException(status_code=400, detail="OTP expired, please request a new one")
+    if record.get("attempts", 0) >= 5:
+        await db.otp_codes.delete_one({"mobile": data.mobile})
+        raise HTTPException(status_code=400, detail="Too many attempts, please request a new OTP")
+    if hash_password(data.code) != record["code_hash"]:
+        await db.otp_codes.update_one({"mobile": data.mobile}, {"$inc": {"attempts": 1}})
+        raise HTTPException(status_code=400, detail="Incorrect OTP")
+
+    await db.otp_codes.delete_one({"mobile": data.mobile})
+
+    devotee = await db.devotees.find_one({"mobile": data.mobile}, {"_id": 0})
+    if not devotee:
+        pending = record.get("pending_registration") or {}
+        devotee = {
+            "id": str(uuid.uuid4()), "name": pending.get("name", ""), "mobile": data.mobile,
+            "email": pending.get("email", ""), "gotram": pending.get("gotram", ""),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "last_login_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.devotees.insert_one(devotee)
+    else:
+        await db.devotees.update_one({"id": devotee["id"]}, {"$set": {"last_login_at": datetime.now(timezone.utc).isoformat()}})
+
+    token = create_token({"sub": devotee["id"], "name": devotee["name"], "mobile": devotee["mobile"], "role": "devotee"})
+    return {"token": token, "devotee": {k: v for k, v in devotee.items() if k not in ["_id", "password_hash"]}}
 
 @api_router.post("/auth/admin/login")
 async def admin_login(data: AdminLogin):

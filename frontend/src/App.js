@@ -141,9 +141,9 @@ function App() {
           {/* Public */}
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<DevoteeAuth />} />
-          <Route path="/register" element={<DevoteeAuth isRegister />} />
+          <Route path="/register" element={<DevoteeAuth />} />
           <Route path="/auth/sign-in" element={<DevoteeAuth />} />
-          <Route path="/auth/sign-up" element={<DevoteeAuth isRegister />} />
+          <Route path="/auth/sign-up" element={<DevoteeAuth />} />
           <Route path="/about" element={<AboutTemple />} />
           <Route path="/temples" element={<Temples />} />
           <Route path="/sevas" element={<SevaList />} />
