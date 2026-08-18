@@ -50,13 +50,12 @@ JWT_SECRET = os.environ.get('JWT_SECRET')
 if not JWT_SECRET:
     raise ValueError('JWT_SECRET is not set in environment variables')
 
-SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
-SENDGRID_FROM_EMAIL = os.environ.get('SENDGRID_FROM_EMAIL')
-
-# OTP login channels: MSG91 for SMS/Email, direct Meta WhatsApp Cloud API for WhatsApp.
+# OTP login and admin alerts: MSG91 for SMS/Email, direct Meta WhatsApp Cloud API for WhatsApp.
 MSG91_AUTH_KEY = os.environ.get('MSG91_AUTH_KEY')
 MSG91_EMAIL_DOMAIN = os.environ.get('MSG91_EMAIL_DOMAIN')
 MSG91_EMAIL_FROM = os.environ.get('MSG91_EMAIL_FROM')
+# Generic template with {{subject}} and {{message}} variables, created once in the MSG91 dashboard.
+MSG91_EMAIL_TEMPLATE_SLUG = os.environ.get('MSG91_EMAIL_TEMPLATE_SLUG', 'spjrsd_generic_transactional')
 WHATSAPP_TOKEN = os.environ.get('WHATSAPP_TOKEN')
 WHATSAPP_PHONE_NUMBER_ID = os.environ.get('WHATSAPP_PHONE_NUMBER_ID')
 # Must match the name of an approved Meta "authentication" category template.
@@ -102,17 +101,45 @@ def send_sms_otp(mobile: str, code: str):
     if resp.status_code >= 300:
         raise HTTPException(status_code=502, detail=f"MSG91 SMS error ({resp.status_code}): {resp.text}")
 
-def send_email_otp(email: str, code: str):
+def send_email_via_msg91(recipients: list, subject: str, message: str):
+    """recipients: list of {"email": ...} dicts. Uses the shared generic template
+    (subject/message as {{variables}}), so no per-use-case template is needed."""
     if not MSG91_AUTH_KEY or not MSG91_EMAIL_DOMAIN or not MSG91_EMAIL_FROM:
-        raise HTTPException(status_code=500, detail="Email OTP is not configured (missing MSG91_AUTH_KEY/MSG91_EMAIL_DOMAIN/MSG91_EMAIL_FROM)")
+        raise HTTPException(status_code=500, detail="Email is not configured (missing MSG91_AUTH_KEY/MSG91_EMAIL_DOMAIN/MSG91_EMAIL_FROM)")
     resp = requests.post(
         "https://control.msg91.com/api/v5/email/send",
         headers={"authkey": MSG91_AUTH_KEY, "Content-Type": "application/json"},
         json={
-            "recipients": [{"to": [{"email": email}], "variables": {"OTP": code}}],
+            "recipients": [
+                {"to": [{"email": r["email"]}], "variables": {"subject": subject, "message": message}}
+                for r in recipients
+            ],
             "from": {"email": MSG91_EMAIL_FROM, "name": "Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam"},
             "domain": MSG91_EMAIL_DOMAIN,
-            "subject": "Your verification code",
+            "template_id": MSG91_EMAIL_TEMPLATE_SLUG,
+        },
+        timeout=15,
+    )
+    if resp.status_code >= 300:
+        raise HTTPException(status_code=502, detail=f"MSG91 Email error ({resp.status_code}): {resp.text}")
+
+def send_email_otp(email: str, code: str):
+    # Uses MSG91's pre-approved "global_otp" template directly (not the custom
+    # generic one, which needs manual MSG91 review before it's usable) so OTP
+    # email works immediately without waiting on that approval.
+    if not MSG91_AUTH_KEY or not MSG91_EMAIL_DOMAIN or not MSG91_EMAIL_FROM:
+        raise HTTPException(status_code=500, detail="Email is not configured (missing MSG91_AUTH_KEY/MSG91_EMAIL_DOMAIN/MSG91_EMAIL_FROM)")
+    resp = requests.post(
+        "https://control.msg91.com/api/v5/email/send",
+        headers={"authkey": MSG91_AUTH_KEY, "Content-Type": "application/json"},
+        json={
+            "recipients": [{
+                "to": [{"email": email}],
+                "variables": {"company_name": "Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam", "otp": code},
+            }],
+            "from": {"email": MSG91_EMAIL_FROM, "name": "Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam"},
+            "domain": MSG91_EMAIL_DOMAIN,
+            "template_id": "global_otp",
         },
         timeout=15,
     )
@@ -1292,33 +1319,16 @@ async def count_newsletter_subscribers(user=Depends(get_current_admin)):
 
 @api_router.post("/admin/newsletter/send-alert")
 async def send_newsletter_alert(data: NewsletterAlert, user=Depends(get_current_admin)):
-    if not SENDGRID_API_KEY or not SENDGRID_FROM_EMAIL:
-        raise HTTPException(status_code=500, detail="Email sending is not configured (missing SENDGRID_API_KEY/SENDGRID_FROM_EMAIL)")
-
     subscribers = await db.newsletter.find({}, {"_id": 0, "email": 1}).to_list(None)
-    emails = [s["email"] for s in subscribers]
-    if not emails:
+    if not subscribers:
         return {"message": "No subscribers to send to", "sent": 0}
 
     sent = 0
-    # SendGrid caps personalizations at 1000 per request; each recipient gets
-    # their own personalization so they never see each other's addresses.
-    for i in range(0, len(emails), 900):
-        batch = emails[i:i + 900]
-        payload = {
-            "personalizations": [{"to": [{"email": email}]} for email in batch],
-            "from": {"email": SENDGRID_FROM_EMAIL, "name": "Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam"},
-            "subject": data.subject,
-            "content": [{"type": "text/plain", "value": data.message}],
-        }
-        resp = requests.post(
-            "https://api.sendgrid.com/v3/mail/send",
-            headers={"Authorization": f"Bearer {SENDGRID_API_KEY}", "Content-Type": "application/json"},
-            json=payload,
-            timeout=15,
-        )
-        if resp.status_code >= 300:
-            raise HTTPException(status_code=502, detail=f"SendGrid error ({resp.status_code}): {resp.text}")
+    # Each recipient gets their own "to"/variables entry in one request, so they
+    # never see each other's addresses; batched conservatively per request.
+    for i in range(0, len(subscribers), 500):
+        batch = subscribers[i:i + 500]
+        send_email_via_msg91(batch, subject=data.subject, message=data.message)
         sent += len(batch)
 
     return {"message": "Alert sent", "sent": sent}
