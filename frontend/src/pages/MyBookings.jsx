@@ -34,6 +34,7 @@ export default function MyBookings() {
           </Link>
           <div className="flex items-center gap-3 text-sm">
             <Link to="/sevas" className="hover:text-[#D4AF37]">{t('Book Seva', 'సేవ బుక్ చేయండి')}</Link>
+            <Link to="/my-family" className="hover:text-[#D4AF37]">{t('My Family', 'నా కుటుంబం')}</Link>
             <button onClick={logout} className="text-[#FFE0B2] hover:text-white">{t('Logout', 'లాగ్ అవుట్')}</button>
           </div>
         </div>

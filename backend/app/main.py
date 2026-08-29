@@ -416,6 +416,12 @@ class AashirvachanamCreate(BaseModel):
     occasion_type: str  # "Birthday" | "Wedding Anniversary"
     date: str  # YYYY-MM-DD
 
+class FamilyMemberCreate(BaseModel):
+    name: str
+    relation: str  # e.g. "Spouse", "Son", "Daughter", "Father", "Mother", "Sibling", "Other"
+    occasion_type: str  # "Birthday" | "Wedding Anniversary"
+    date: str  # YYYY-MM-DD
+
 class ContactMessage(BaseModel):
     name: str
     email: str
@@ -627,6 +633,39 @@ async def get_devotee_profile(user=Depends(get_current_devotee)):
     if not devotee:
         raise HTTPException(status_code=404, detail="Devotee not found")
     return devotee
+
+# ==================== FAMILY MEMBERS ROUTES ====================
+# Lets a devotee register family members' (spouse/children/parents/etc.)
+# birthdays and anniversaries, so Aashirvachanam blessings for those occasions
+# also go out - to the devotee's own registered email, not a separate account.
+@api_router.post("/devotee/family-members")
+async def add_family_member(data: FamilyMemberCreate, user=Depends(get_current_devotee)):
+    if data.occasion_type not in ("Birthday", "Wedding Anniversary"):
+        raise HTTPException(status_code=400, detail="occasion_type must be 'Birthday' or 'Wedding Anniversary'")
+    try:
+        parsed_date = datetime.strptime(data.date, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="date must be in YYYY-MM-DD format")
+
+    entry = {
+        "id": str(uuid.uuid4()), "devotee_id": user["sub"], "name": data.name,
+        "relation": data.relation, "occasion_type": data.occasion_type, "date": data.date,
+        "month": parsed_date.month, "day": parsed_date.day,
+        "active_flag": True, "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.family_members.insert_one(entry)
+    return {"message": "Family member added successfully"}
+
+@api_router.get("/devotee/family-members")
+async def list_family_members(user=Depends(get_current_devotee)):
+    return await db.family_members.find({"devotee_id": user["sub"]}, {"_id": 0}).sort("created_at", -1).to_list(200)
+
+@api_router.delete("/devotee/family-members/{member_id}")
+async def delete_family_member(member_id: str, user=Depends(get_current_devotee)):
+    result = await db.family_members.delete_one({"id": member_id, "devotee_id": user["sub"]})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Family member not found")
+    return {"message": "Family member removed"}
 
 # ==================== SEVA ROUTES ====================
 @api_router.get("/sevas")
@@ -1420,13 +1459,32 @@ async def submit_aashirvachanam(data: AashirvachanamCreate):
 async def admin_list_aashirvachanam(user=Depends(get_current_admin)):
     return await db.aashirvachanam.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
 
-def _build_aashirvachanam_message(name: str, occasion_type: str) -> str:
+def _build_aashirvachanam_message(name: str, occasion_type: str, for_family_member: dict = None) -> str:
+    """for_family_member (optional): {"name": ..., "relation": ...} - the email
+    still goes to the devotee's own registered address (`name` = devotee name),
+    but the blessing text is written about their family member's occasion."""
     MAROON, GOLD, INK, MUTED, PAGE_BG, CARD_BG, BORDER = "#621B00", "#D4AF37", "#2D1B0E", "#8D6E63", "#FFFCF5", "#FFFFFF", "#E6DCCA"
     LOGO_URL = "https://cheruvugattu.online/Assets/Temple_Logo_Transparent.webp"
-    occasion_line = {
-        "Birthday": "on the joyous occasion of your birthday",
-        "Wedding Anniversary": "on this blessed occasion of your wedding anniversary",
-    }.get(occasion_type, "on this special day")
+    occasion_noun = {"Birthday": "birthday", "Wedding Anniversary": "wedding anniversary"}.get(occasion_type, "special day")
+
+    if for_family_member:
+        member_name, relation = for_family_member["name"], for_family_member["relation"]
+        body = (
+            f'Today is the {occasion_noun} of your {relation}, <strong>{member_name}</strong>. '
+            f'Sri Parvathi Jadala Ramalingeshwara Swamy and Sri Parvathi Devi '
+            f'shower their choicest blessings upon {member_name} and your entire family.<br/><br/>'
+            f'May {member_name} be blessed with good health, prosperity, and happiness in the year ahead.'
+        )
+    else:
+        occasion_line = {
+            "Birthday": "on the joyous occasion of your birthday",
+            "Wedding Anniversary": "on this blessed occasion of your wedding anniversary",
+        }.get(occasion_type, "on this special day")
+        body = (
+            f'{occasion_line}, Sri Parvathi Jadala Ramalingeshwara Swamy and Sri Parvathi Devi '
+            'shower their choicest blessings upon you and your family.<br/><br/>'
+            'May you be blessed with good health, prosperity, and happiness in the year ahead.'
+        )
 
     return (
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:{PAGE_BG};">'
@@ -1441,11 +1499,7 @@ def _build_aashirvachanam_message(name: str, occasion_type: str) -> str:
         f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:24px;text-align:center;">'
         '<div style="font-size:30px;margin-bottom:10px;">\U0001F64F</div>'
         f'<div style="font-size:18px;color:{INK};margin-bottom:14px;">Dear <strong>{name}</strong>,</div>'
-        f'<div style="font-size:15px;color:{INK};line-height:1.7;">'
-        f'{occasion_line}, Sri Parvathi Jadala Ramalingeshwara Swamy and Sri Parvathi Devi '
-        'shower their choicest blessings upon you and your family.<br/><br/>'
-        'May you be blessed with good health, prosperity, and happiness in the year ahead.'
-        '</div>'
+        f'<div style="font-size:15px;color:{INK};line-height:1.7;">{body}</div>'
         f'<div style="margin-top:20px;font-size:13px;color:{MUTED};font-style:italic;">'
         '&mdash; Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu</div>'
         '</div></div></td></tr></table>'
@@ -1466,6 +1520,23 @@ async def cron_send_aashirvachanam_blessings(request: Request):
         message = _build_aashirvachanam_message(m["name"], m["occasion_type"])
         subject = f"Aashirvachanam on your {m['occasion_type']} \U0001F64F"
         send_email_via_msg91([{"email": m["email"]}], subject=subject, message=message)
+        sent += 1
+
+    # Family members have no account/email of their own - the blessing goes to
+    # the devotee's own registered email, personalized with the member's name.
+    family_matches = await db.family_members.find(
+        {"month": today.month, "day": today.day, "active_flag": True}, {"_id": 0}
+    ).to_list(1000)
+    for fm in family_matches:
+        devotee = await db.devotees.find_one({"id": fm["devotee_id"]}, {"_id": 0, "name": 1, "email": 1})
+        if not devotee or not devotee.get("email"):
+            continue
+        message = _build_aashirvachanam_message(
+            devotee["name"], fm["occasion_type"],
+            for_family_member={"name": fm["name"], "relation": fm["relation"]},
+        )
+        subject = f"Aashirvachanam on your {fm['relation']}'s {fm['occasion_type']} \U0001F64F"
+        send_email_via_msg91([{"email": devotee["email"]}], subject=subject, message=message)
         sent += 1
 
     return {"message": "Blessings sent", "sent": sent, "date": today.isoformat()}

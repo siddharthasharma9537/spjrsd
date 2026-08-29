@@ -217,6 +217,7 @@ export default function Navbar() {
               {user && userType === 'devotee' && (
                 <>
                   <Link to="/my-bookings" className="px-3 py-2.5 hover:bg-white/10 transition-colors">{t('My Bookings', 'నా బుకింగ్‌లు')}</Link>
+                  <Link to="/my-family" className="px-3 py-2.5 hover:bg-white/10 transition-colors">{t('My Family', 'నా కుటుంబం')}</Link>
                   <button onClick={logout} className="px-3 py-2.5 text-[#FFE0B2] hover:text-white">{t('Logout', 'లాగ్ అవుట్')}</button>
                 </>
               )}
@@ -256,6 +257,7 @@ export default function Navbar() {
           {user && userType === 'devotee' && (
             <>
               <Link to="/my-bookings" onClick={() => setMobileOpen(false)} className="block px-3 py-2">{t('My Bookings', 'నా బుకింగ్‌లు')}</Link>
+              <Link to="/my-family" onClick={() => setMobileOpen(false)} className="block px-3 py-2">{t('My Family', 'నా కుటుంబం')}</Link>
               <button onClick={() => { logout(); setMobileOpen(false); }} className="block px-3 py-2 text-[#FFE0B2] w-full text-left">{t('Logout', 'లాగ్ అవుట్')}</button>
             </>
           )}

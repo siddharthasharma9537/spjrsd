@@ -13,6 +13,7 @@ import SevaBooking from "@/pages/SevaBooking";
 import SevaSamagriChecklist from "@/pages/SevaSamagriChecklist";
 import BookingTicket from "@/pages/BookingTicket";
 import MyBookings from "@/pages/MyBookings";
+import MyFamily from "@/pages/MyFamily";
 import Donations from "@/pages/Donations";
 import DonationReceipt from "@/pages/DonationReceipt";
 import Accommodation from "@/pages/Accommodation";
@@ -187,6 +188,7 @@ function App() {
           <Route path="/book/:sevaId/checklist" element={<SevaSamagriChecklist />} />
           <Route path="/ticket/:bookingId" element={<ProtectedDevotee><BookingTicket /></ProtectedDevotee>} />
           <Route path="/my-bookings" element={<ProtectedDevotee><MyBookings /></ProtectedDevotee>} />
+          <Route path="/my-family" element={<ProtectedDevotee><MyFamily /></ProtectedDevotee>} />
           <Route path="/accommodation/book/:accId" element={BOOKINGS_PAUSED ? <AccommodationBooking /> : <ProtectedDevotee><AccommodationBooking /></ProtectedDevotee>} />
           {/* Admin */}
           <Route path="/admin/login" element={<AdminLogin />} />
