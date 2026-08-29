@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api';
 import DateInput from '@/components/ui/date-input';
 import { useT } from "@/contexts/LanguageContext";
-import { Flame, ArrowLeft, Users, Gift, Trash2, Plus } from 'lucide-react';
+import { Flame, ArrowLeft, Users, Gift, Trash2, Plus, Pencil } from 'lucide-react';
 
 const RELATIONS = ['Spouse', 'Son', 'Daughter', 'Father', 'Mother', 'Brother', 'Sister', 'Other'];
 
@@ -16,6 +16,7 @@ export default function MyFamily() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ name: '', relation: 'Spouse', occasion_type: 'Birthday', date: '' });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -23,17 +24,25 @@ export default function MyFamily() {
   const load = () => api.get('/devotee/family-members').then(r => setMembers(r.data)).catch(() => setLoadError(true)).finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
 
+  const resetForm = () => { setForm({ name: '', relation: 'Spouse', occasion_type: 'Birthday', date: '' }); setEditingId(null); setShowForm(false); };
+
+  const handleEdit = (m) => {
+    setForm({ name: m.name, relation: m.relation, occasion_type: m.occasion_type, date: m.date });
+    setEditingId(m.id);
+    setShowForm(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     setError('');
     try {
-      await api.post('/devotee/family-members', form);
-      setForm({ name: '', relation: 'Spouse', occasion_type: 'Birthday', date: '' });
-      setShowForm(false);
+      if (editingId) await api.put(`/devotee/family-members/${editingId}`, form);
+      else await api.post('/devotee/family-members', form);
+      resetForm();
       load();
     } catch (err) {
-      setError(err.response?.data?.detail || t('Failed to add', 'జోడించడం విఫలమైంది'));
+      setError(err.response?.data?.detail || t('Failed to save', 'సేవ్ చేయడం విఫలమైంది'));
     } finally { setSubmitting(false); }
   };
 
@@ -75,6 +84,7 @@ export default function MyFamily() {
 
         {showForm ? (
           <div className="bg-white border border-[#E6DCCA] rounded-xl p-6 mb-6" data-testid="family-member-form">
+            <h2 className="font-english-heading text-sm text-[#621B00] mb-4">{editingId ? t('Edit Family Member', 'కుటుంబ సభ్యుడిని సవరించండి') : t('Add Family Member', 'కుటుంబ సభ్యుడిని జోడించండి')}</h2>
             {error && <div className="bg-red-50 text-red-700 text-sm p-3 rounded-lg mb-4">{error}</div>}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div><label htmlFor={`${uid}-name`} className="block text-xs font-medium text-[#5D4037] mb-1">{t('Name', 'పేరు')} *</label><input id={`${uid}-name`} className={inputCls} value={form.name} onChange={e => setForm({...form, name: e.target.value})} required data-testid="family-member-name" /></div>
@@ -95,8 +105,10 @@ export default function MyFamily() {
               </div>
               <div><label htmlFor={`${uid}-date`} className="block text-xs font-medium text-[#5D4037] mb-1">{t('Date', 'తేదీ')} *</label><DateInput id={`${uid}-date`} className={inputCls} value={form.date} onChange={v => setForm({...form, date: v})} required data-testid="family-member-date" /></div>
               <div className="flex gap-2">
-                <button type="submit" disabled={submitting} className="px-5 py-2.5 bg-[#C43E00] text-white text-sm rounded-full disabled:opacity-50" data-testid="family-member-submit">{submitting ? t('Adding...', 'జోడిస్తోంది...') : t('Add', 'జోడించు')}</button>
-                <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2.5 text-[#8D6E63] text-sm">{t('Cancel', 'రద్దు చేయండి')}</button>
+                <button type="submit" disabled={submitting} className="px-5 py-2.5 bg-[#C43E00] text-white text-sm rounded-full disabled:opacity-50" data-testid="family-member-submit">
+                  {submitting ? t('Saving...', 'సేవ్ అవుతోంది...') : editingId ? t('Save Changes', 'మార్పులను సేవ్ చేయండి') : t('Add', 'జోడించు')}
+                </button>
+                <button type="button" onClick={resetForm} className="px-5 py-2.5 text-[#8D6E63] text-sm">{t('Cancel', 'రద్దు చేయండి')}</button>
               </div>
             </form>
           </div>
@@ -120,9 +132,14 @@ export default function MyFamily() {
                   <p className="text-sm font-medium text-[#2D1B0E]">{m.name} <span className="text-xs text-[#8D6E63]">({m.relation})</span></p>
                   <p className="text-xs text-[#8D6E63] flex items-center gap-1 mt-0.5"><Gift className="h-3 w-3" /> {m.occasion_type} &mdash; {String(m.day).padStart(2, '0')}/{String(m.month).padStart(2, '0')}</p>
                 </div>
-                <button onClick={() => handleDelete(m.id)} className="text-[#8D6E63] hover:text-red-600 p-2" data-testid={`delete-family-member-${m.id}`}>
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => handleEdit(m)} className="text-[#8D6E63] hover:text-[#C43E00] p-2" data-testid={`edit-family-member-${m.id}`}>
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button onClick={() => handleDelete(m.id)} className="text-[#8D6E63] hover:text-red-600 p-2" data-testid={`delete-family-member-${m.id}`}>
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>

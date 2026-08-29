@@ -660,6 +660,24 @@ async def add_family_member(data: FamilyMemberCreate, user=Depends(get_current_d
 async def list_family_members(user=Depends(get_current_devotee)):
     return await db.family_members.find({"devotee_id": user["sub"]}, {"_id": 0}).sort("created_at", -1).to_list(200)
 
+@api_router.put("/devotee/family-members/{member_id}")
+async def update_family_member(member_id: str, data: FamilyMemberCreate, user=Depends(get_current_devotee)):
+    if data.occasion_type not in ("Birthday", "Wedding Anniversary"):
+        raise HTTPException(status_code=400, detail="occasion_type must be 'Birthday' or 'Wedding Anniversary'")
+    try:
+        parsed_date = datetime.strptime(data.date, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="date must be in YYYY-MM-DD format")
+
+    update = {
+        "name": data.name, "relation": data.relation, "occasion_type": data.occasion_type,
+        "date": data.date, "month": parsed_date.month, "day": parsed_date.day,
+    }
+    result = await db.family_members.update_one({"id": member_id, "devotee_id": user["sub"]}, {"$set": update})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Family member not found")
+    return {"message": "Family member updated successfully"}
+
 @api_router.delete("/devotee/family-members/{member_id}")
 async def delete_family_member(member_id: str, user=Depends(get_current_devotee)):
     result = await db.family_members.delete_one({"id": member_id, "devotee_id": user["sub"]})
