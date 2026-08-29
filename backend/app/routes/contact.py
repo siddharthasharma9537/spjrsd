@@ -62,4 +62,18 @@ async def submit_contact(data: ContactMessageCreate):
 
 @router.get("/admin/contact-messages")
 async def admin_contact_messages(user=Depends(get_current_admin)):
-    return await db.contact_messages.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    messages = await db.contact_messages.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
+
+    # Contact messages have no login requirement, so there's no real devotee_id
+    # foreign key - match against registered devotees by mobile/email instead,
+    # same heuristic used by GET /admin/devotees/{id}/activity.
+    devotees = await db.devotees.find({}, {"_id": 0, "id": 1, "name": 1, "mobile": 1, "email": 1}).to_list(5000)
+    by_mobile = {d["mobile"]: d for d in devotees if d.get("mobile")}
+    by_email = {d["email"]: d for d in devotees if d.get("email")}
+    for m in messages:
+        match = by_mobile.get(m.get("mobile")) or by_email.get(m.get("email"))
+        if match:
+            m["devotee_id"] = match["id"]
+            m["devotee_name"] = match["name"]
+
+    return messages

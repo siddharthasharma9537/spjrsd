@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
-import { Mail, Phone } from 'lucide-react';
+import { Mail, Phone, UserCircle } from 'lucide-react';
 
 export default function AdminContactMessages() {
   const [messages, setMessages] = useState([]);
@@ -35,6 +36,11 @@ export default function AdminContactMessages() {
               <div className="flex items-center gap-4 text-xs text-[#5D4037]">
                 <span className="flex items-center gap-1"><Mail className="h-3.5 w-3.5" /> {m.email}</span>
                 {m.mobile && <span className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" /> {m.mobile}</span>}
+                {m.devotee_id && (
+                  <Link to={`/admin/devotees/${m.devotee_id}`} className="flex items-center gap-1 text-[#C43E00] hover:underline ml-auto" data-testid={`contact-message-devotee-link-${m.id}`}>
+                    <UserCircle className="h-3.5 w-3.5" /> View {m.devotee_name}'s profile
+                  </Link>
+                )}
               </div>
             </div>
           ))}
