@@ -108,7 +108,7 @@ export default function BookingTicket() {
               </div>
               <div>
                 <p className="text-xs text-[#8D6E63] uppercase tracking-wide mb-1">Booked On</p>
-                <p className="text-sm font-medium text-[#2D1B0E]">{new Date(booking.booking_date_time).toLocaleDateString()}</p>
+                <p className="text-sm font-medium text-[#2D1B0E]">{new Date(booking.booking_date_time).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
               </div>
             </div>
 

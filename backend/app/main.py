@@ -1276,7 +1276,7 @@ async def delete_gallery(item_id: str, user=Depends(get_current_admin)):
 # ==================== ADMIN DEVOTEES + STATS ====================
 @api_router.get("/admin/devotees")
 async def admin_list_devotees(user=Depends(get_current_admin)):
-    return await db.devotees.find({}, {"_id": 0, "password_hash": 0}).to_list(500)
+    return await db.devotees.find({}, {"_id": 0, "password_hash": 0}).sort("created_at", -1).to_list(500)
 
 @api_router.get("/admin/devotees/{devotee_id}/activity")
 async def admin_devotee_activity(devotee_id: str, user=Depends(get_current_admin)):

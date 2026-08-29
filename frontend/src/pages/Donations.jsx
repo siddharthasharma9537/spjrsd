@@ -278,7 +278,7 @@ export default function Donations() {
                       <div key={d.id} className="flex items-center justify-between text-xs">
                         <div>
                           <p className="text-[#5D4037]">{d.donation_type}</p>
-                          <p className="text-[#8D6E63]">{new Date(d.created_at).toLocaleDateString()}</p>
+                          <p className="text-[#8D6E63]">{new Date(d.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
                         </div>
                         <div className="text-right">
                           <span className="font-bold text-[#C43E00]">Rs. {d.amount}</span>

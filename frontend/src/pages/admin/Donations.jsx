@@ -80,7 +80,7 @@ export default function AdminDonations() {
                     <td className="px-4 py-3 font-bold text-[#C43E00]">Rs. {d.amount}</td>
                     <td className="px-4 py-3 text-[#5D4037]">{d.donor_gotram || '—'}</td>
                     <td className="px-4 py-3 text-xs text-[#8D6E63] max-w-[150px] truncate">{d.message || '—'}</td>
-                    <td className="px-4 py-3 text-xs text-[#8D6E63]">{new Date(d.created_at).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 text-xs text-[#8D6E63]">{new Date(d.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                     <td className="px-4 py-3 text-right">
                       <Link to={`/donation-receipt/${d.id}`} className="inline-flex items-center gap-1 px-2 py-1 bg-[#621B00] text-white text-xs rounded-full hover:bg-[#621B00]/90" data-testid={`receipt-btn-${d.id}`}>
                         <FileCheck className="h-3 w-3" /> 80G

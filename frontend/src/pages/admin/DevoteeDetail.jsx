@@ -26,7 +26,7 @@ export default function AdminDevoteeDetail() {
     api.get(`/admin/devotees/${devoteeId}/activity`).then(r => setData(r.data)).catch(() => setLoadError(true)).finally(() => setLoading(false));
   }, [devoteeId]);
 
-  const fmt = (d) => d ? new Date(d).toLocaleString() : '—';
+  const fmt = (d) => d ? new Date(d).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 
   return (
     <AdminLayout title="Devotee Activity">
@@ -42,7 +42,10 @@ export default function AdminDevoteeDetail() {
             <h2 className="text-lg font-medium text-[#2D1B0E]">{data.devotee.name}</h2>
             <div className="flex flex-wrap gap-4 mt-2 text-sm text-[#5D4037]">
               <span className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" /> {data.devotee.mobile}</span>
-              <span className="flex items-center gap-1"><Mail className="h-3.5 w-3.5" /> {data.devotee.email || '—'}</span>
+              <span className="flex items-center gap-1">
+                <Mail className="h-3.5 w-3.5" /> {data.devotee.email || '—'}
+                {data.devotee.email && <a href={`mailto:${data.devotee.email}`} className="text-[#C43E00] hover:underline ml-1" data-testid="devotee-detail-reply">Reply</a>}
+              </span>
               <span>Gotram: {data.devotee.gotram || '—'}</span>
               <span className="text-[#8D6E63]">Registered {fmt(data.devotee.created_at)}</span>
               {data.newsletter_subscribed && <span className="flex items-center gap-1 text-[#2E7D32]"><MailIcon className="h-3.5 w-3.5" /> Newsletter subscriber</span>}
