@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from './AdminLayout';
+import EmailReplyModal from './EmailReplyModal';
 import api from '@/lib/api';
 import { Users, Phone, Mail, Search, ArrowUpDown } from 'lucide-react';
 
@@ -17,6 +18,7 @@ export default function AdminDevotees() {
   const [sortDir, setSortDir] = useState('desc');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [replyTarget, setReplyTarget] = useState(null);
 
   useEffect(() => {
     api.get('/admin/devotees').then(r => setDevotees(r.data)).catch(() => setLoadError(true)).finally(() => setLoading(false));
@@ -90,7 +92,7 @@ export default function AdminDevotees() {
                       <span className="flex items-center gap-2 text-[#5D4037]">
                         <Mail className="h-3.5 w-3.5" /> {d.email || '—'}
                         {d.email && (
-                          <a href={`mailto:${d.email}`} onClick={e => e.stopPropagation()} className="text-[#C43E00] hover:underline text-xs" data-testid={`devotee-reply-${d.id}`}>Reply</a>
+                          <button onClick={e => { e.stopPropagation(); setReplyTarget(d); }} className="text-[#C43E00] hover:underline text-xs" data-testid={`devotee-reply-${d.id}`}>Reply</button>
                         )}
                       </span>
                     </td>
@@ -102,6 +104,10 @@ export default function AdminDevotees() {
             </table>
           </div>
         </div>
+      )}
+
+      {replyTarget && (
+        <EmailReplyModal to={replyTarget.email} defaultSubject="" onClose={() => setReplyTarget(null)} />
       )}
     </AdminLayout>
   );

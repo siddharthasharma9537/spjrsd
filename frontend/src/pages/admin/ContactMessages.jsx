@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from './AdminLayout';
+import EmailReplyModal from './EmailReplyModal';
 import api from '@/lib/api';
 import { Mail, Phone, UserCircle, Search, ArrowUpDown } from 'lucide-react';
 
@@ -14,6 +15,7 @@ export default function AdminContactMessages() {
   const [search, setSearch] = useState('');
   const [sortDir, setSortDir] = useState('desc');
   const [linkFilter, setLinkFilter] = useState('all');
+  const [replyTarget, setReplyTarget] = useState(null);
 
   useEffect(() => {
     api.get('/admin/contact-messages').then(r => setMessages(r.data)).catch(() => setLoadError(true)).finally(() => setLoading(false));
@@ -73,7 +75,7 @@ export default function AdminContactMessages() {
               <div className="flex items-center gap-4 text-xs text-[#5D4037]">
                 <span className="flex items-center gap-1">
                   <Mail className="h-3.5 w-3.5" /> {m.email}
-                  <a href={`mailto:${m.email}`} className="text-[#C43E00] hover:underline ml-1">Reply</a>
+                  <button onClick={() => setReplyTarget(m)} className="text-[#C43E00] hover:underline ml-1" data-testid={`contact-message-reply-${m.id}`}>Reply</button>
                 </span>
                 {m.mobile && <span className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" /> {m.mobile}</span>}
                 {m.devotee_id && (
@@ -85,6 +87,10 @@ export default function AdminContactMessages() {
             </div>
           ))}
         </div>
+      )}
+
+      {replyTarget && (
+        <EmailReplyModal to={replyTarget.email} defaultSubject={`Re: ${replyTarget.subject || 'General Inquiry'}`} onClose={() => setReplyTarget(null)} />
       )}
     </AdminLayout>
   );

@@ -400,6 +400,11 @@ class NewsletterAlert(BaseModel):
     subject: str
     message: str
 
+class AdminSendEmail(BaseModel):
+    to: str
+    subject: str
+    message: str
+
 class ContactMessage(BaseModel):
     name: str
     email: str
@@ -1374,6 +1379,11 @@ async def send_newsletter_alert(data: NewsletterAlert, user=Depends(get_current_
         sent += len(batch)
 
     return {"message": "Alert sent", "sent": sent}
+
+@api_router.post("/admin/send-email")
+async def admin_send_email(data: AdminSendEmail, user=Depends(get_current_admin)):
+    send_email_via_msg91([{"email": data.to}], subject=data.subject, message=data.message)
+    return {"message": "Email sent"}
 
 # ==================== VISITOR STATS ROUTES ====================
 @api_router.get("/visitor-stats")

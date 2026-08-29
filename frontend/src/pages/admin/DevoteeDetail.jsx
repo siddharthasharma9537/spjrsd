@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AdminLayout from './AdminLayout';
+import EmailReplyModal from './EmailReplyModal';
 import api from '@/lib/api';
 import { Phone, Mail, ArrowLeft, Flame, BedDouble, HandCoins, MessageSquare, HeartHandshake, Mail as MailIcon } from 'lucide-react';
 
@@ -21,6 +22,7 @@ export default function AdminDevoteeDetail() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [showReply, setShowReply] = useState(false);
 
   useEffect(() => {
     api.get(`/admin/devotees/${devoteeId}/activity`).then(r => setData(r.data)).catch(() => setLoadError(true)).finally(() => setLoading(false));
@@ -44,7 +46,7 @@ export default function AdminDevoteeDetail() {
               <span className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" /> {data.devotee.mobile}</span>
               <span className="flex items-center gap-1">
                 <Mail className="h-3.5 w-3.5" /> {data.devotee.email || '—'}
-                {data.devotee.email && <a href={`mailto:${data.devotee.email}`} className="text-[#C43E00] hover:underline ml-1" data-testid="devotee-detail-reply">Reply</a>}
+                {data.devotee.email && <button onClick={() => setShowReply(true)} className="text-[#C43E00] hover:underline ml-1" data-testid="devotee-detail-reply">Reply</button>}
               </span>
               <span>Gotram: {data.devotee.gotram || '—'}</span>
               <span className="text-[#8D6E63]">Registered {fmt(data.devotee.created_at)}</span>
@@ -103,6 +105,10 @@ export default function AdminDevoteeDetail() {
             </div>
           </Section>
         </>
+      )}
+
+      {showReply && data && (
+        <EmailReplyModal to={data.devotee.email} defaultSubject="" onClose={() => setShowReply(false)} />
       )}
     </AdminLayout>
   );
