@@ -6,3 +6,4 @@ class ContactMessageCreate(BaseModel):
     email: EmailStr
     message: str
     subject: Optional[str] = None
+    mobile: Optional[str] = None
