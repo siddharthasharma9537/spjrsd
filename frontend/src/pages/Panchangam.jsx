@@ -3,6 +3,7 @@ import TopStrip from '@/components/TopStrip';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import api from '@/lib/api';
+import DateInput from '@/components/ui/date-input';
 import { useT } from '@/contexts/LanguageContext';
 import { stripLeadingName } from '@/lib/panchangam';
 import { Sun, Sunrise, Sunset, AlertCircle, Calendar } from 'lucide-react';
@@ -63,11 +64,10 @@ export default function Panchangam() {
 
         <div className="flex items-center justify-center gap-2 mb-6">
           <Calendar className="h-4 w-4 text-[#8D6E63]" />
-          <input
-            type="date"
+          <DateInput
             value={date}
             max={toISODate(new Date(Date.now() + 365 * 24 * 60 * 60 * 1000))}
-            onChange={e => setDate(e.target.value)}
+            onChange={v => setDate(v)}
             className="h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg text-sm text-[#2D1B0E] focus:border-[#C43E00] focus:ring-1 focus:ring-[#C43E00]/20 outline-none"
             data-testid="panchangam-date-input"
           />

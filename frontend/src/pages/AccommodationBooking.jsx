@@ -2,6 +2,7 @@ import { useState, useEffect , useId } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import api from '@/lib/api';
+import DateInput from '@/components/ui/date-input';
 import { useT } from "@/contexts/LanguageContext";
 import { ArrowLeft, IndianRupee, CheckCircle, Users, BedDouble } from 'lucide-react';
 import { BOOKINGS_PAUSED } from '@/lib/bookingStatus';
@@ -108,11 +109,11 @@ export default function AccommodationBooking() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-[#5D4037] mb-1" htmlFor={`${uid}-check-0`}>{t('Check-in', 'చెక్-ఇన్')} <span className="text-red-500">*</span></label>
-                  <input id={`${uid}-check-0`} type="date" className={inputCls} min={today} value={form.check_in_date} onChange={e => setForm({...form, check_in_date: e.target.value})} required data-testid="input-checkin" />
+                  <DateInput id={`${uid}-check-0`} className={inputCls} min={today} value={form.check_in_date} onChange={v => setForm({...form, check_in_date: v})} required data-testid="input-checkin" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[#5D4037] mb-1" htmlFor={`${uid}-check-1`}>{t('Check-out', 'చెక్-అవుట్')} <span className="text-red-500">*</span></label>
-                  <input id={`${uid}-check-1`} type="date" className={inputCls} min={form.check_in_date || today} value={form.check_out_date} onChange={e => setForm({...form, check_out_date: e.target.value})} required data-testid="input-checkout" />
+                  <DateInput id={`${uid}-check-1`} className={inputCls} min={form.check_in_date || today} value={form.check_out_date} onChange={v => setForm({...form, check_out_date: v})} required data-testid="input-checkout" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">

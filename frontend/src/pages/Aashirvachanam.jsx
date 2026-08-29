@@ -3,6 +3,7 @@ import Navbar from '@/components/Navbar';
 import TopStrip from '@/components/TopStrip';
 import Footer from '@/components/Footer';
 import api from '@/lib/api';
+import DateInput from '@/components/ui/date-input';
 import { useT } from "@/contexts/LanguageContext";
 import { Gift, Send, CheckCircle } from 'lucide-react';
 
@@ -64,7 +65,7 @@ export default function Aashirvachanam() {
                     <option value="Wedding Anniversary">{t('Wedding Anniversary', 'వివాహ వార్షికోత్సవం')}</option>
                   </select>
                 </div>
-                <div><label htmlFor={`${uid}-date`} className="block text-xs font-medium text-[#5D4037] mb-1">{t('Date', 'తేదీ')} *</label><input id={`${uid}-date`} name="date" type="date" className={inputCls} value={form.date} onChange={e => setForm({...form, date: e.target.value})} required data-testid="aashirvachanam-date" /></div>
+                <div><label htmlFor={`${uid}-date`} className="block text-xs font-medium text-[#5D4037] mb-1">{t('Date', 'తేదీ')} *</label><DateInput id={`${uid}-date`} name="date" className={inputCls} value={form.date} onChange={v => setForm({...form, date: v})} required data-testid="aashirvachanam-date" /></div>
               </div>
               <button type="submit" disabled={submitting} className="inline-flex items-center gap-2 px-6 py-3 bg-[#C43E00] text-white font-english-heading tracking-wide uppercase text-sm rounded-full hover:bg-[#C43E00]/90 transition-all disabled:opacity-50" data-testid="aashirvachanam-submit">
                 <Send className="h-4 w-4" /> {submitting ? t('Submitting...', 'సమర్పిస్తోంది...') : t('Submit', 'సమర్పించండి')}

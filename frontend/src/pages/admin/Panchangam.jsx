@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
+import DateInput from '@/components/ui/date-input';
 import { Plus, Pencil, Trash2, X, Upload, CheckCircle2, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const PAGE_SIZE = 30;
@@ -162,7 +163,7 @@ export default function AdminPanchangam() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-medium text-[#5D4037] mb-1">Date</label>
-              <input type="date" className={inputCls} value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} required disabled={!!editing} data-testid="panchangam-date-input" />
+              <DateInput className={inputCls} value={form.date} onChange={v => setForm({ ...form, date: v })} required disabled={!!editing} data-testid="panchangam-date-input" />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {FIELDS.map(f => (

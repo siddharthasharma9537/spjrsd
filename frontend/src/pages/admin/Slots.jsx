@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
+import DateInput from '@/components/ui/date-input';
 import { Plus, Pencil, Trash2, X } from 'lucide-react';
 
 export default function AdminSlots() {
@@ -94,7 +95,7 @@ export default function AdminSlots() {
             </div>
             <div>
               <label className="block text-xs font-medium text-[#5D4037] mb-1">Specific Date (optional)</label>
-              <input type="date" className={inputCls} value={form.date} onChange={e => setForm({...form, date: e.target.value})} data-testid="slot-date" />
+              <DateInput className={inputCls} value={form.date} onChange={v => setForm({...form, date: v})} data-testid="slot-date" />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>

@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom'
 import TopStrip from '@/components/TopStrip';
 import Navbar from '@/components/Navbar';
 import api from '@/lib/api';
+import DateInput from '@/components/ui/date-input';
 import { useT } from "@/contexts/LanguageContext";
 import { ArrowLeft, IndianRupee, AlertCircle, Clock, Users, Printer, Info, Globe, Landmark, QrCode, Copy, Check } from 'lucide-react';
 import { BOOKINGS_PAUSED } from '@/lib/bookingStatus';
@@ -311,7 +312,7 @@ export default function SevaBooking() {
           <form onSubmit={handleSubmit} className="space-y-5 mt-6">
             <div>
               <label className="block text-sm font-medium text-[#5D4037] mb-1" htmlFor={`${uid}-seva-0`}>{t('Seva Date', 'సేవ తేదీ')} <span className="text-red-500">*</span></label>
-              <input id={`${uid}-seva-0`} type="date" className={inputCls} min={today} value={form.for_date} onChange={e => setForm({...form, for_date: e.target.value, slot_id: ''})} required data-testid="input-date" />
+              <DateInput id={`${uid}-seva-0`} className={inputCls} min={today} value={form.for_date} onChange={v => setForm({...form, for_date: v, slot_id: ''})} required data-testid="input-date" />
             </div>
             <div>
               <label className="block text-sm font-medium text-[#5D4037] mb-1" htmlFor={`${uid}-time-1`}>{t('Time Slot', 'సమయ స్లాట్')} <span className="text-red-500">*</span></label>

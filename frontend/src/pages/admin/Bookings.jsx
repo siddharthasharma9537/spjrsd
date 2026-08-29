@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
+import DateInput from '@/components/ui/date-input';
 import { Search, ChevronDown } from 'lucide-react';
 
 export default function AdminBookings() {
@@ -50,7 +51,7 @@ export default function AdminBookings() {
           <Search className="h-4 w-4 text-[#8D6E63]" />
           <span className="text-sm text-[#8D6E63]">Filters:</span>
         </div>
-        <input type="date" className={inputCls} value={filterDate} onChange={e => setFilterDate(e.target.value)} data-testid="filter-date" />
+        <DateInput className={inputCls} value={filterDate} onChange={setFilterDate} data-testid="filter-date" />
         <select className={`${inputCls} w-40`} value={filterSeva} onChange={e => setFilterSeva(e.target.value)} data-testid="filter-seva">
           <option value="">All Sevas</option>
           {sevas.map(s => <option key={s.id} value={s.id}>{s.name_english}</option>)}

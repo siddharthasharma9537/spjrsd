@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from './AdminLayout';
 import EmailReplyModal from './EmailReplyModal';
+import DateInput from '@/components/ui/date-input';
 import api from '@/lib/api';
 import { Users, Phone, Mail, Search, ArrowUpDown } from 'lucide-react';
 
@@ -53,11 +54,11 @@ export default function AdminDevotees() {
         </div>
         <div>
           <label className="block text-xs text-[#8D6E63] mb-1">From</label>
-          <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg text-sm" data-testid="devotees-filter-from" />
+          <DateInput value={fromDate} onChange={setFromDate} className="h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg text-sm" data-testid="devotees-filter-from" />
         </div>
         <div>
           <label className="block text-xs text-[#8D6E63] mb-1">To</label>
-          <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg text-sm" data-testid="devotees-filter-to" />
+          <DateInput value={toDate} onChange={setToDate} className="h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg text-sm" data-testid="devotees-filter-to" />
         </div>
         <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg text-sm" data-testid="devotees-sort-by">
           <option value="created_at">Sort: Registered date</option>
