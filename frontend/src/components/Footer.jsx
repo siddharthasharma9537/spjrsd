@@ -101,7 +101,7 @@ export default function Footer() {
             <div className="text-xs text-[#FFE0B2]/50 space-y-1">
               <p className="flex items-start gap-1.5"><MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" /> Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanams, Cheruvugattu, Narketpally Mandal, Nalgonda District, Telangana - 508254, India</p>
               <p className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> +91 94910 00701 (EO)</p>
-              <p className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" /> info@spjrdevasthanams.org</p>
+              <p className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" /> admin@cheruvugattu.online</p>
             </div>
           </div>
           <div>

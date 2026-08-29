@@ -67,8 +67,8 @@ export default function ContactUs() {
                 <Mail className="h-5 w-5 text-[#C43E00] shrink-0 mt-0.5" />
                 <div>
                   <h3 className="text-sm font-medium text-[#2D1B0E] mb-1">{t('Email', 'ఇమెయిల్')}</h3>
-                  <p className="text-xs text-[#5D4037]">info@spjrdevasthanams.org</p>
-                  <p className="text-xs text-[#5D4037]">helpdesk@spjrdevasthanams.org</p>
+                  <p className="text-xs text-[#5D4037]">admin@cheruvugattu.online</p>
+                  <p className="text-xs text-[#5D4037]">aceocheruvugattu@yahoo.in</p>
                 </div>
               </div>
             </div>
