@@ -43,6 +43,7 @@ const navGroups = [
   { label: 'Sevas & Darshanam', labelTe: 'సేవలు & దర్శనం', children: [
     { to: '/sevas', label: 'Pratyaksha Seva', labelTe: 'ప్రత్యక్ష సేవ' },
     { to: '/paroksha-seva', label: 'Paroksha Seva', labelTe: 'పరోక్ష సేవ' },
+    { to: '/aashirvachanam', label: 'Personalized Aashirvachanam', labelTe: 'వ్యక్తిగత ఆశీర్వచనం' },
   ]},
   { label: 'Donations', labelTe: 'విరాళాలు', children: [
     { to: '/donations', label: 'e-Hundi', labelTe: 'ఇ-హుండీ' },

@@ -1,0 +1,15 @@
+name: Daily Aashirvachanam Blessings
+
+on:
+  schedule:
+    - cron: '30 0 * * *'  # Every day, 6:00 AM IST (00:30 UTC)
+  workflow_dispatch: {}   # allows manually running this from the Actions tab
+
+jobs:
+  send-blessings:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger daily Aashirvachanam blessings
+        run: |
+          curl -sf -X POST "https://spjrsd-backend.onrender.com/api/cron/aashirvachanam-blessings" \
+            -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}"

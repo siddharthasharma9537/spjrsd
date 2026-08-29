@@ -6,6 +6,7 @@ import os
 import io
 import re
 import logging
+from urllib.parse import urlencode
 from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Optional
@@ -408,6 +409,12 @@ class AdminSendEmail(BaseModel):
     to: str
     subject: str
     message: str
+
+class AashirvachanamCreate(BaseModel):
+    name: str
+    email: str
+    occasion_type: str  # "Birthday" | "Wedding Anniversary"
+    date: str  # YYYY-MM-DD
 
 class ContactMessage(BaseModel):
     name: str
@@ -1384,6 +1391,85 @@ async def send_newsletter_alert(data: NewsletterAlert, user=Depends(get_current_
 
     return {"message": "Alert sent", "sent": sent}
 
+# ==================== AASHIRVACHANAM ROUTES ====================
+@api_router.post("/aashirvachanam")
+async def submit_aashirvachanam(data: AashirvachanamCreate):
+    if data.occasion_type not in ("Birthday", "Wedding Anniversary"):
+        raise HTTPException(status_code=400, detail="occasion_type must be 'Birthday' or 'Wedding Anniversary'")
+    try:
+        parsed_date = datetime.strptime(data.date, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="date must be in YYYY-MM-DD format")
+
+    entry = {
+        "id": str(uuid.uuid4()), "name": data.name, "email": data.email,
+        "occasion_type": data.occasion_type, "date": data.date,
+        "month": parsed_date.month, "day": parsed_date.day,
+        "active_flag": True, "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.aashirvachanam.insert_one(entry)
+
+    # This is offered as a newsletter-subscriber perk, so signing up also
+    # subscribes them if they aren't already on the list.
+    if not await db.newsletter.find_one({"email": data.email}):
+        await db.newsletter.insert_one({"id": str(uuid.uuid4()), "email": data.email, "subscribed_at": datetime.now(timezone.utc).isoformat()})
+
+    return {"message": "Aashirvachanam request submitted successfully"}
+
+@api_router.get("/admin/aashirvachanam")
+async def admin_list_aashirvachanam(user=Depends(get_current_admin)):
+    return await db.aashirvachanam.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
+
+def _build_aashirvachanam_message(name: str, occasion_type: str) -> str:
+    MAROON, GOLD, INK, MUTED, PAGE_BG, CARD_BG, BORDER = "#621B00", "#D4AF37", "#2D1B0E", "#8D6E63", "#FFFCF5", "#FFFFFF", "#E6DCCA"
+    LOGO_URL = "https://cheruvugattu.online/Assets/Temple_Logo_Transparent.webp"
+    occasion_line = {
+        "Birthday": "on the joyous occasion of your birthday",
+        "Wedding Anniversary": "on this blessed occasion of your wedding anniversary",
+    }.get(occasion_type, "on this special day")
+
+    return (
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:{PAGE_BG};">'
+        f'<tr><td align="center" style="padding:24px 12px;">'
+        f'<div style="font-family:Georgia,\'Times New Roman\',serif;max-width:600px;margin:0 auto;background-color:{PAGE_BG};">'
+        f'<div style="text-align:center;padding-bottom:14px;margin-bottom:20px;border-bottom:2px solid {GOLD};">'
+        f'<img src="{LOGO_URL}" width="90" alt="Sri Parvathi Jadala Ramalingeshwara Swamy" '
+        f'style="width:90px;height:auto;border-radius:8px;display:block;margin:0 auto 8px;" />'
+        f'<div style="font-size:17px;font-weight:bold;color:{MAROON};letter-spacing:1px;">AASHIRVACHANAM</div>'
+        f'<div style="font-size:12px;color:{MUTED};">Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu</div>'
+        '</div>'
+        f'<div style="background:{CARD_BG};border:1px solid {BORDER};border-radius:10px;padding:24px;text-align:center;">'
+        '<div style="font-size:30px;margin-bottom:10px;">\U0001F64F</div>'
+        f'<div style="font-size:18px;color:{INK};margin-bottom:14px;">Dear <strong>{name}</strong>,</div>'
+        f'<div style="font-size:15px;color:{INK};line-height:1.7;">'
+        f'{occasion_line}, Sri Parvathi Jadala Ramalingeshwara Swamy and Sri Parvathi Devi '
+        'shower their choicest blessings upon you and your family.<br/><br/>'
+        'May you be blessed with good health, prosperity, and happiness in the year ahead.'
+        '</div>'
+        f'<div style="margin-top:20px;font-size:13px;color:{MUTED};font-style:italic;">'
+        '&mdash; Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu</div>'
+        '</div></div></td></tr></table>'
+    )
+
+@api_router.post("/cron/aashirvachanam-blessings")
+async def cron_send_aashirvachanam_blessings(request: Request):
+    if not CRON_SECRET or request.headers.get("X-Cron-Secret") != CRON_SECRET:
+        raise HTTPException(status_code=401, detail="Invalid or missing cron secret")
+
+    today = datetime.now(IST).date()
+    matches = await db.aashirvachanam.find(
+        {"month": today.month, "day": today.day, "active_flag": True}, {"_id": 0}
+    ).to_list(1000)
+
+    sent = 0
+    for m in matches:
+        message = _build_aashirvachanam_message(m["name"], m["occasion_type"])
+        subject = f"Aashirvachanam on your {m['occasion_type']} \U0001F64F"
+        send_email_via_msg91([{"email": m["email"]}], subject=subject, message=message)
+        sent += 1
+
+    return {"message": "Blessings sent", "sent": sent, "date": today.isoformat()}
+
 @api_router.post("/admin/send-email")
 async def admin_send_email(data: AdminSendEmail, user=Depends(get_current_admin)):
     send_email_via_msg91([{"email": data.to}], subject=data.subject, message=data.message)
@@ -1392,20 +1478,37 @@ async def admin_send_email(data: AdminSendEmail, user=Depends(get_current_admin)
 def _fmt_ist_date(date_str: str) -> str:
     return datetime.strptime(date_str, "%Y-%m-%d").strftime("%d %b %Y")
 
-    # The bulk-imported panchangam special_note field mixes OCR symbol-detection
-    # noise ("Star symbol", "Blank Circle (Amavasya)") and secular/other-religion
-    # calendar entries (national holidays, Islamic dates, Christmas, etc.) in with
-    # real Hindu festival names - sometimes both on the same day, comma/semicolon
-    # separated (e.g. "Gauri Tritiya, Ramzan (Eid-ul-Fitr)"). This is a Hindu
-    # temple's devotee newsletter, so each item is filtered individually rather
-    # than dropping/keeping a whole day's note as one unit.
+def _google_calendar_reminder_link(event_date_str: str, label: str) -> str:
+    """Google's quick-add link can't set a custom reminder offset (only their
+    full OAuth API can), so the 'reminder' is a separate all-day entry placed
+    2 days before the real date, clearly labelled with the actual date."""
+    event_date = datetime.strptime(event_date_str, "%Y-%m-%d").date()
+    reminder_date = event_date - timedelta(days=2)
+    reminder_end = reminder_date + timedelta(days=1)
+    params = {
+        "action": "TEMPLATE",
+        "text": f"Reminder: {label} is in 2 days ({_fmt_ist_date(event_date_str)})",
+        "dates": f"{reminder_date.strftime('%Y%m%d')}/{reminder_end.strftime('%Y%m%d')}",
+        "details": f"{label} falls on {_fmt_ist_date(event_date_str)} at Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu.",
+        "location": "Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu, Narketpally Mandal, Nalgonda District, Telangana",
+    }
+    return "https://calendar.google.com/calendar/render?" + urlencode(params)
+
+    # The bulk-imported panchangam special_note field mixes traditional Hindu
+    # panchangam symbol notation (Star/Circle markers - e.g. a blank/white circle
+    # for Pournami, a solid/black circle for Amavasya - these are legitimate and
+    # kept) with secular/other-religion calendar entries (national holidays,
+    # Islamic dates, Christmas, etc.) mixed in with real Hindu festival names -
+    # sometimes both on the same day, comma/semicolon separated (e.g. "Gauri
+    # Tritiya, Ramzan (Eid-ul-Fitr)"). This is a Hindu temple's devotee
+    # newsletter, so each item is filtered individually rather than
+    # dropping/keeping a whole day's note as one unit.
 _DIGEST_EXCLUDE_MARKERS = [
-    "symbol", "circle",
     "english new year", "new year's eve", "republic day", "independence day",
     "telangana formation day", "gandhi jayanti", "police martyrs",
     "sardar vallabhbhai patel", "may day", "christmas", "boxing day",
     "ramzan", "eid", "shab-e-miraj", "jamadi", "rajab",
-    "swami vivekananda jayanti", "dr. abdul kalam jayanti", "lal bahadur shastri",
+    "dr. abdul kalam jayanti", "lal bahadur shastri",
 ]
 
 def _clean_special_note(note: str) -> str:
@@ -1428,38 +1531,95 @@ async def _build_panchangam_digest():
         {"date": {"$gte": today.isoformat(), "$lte": window_end.isoformat()}, "special_note": {"$nin": [None, ""]}},
         {"_id": 0, "date": 1, "special_note": 1},
     ).sort("date", 1).to_list(30)
-    special_days = [{"date": d["date"], "note": _clean_special_note(d["special_note"])} for d in special_days_raw]
-    special_days = [d for d in special_days if d["note"]]
+    # Bare symbol markers (Star/Circle/Full Moon/Flower symbol - the print
+    # calendar's own visual notation, meaningful on paper but not in an email)
+    # are kept in the database per policy, but mean nothing to an email reader,
+    # so they're dropped here at render time only - digest-only, not a DB write.
+    _SYMBOL_ONLY_MARKERS = ["star symbol", "circle symbol", "blank circle", "solid black circle", "full moon symbol", "flower symbol"]
+    special_days = []
+    for d in special_days_raw:
+        cleaned = _clean_special_note(d["special_note"])
+        segments = [s.strip() for s in cleaned.split(",")]
+        segments = [s for s in segments if s and not any(m in s.lower() for m in _SYMBOL_ONLY_MARKERS)]
+        if segments:
+            special_days.append({"date": d["date"], "note": ", ".join(segments)})
 
     news_items = await db.news.find({"active_flag": True}, {"_id": 0, "title": 1}).sort("created_at", -1).to_list(5)
 
+    # Inline-styled HTML matching the site's own maroon/gold palette, with the
+    # real temple deity image (already hosted on the live site) as the header
+    # logo. This is the {{message}} payload injected into the already-MSG91-
+    # approved template, which supplies its own greeting/footer - so only the
+    # digest content itself needs to look good.
+    MAROON, GOLD, INK, MUTED, PAGE_BG, CARD_BG, BORDER = "#621B00", "#D4AF37", "#2D1B0E", "#8D6E63", "#FFFCF5", "#FFFFFF", "#E6DCCA"
+    LOGO_URL = "https://cheruvugattu.online/Assets/Temple_Logo_Transparent.webp"
+
+    def section_header(emoji, label):
+        return (f'<div style="font-size:13px;font-weight:bold;color:{MAROON};text-transform:uppercase;'
+                f'letter-spacing:0.5px;border-bottom:1px solid {BORDER};padding-bottom:6px;margin:20px 0 10px;">'
+                f'{emoji} {label}</div>')
+
+    def note_row(date_str, text, accent):
+        cal_link = _google_calendar_reminder_link(date_str, text)
+        return (f'<div style="padding:10px 14px;background:{CARD_BG};border-left:3px solid {accent};'
+                f'border-radius:0 6px 6px 0;margin-bottom:8px;font-size:14px;color:{INK};">'
+                f'<span style="font-weight:bold;">{_fmt_ist_date(date_str)}</span> &mdash; {text}'
+                f'&nbsp;&nbsp;<a href="{cal_link}" style="font-size:11px;color:#C43E00;text-decoration:none;">\U0001F4C5 Remind me</a></div>')
+
     parts = [
-        "<p>Namaskaram,</p>",
-        "<p>Here's what's coming up at Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu:</p>",
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:{PAGE_BG};">'
+        f'<tr><td align="center" style="padding:24px 12px;">'
+        f'<div style="font-family:Georgia,\'Times New Roman\',serif;max-width:600px;margin:0 auto;background-color:{PAGE_BG};">',
+        f'<div style="text-align:center;padding-bottom:14px;margin-bottom:16px;border-bottom:2px solid {GOLD};">',
+        f'<img src="{LOGO_URL}" width="90" alt="Sri Parvathi Jadala Ramalingeshwara Swamy" '
+        f'style="width:90px;height:auto;border-radius:8px;display:block;margin:0 auto 8px;" />',
+        f'<div style="font-size:17px;font-weight:bold;color:{MAROON};letter-spacing:1px;">WEEKLY TEMPLE UPDATE</div>',
+        f'<div style="font-size:12px;color:{MUTED};">Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu</div>',
+        '</div>',
     ]
 
-    if purnima or amavasya:
-        parts.append("<ul>")
-        if purnima:
-            parts.append(f"<li><strong>Pournami:</strong> {_fmt_ist_date(purnima['date'])}</li>")
-        if amavasya:
-            parts.append(f"<li><strong>Amavasya:</strong> {_fmt_ist_date(amavasya['date'])}</li>")
-        parts.append("</ul>")
+    # Chronological order - whichever of Amavasya/Pournami falls first is shown first.
+    moon_cards = sorted(
+        [c for c in [
+            {"label": "Pournami", "emoji": "\U0001F315", "data": purnima},
+            {"label": "Amavasya", "emoji": "\U0001F311", "data": amavasya},
+        ] if c["data"]],
+        key=lambda c: c["data"]["date"],
+    )
+    if moon_cards:
+        parts.append('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:8px;"><tr>')
+        for i, card in enumerate(moon_cards):
+            is_first, is_last = i == 0, i == len(moon_cards) - 1
+            radius = ("8px 0 0 8px" if is_first else "0 8px 8px 0") if len(moon_cards) > 1 else "8px"
+            border_style = "border-left:none;" if not is_first else ""
+            cal_link = _google_calendar_reminder_link(card["data"]["date"], card["label"])
+            parts.append(
+                f'<td style="width:50%;padding:14px;background:{CARD_BG};border:1px solid {BORDER};'
+                f'{border_style}border-radius:{radius};text-align:center;">'
+                f'<div style="font-size:22px;">{card["emoji"]}</div>'
+                f'<div style="font-size:11px;letter-spacing:1px;color:{MUTED};text-transform:uppercase;">{card["label"]}</div>'
+                f'<div style="font-size:15px;font-weight:bold;color:{INK};margin-bottom:6px;">{_fmt_ist_date(card["data"]["date"])}</div>'
+                f'<a href="{cal_link}" style="font-size:10px;color:#C43E00;text-decoration:none;">\U0001F4C5 Remind me</a></td>'
+            )
+        parts.append('</tr></table>')
 
     if special_days:
-        parts.append("<p><strong>Festivals &amp; Special Days (next 2 weeks):</strong></p><ul>")
+        parts.append(section_header('\U0001FA94', 'Festivals &amp; Special Days (Next 2 Weeks)'))
         for d in special_days:
-            parts.append(f"<li>{_fmt_ist_date(d['date'])}: {d['note']}</li>")
-        parts.append("</ul>")
+            parts.append(note_row(d["date"], d["note"], "#C43E00"))
 
     if news_items:
-        parts.append("<p><strong>Temple Announcements:</strong></p><ul>")
+        parts.append(section_header('\U0001F4E2', 'Temple Announcements'))
         for n in news_items:
-            parts.append(f"<li>{n['title']}</li>")
-        parts.append("</ul>")
+            parts.append(
+                f'<div style="padding:10px 14px;background:{CARD_BG};border-left:3px solid {GOLD};'
+                f'border-radius:0 6px 6px 0;margin-bottom:8px;font-size:14px;color:{INK};">{n["title"]}</div>'
+            )
 
     if not (purnima or amavasya or special_days):
-        parts.append("<p>No Amavasya, Pournami, or flagged festivals in the next two weeks.</p>")
+        parts.append(f'<p style="color:{MUTED};">No Amavasya, Pournami, or flagged festivals in the next two weeks.</p>')
+
+    parts.append('</div></td></tr></table>')
 
     subject = f"Weekly Update - {today.strftime('%d %b %Y')}"
     return subject, "".join(parts)

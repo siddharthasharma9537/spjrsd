@@ -1,6 +1,7 @@
 import { useState, useId } from 'react';
+import { Link } from 'react-router-dom';
 import api from '@/lib/api';
-import { Mail, CheckCircle } from 'lucide-react';
+import { Mail, CheckCircle, Gift } from 'lucide-react';
 
 export default function Newsletter() {
   const uid = useId();
@@ -35,6 +36,9 @@ export default function Newsletter() {
           <button type="submit" disabled={loading} className="px-4 h-9 bg-[#D4AF37] text-[#2A1800] text-sm rounded-lg font-medium hover:bg-[#e6c44a] transition-all disabled:opacity-50" data-testid="newsletter-submit">Subscribe</button>
         </form>
       )}
+      <Link to="/aashirvachanam" className="flex items-center gap-1.5 text-xs text-white/80 hover:text-white mt-3" data-testid="newsletter-aashirvachanam-link">
+        <Gift className="h-3.5 w-3.5" /> Get a personalized Aashirvachanam on your Birthday or Wedding Anniversary
+      </Link>
     </div>
   );
 }

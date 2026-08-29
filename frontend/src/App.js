@@ -29,6 +29,7 @@ import VideoGallery from "@/pages/VideoGallery";
 import ContactUs from "@/pages/ContactUs";
 import FAQ from "@/pages/FAQ";
 import Volunteer from "@/pages/Volunteer";
+import Aashirvachanam from "@/pages/Aashirvachanam";
 import QuickBooking from "@/pages/QuickBooking";
 import AdminLogin from "@/pages/AdminLogin";
 import AdminDashboard from "@/pages/admin/Dashboard";
@@ -46,6 +47,7 @@ import AdminGallery from "@/pages/admin/GalleryAdmin";
 import AdminDonations from "@/pages/admin/Donations";
 import AdminNewsletter from "@/pages/admin/Newsletter";
 import AdminContactMessages from "@/pages/admin/ContactMessages";
+import AdminAashirvachanam from "@/pages/admin/Aashirvachanam";
 import "@/App.css";
 
 function ProtectedDevotee({ children }) {
@@ -85,6 +87,7 @@ const ROUTE_META = [
   ['/support/contact', { title: 'Contact Us', description: 'Temple address, Executive Officer contact number, office hours and enquiry form.' }],
   ['/support/faq', { title: 'Frequently Asked Questions', description: 'Answers about seva booking, donations, 80G receipts, accommodation and temple timings.' }],
   ['/volunteer', { title: 'Volunteer', description: 'Register to volunteer at Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu.' }],
+  ['/aashirvachanam', { title: 'Personalized Aashirvachanam', description: 'Sign up for a personalized blessing email from the temple on your birthday or wedding anniversary, every year.' }],
   ['/login', { title: 'Devotee Login', noIndex: true }],
   ['/register', { title: 'Devotee Registration', noIndex: true }],
   ['/auth', { title: 'Devotee Login', noIndex: true }],
@@ -171,6 +174,7 @@ function App() {
           <Route path="/support/faq" element={<FAQ />} />
           <Route path="/support/helpdesk" element={<ContactUs />} />
           <Route path="/volunteer" element={<Volunteer />} />
+          <Route path="/aashirvachanam" element={<Aashirvachanam />} />
           <Route path="/booking/quick" element={<QuickBooking />} />
           <Route path="/booking/seva" element={<SevaList />} />
           <Route path="/booking/darshan" element={<SevaList />} />
@@ -201,6 +205,7 @@ function App() {
           <Route path="/admin/donations" element={<ProtectedAdmin><AdminDonations /></ProtectedAdmin>} />
           <Route path="/admin/newsletter" element={<ProtectedAdmin><AdminNewsletter /></ProtectedAdmin>} />
           <Route path="/admin/contact-messages" element={<ProtectedAdmin><AdminContactMessages /></ProtectedAdmin>} />
+          <Route path="/admin/aashirvachanam" element={<ProtectedAdmin><AdminAashirvachanam /></ProtectedAdmin>} />
 
           {/* Catch-all: anything unmatched gets a real page, not a blank screen */}
           <Route path="*" element={<NotFound />} />
