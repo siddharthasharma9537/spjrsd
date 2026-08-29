@@ -158,8 +158,8 @@ const CONTENT = {
   reach: {
     locationEn: 'Cheruvugattu, Narketpally Mandal, Nalgonda District, Telangana, India',
     locationTe: 'చెరువుగట్టు, నార్కట్‌పల్లి మండలం, నల్లగొండ జిల్లా, తెలంగాణ',
-    timingsEn: ['Morning: 6:00 AM - 12:00 PM', 'Evening: 4:00 PM - 8:00 PM'],
-    timingsTe: ['ఉదయం: 6:00 - 12:00', 'సాయంత్రం: 4:00 - 8:00'],
+    timingsEn: ['Morning: 5:00 AM - 1:00 PM', 'Evening: 3:00 PM - 7:00 PM'],
+    timingsTe: ['ఉదయం: 5:00 - 1:00', 'సాయంత్రం: 3:00 - 7:00'],
     adminEn: ['Telangana Endowments Department', 'Sri S. Mohan Babu, Executive Officer', '+91 94910 00701'],
     adminTe: ['తెలంగాణ దేవాదాయ ధర్మాదాయ శాఖ', 'శ్రీ ఎస్. మోహన్ బాబు, కార్యనిర్వహణాధికారి', '+91 94910 00701'],
     modes: [
