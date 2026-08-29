@@ -1,9 +1,10 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Query, UploadFile, File
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Query, UploadFile, File, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 import os
 import io
+import re
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field
@@ -61,6 +62,9 @@ WHATSAPP_PHONE_NUMBER_ID = os.environ.get('WHATSAPP_PHONE_NUMBER_ID')
 # Must match the name of an approved Meta "authentication" category template.
 WHATSAPP_OTP_TEMPLATE_NAME = os.environ.get('WHATSAPP_OTP_TEMPLATE_NAME', 'otp_verification')
 OTP_TTL_MINUTES = 5
+# Shared secret for the external scheduler (GitHub Actions) that triggers the
+# weekly panchangam digest - no browser session exists to hold an admin JWT.
+CRON_SECRET = os.environ.get('CRON_SECRET')
 
 app = FastAPI()
 origins = [
@@ -1384,6 +1388,99 @@ async def send_newsletter_alert(data: NewsletterAlert, user=Depends(get_current_
 async def admin_send_email(data: AdminSendEmail, user=Depends(get_current_admin)):
     send_email_via_msg91([{"email": data.to}], subject=data.subject, message=data.message)
     return {"message": "Email sent"}
+
+def _fmt_ist_date(date_str: str) -> str:
+    return datetime.strptime(date_str, "%Y-%m-%d").strftime("%d %b %Y")
+
+    # The bulk-imported panchangam special_note field mixes OCR symbol-detection
+    # noise ("Star symbol", "Blank Circle (Amavasya)") and secular/other-religion
+    # calendar entries (national holidays, Islamic dates, Christmas, etc.) in with
+    # real Hindu festival names - sometimes both on the same day, comma/semicolon
+    # separated (e.g. "Gauri Tritiya, Ramzan (Eid-ul-Fitr)"). This is a Hindu
+    # temple's devotee newsletter, so each item is filtered individually rather
+    # than dropping/keeping a whole day's note as one unit.
+_DIGEST_EXCLUDE_MARKERS = [
+    "symbol", "circle",
+    "english new year", "new year's eve", "republic day", "independence day",
+    "telangana formation day", "gandhi jayanti", "police martyrs",
+    "sardar vallabhbhai patel", "may day", "christmas", "boxing day",
+    "ramzan", "eid", "shab-e-miraj", "jamadi", "rajab",
+    "swami vivekananda jayanti", "dr. abdul kalam jayanti", "lal bahadur shastri",
+]
+
+def _clean_special_note(note: str) -> str:
+    segments = [s.strip() for s in re.split(r"[;,]", note)]
+    kept = [s for s in segments if s and not any(marker in s.lower() for marker in _DIGEST_EXCLUDE_MARKERS)]
+    return ", ".join(kept)
+
+async def _build_panchangam_digest():
+    """Weekly newsletter content: next Amavasya/Pournami, any panchangam day in the
+    next 2 weeks flagged with a special_note (how festivals are already tagged in
+    admin-entered data), and current active News announcements."""
+    today = datetime.now(IST).date()
+    window_end = today + timedelta(days=14)
+
+    next_dates = await get_next_purnima_amavasya(days=45)
+    purnima = next_dates.get("purnima")
+    amavasya = next_dates.get("amavasya")
+
+    special_days_raw = await db.panchangam.find(
+        {"date": {"$gte": today.isoformat(), "$lte": window_end.isoformat()}, "special_note": {"$nin": [None, ""]}},
+        {"_id": 0, "date": 1, "special_note": 1},
+    ).sort("date", 1).to_list(30)
+    special_days = [{"date": d["date"], "note": _clean_special_note(d["special_note"])} for d in special_days_raw]
+    special_days = [d for d in special_days if d["note"]]
+
+    news_items = await db.news.find({"active_flag": True}, {"_id": 0, "title": 1}).sort("created_at", -1).to_list(5)
+
+    parts = [
+        "<p>Namaskaram,</p>",
+        "<p>Here's what's coming up at Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu:</p>",
+    ]
+
+    if purnima or amavasya:
+        parts.append("<ul>")
+        if purnima:
+            parts.append(f"<li><strong>Pournami:</strong> {_fmt_ist_date(purnima['date'])}</li>")
+        if amavasya:
+            parts.append(f"<li><strong>Amavasya:</strong> {_fmt_ist_date(amavasya['date'])}</li>")
+        parts.append("</ul>")
+
+    if special_days:
+        parts.append("<p><strong>Festivals &amp; Special Days (next 2 weeks):</strong></p><ul>")
+        for d in special_days:
+            parts.append(f"<li>{_fmt_ist_date(d['date'])}: {d['note']}</li>")
+        parts.append("</ul>")
+
+    if news_items:
+        parts.append("<p><strong>Temple Announcements:</strong></p><ul>")
+        for n in news_items:
+            parts.append(f"<li>{n['title']}</li>")
+        parts.append("</ul>")
+
+    if not (purnima or amavasya or special_days):
+        parts.append("<p>No Amavasya, Pournami, or flagged festivals in the next two weeks.</p>")
+
+    subject = f"Weekly Update - {today.strftime('%d %b %Y')}"
+    return subject, "".join(parts)
+
+@api_router.post("/cron/panchangam-digest")
+async def cron_send_panchangam_digest(request: Request):
+    if not CRON_SECRET or request.headers.get("X-Cron-Secret") != CRON_SECRET:
+        raise HTTPException(status_code=401, detail="Invalid or missing cron secret")
+
+    subscribers = await db.newsletter.find({}, {"_id": 0, "email": 1}).to_list(None)
+    if not subscribers:
+        return {"message": "No subscribers to send to", "sent": 0}
+
+    subject, message = await _build_panchangam_digest()
+    sent = 0
+    for i in range(0, len(subscribers), 500):
+        batch = subscribers[i:i + 500]
+        send_email_via_msg91(batch, subject=subject, message=message)
+        sent += len(batch)
+
+    return {"message": "Digest sent", "sent": sent, "subject": subject}
 
 # ==================== VISITOR STATS ROUTES ====================
 @api_router.get("/visitor-stats")
