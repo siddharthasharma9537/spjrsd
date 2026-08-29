@@ -37,6 +37,7 @@ import AdminProfiles from "@/pages/admin/Profiles";
 import AdminSlots from "@/pages/admin/Slots";
 import AdminBookings from "@/pages/admin/Bookings";
 import AdminDevotees from "@/pages/admin/Devotees";
+import AdminDevoteeDetail from "@/pages/admin/DevoteeDetail";
 import AdminNews from "@/pages/admin/News";
 import AdminPanchangam from "@/pages/admin/Panchangam";
 import AdminLiveBlog from "@/pages/admin/LiveBlog";
@@ -191,6 +192,7 @@ function App() {
           <Route path="/admin/slots" element={<ProtectedAdmin><AdminSlots /></ProtectedAdmin>} />
           <Route path="/admin/bookings" element={<ProtectedAdmin><AdminBookings /></ProtectedAdmin>} />
           <Route path="/admin/devotees" element={<ProtectedAdmin><AdminDevotees /></ProtectedAdmin>} />
+          <Route path="/admin/devotees/:devoteeId" element={<ProtectedAdmin><AdminDevoteeDetail /></ProtectedAdmin>} />
           <Route path="/admin/news" element={<ProtectedAdmin><AdminNews /></ProtectedAdmin>} />
           <Route path="/admin/panchangam" element={<ProtectedAdmin><AdminPanchangam /></ProtectedAdmin>} />
           <Route path="/admin/live-blog" element={<ProtectedAdmin><AdminLiveBlog /></ProtectedAdmin>} />

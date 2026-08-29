@@ -1278,6 +1278,48 @@ async def delete_gallery(item_id: str, user=Depends(get_current_admin)):
 async def admin_list_devotees(user=Depends(get_current_admin)):
     return await db.devotees.find({}, {"_id": 0, "password_hash": 0}).to_list(500)
 
+@api_router.get("/admin/devotees/{devotee_id}/activity")
+async def admin_devotee_activity(devotee_id: str, user=Depends(get_current_admin)):
+    devotee = await db.devotees.find_one({"id": devotee_id}, {"_id": 0, "password_hash": 0})
+    if not devotee:
+        raise HTTPException(status_code=404, detail="Devotee not found")
+    mobile = devotee.get("mobile")
+    email = devotee.get("email")
+
+    # Seva/accommodation bookings and donations carry a real devotee_id (donations
+    # only when the donor was logged in); contact messages and volunteer applications
+    # have no such link, so those are matched by mobile/email instead.
+    def contact_match(mobile, email):
+        ors = []
+        if mobile:
+            ors.append({"mobile": mobile})
+        if email:
+            ors.append({"email": email})
+        return {"$or": ors} if ors else {"id": None}
+
+    donation_ors = [{"devotee_id": devotee_id}]
+    if mobile:
+        donation_ors.append({"donor_mobile": mobile})
+    if email:
+        donation_ors.append({"donor_email": email})
+
+    bookings = await db.bookings.find({"devotee_id": devotee_id}, {"_id": 0}).sort("booking_date_time", -1).to_list(200)
+    accommodation_bookings = await db.accommodation_bookings.find({"devotee_id": devotee_id}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    donations = await db.donations.find({"$or": donation_ors}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    contact_messages = await db.contact_messages.find(contact_match(mobile, email), {"_id": 0}).sort("created_at", -1).to_list(200)
+    volunteer_applications = await db.volunteers.find(contact_match(mobile, email), {"_id": 0}).sort("created_at", -1).to_list(200)
+    newsletter_subscribed = bool(email) and await db.newsletter.find_one({"email": email}) is not None
+
+    return {
+        "devotee": devotee,
+        "bookings": bookings,
+        "accommodation_bookings": accommodation_bookings,
+        "donations": donations,
+        "contact_messages": contact_messages,
+        "volunteer_applications": volunteer_applications,
+        "newsletter_subscribed": newsletter_subscribed,
+    }
+
 @api_router.get("/admin/stats")
 async def admin_stats(user=Depends(get_current_admin)):
     total_devotees = await db.devotees.count_documents({})

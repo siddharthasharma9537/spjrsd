@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
 import { Users, Phone, Mail } from 'lucide-react';
 
 export default function AdminDevotees() {
+  const navigate = useNavigate();
   const [devotees, setDevotees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -33,8 +35,8 @@ export default function AdminDevotees() {
               </thead>
               <tbody>
                 {devotees.map(d => (
-                  <tr key={d.id} className="border-b border-[#E6DCCA]/50 hover:bg-[#FDFBF7]" data-testid={`devotee-row-${d.id}`}>
-                    <td className="px-4 py-3 text-[#2D1B0E] font-medium">{d.name}</td>
+                  <tr key={d.id} onClick={() => navigate(`/admin/devotees/${d.id}`)} className="border-b border-[#E6DCCA]/50 hover:bg-[#FDFBF7] cursor-pointer" data-testid={`devotee-row-${d.id}`}>
+                    <td className="px-4 py-3 text-[#2D1B0E] font-medium hover:underline">{d.name}</td>
                     <td className="px-4 py-3"><span className="flex items-center gap-1 text-[#5D4037]"><Phone className="h-3.5 w-3.5" /> {d.mobile}</span></td>
                     <td className="px-4 py-3"><span className="flex items-center gap-1 text-[#5D4037]"><Mail className="h-3.5 w-3.5" /> {d.email || '—'}</span></td>
                     <td className="px-4 py-3 text-[#2D1B0E]">{d.gotram || '—'}</td>
