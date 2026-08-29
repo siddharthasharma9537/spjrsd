@@ -68,7 +68,7 @@ export default function TicketLookup() {
                 inputMode={searchType === 'booking_number' ? 'text' : 'numeric'}
                 autoComplete={searchType === 'booking_number' ? 'off' : 'tel'}
                 className={inputCls}
-                placeholder={searchType === 'booking_number' ? t('Enter booking number (e.g., SPJR-...)', 'బుకింగ్ నంబర్ నమోదు చేయండి (ఉదా., SPJR-...)') : t('Enter mobile number', 'మొబైల్ నంబర్ నమోదు చేయండి')}
+                placeholder={searchType === 'booking_number' ? t('Enter booking number (e.g., SPJRS-...)', 'బుకింగ్ నంబర్ నమోదు చేయండి (ఉదా., SPJRS-...)') : t('Enter mobile number', 'మొబైల్ నంబర్ నమోదు చేయండి')}
                 value={query} onChange={e => setQuery(e.target.value)} required data-testid="input-ticket-search" />
               <button type="submit" disabled={loading} aria-label={t('Search for ticket', 'టికెట్ కొరకు వెతకండి')} className="px-6 bg-[#C43E00] text-white rounded-lg hover:bg-[#C43E00]/90 transition-all disabled:opacity-50" data-testid="search-ticket-btn">
                 <Search className="h-5 w-5" />

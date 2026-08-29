@@ -903,7 +903,7 @@ async def create_booking(data: BookingCreate, user=Depends(get_current_devotee))
     devotee = await db.devotees.find_one({"id": user["sub"]}, {"_id": 0, "password_hash": 0})
     booking = {
         "id": str(uuid.uuid4()),
-        "booking_number": f"SPJR-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:6].upper()}",
+        "booking_number": f"SPJRS-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:6].upper()}",
         "devotee_id": user["sub"], "devotee_name": devotee.get("name", ""),
         "devotee_mobile": devotee.get("mobile", ""),
         "seva_id": data.seva_id, "seva_name_english": seva.get("name_english", ""),

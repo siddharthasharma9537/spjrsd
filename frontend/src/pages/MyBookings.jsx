@@ -30,7 +30,7 @@ export default function MyBookings() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
           <Link to="/" className="flex items-center gap-2">
             <Flame className="h-6 w-6 text-[#D4AF37]" />
-            <span className="font-english-heading text-sm tracking-wide">SPJR Devasthanams</span>
+            <span className="font-english-heading text-sm tracking-wide">SPJRS Devasthanams</span>
           </Link>
           <div className="flex items-center gap-3 text-sm">
             <Link to="/sevas" className="hover:text-[#D4AF37]">{t('Book Seva', 'సేవ బుక్ చేయండి')}</Link>

@@ -70,7 +70,7 @@ export default function ForgotPassword() {
         </Link>
         <div className="flex items-center justify-center gap-2 mb-1">
           <Flame className="h-5 w-5 text-[#D4AF37]" />
-          <span className="font-english-heading text-sm tracking-wide">SPJR Devasthanams</span>
+          <span className="font-english-heading text-sm tracking-wide">SPJRS Devasthanams</span>
         </div>
       </div>
 
