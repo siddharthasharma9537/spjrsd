@@ -7,7 +7,9 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import usePageMeta from "@/hooks/usePageMeta";
 import NotFound from "@/pages/NotFound";
 import Home from "@/pages/Home";
-import DevoteeAuth from "@/pages/DevoteeAuth";
+import SignIn from "@/pages/SignIn";
+import SignUp from "@/pages/SignUp";
+import ForgotPassword from "@/pages/ForgotPassword";
 import SevaList from "@/pages/SevaList";
 import SevaBooking from "@/pages/SevaBooking";
 import SevaSamagriChecklist from "@/pages/SevaSamagriChecklist";
@@ -146,10 +148,11 @@ function App() {
         <Routes>
           {/* Public */}
           <Route path="/" element={<Home />} />
-          <Route path="/login" element={<DevoteeAuth />} />
-          <Route path="/register" element={<DevoteeAuth />} />
-          <Route path="/auth/sign-in" element={<DevoteeAuth />} />
-          <Route path="/auth/sign-up" element={<DevoteeAuth />} />
+          <Route path="/login" element={<SignIn />} />
+          <Route path="/register" element={<SignUp />} />
+          <Route path="/auth/sign-in" element={<SignIn />} />
+          <Route path="/auth/sign-up" element={<SignUp />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/about" element={<AboutTemple />} />
           <Route path="/temples" element={<Temples />} />
           <Route path="/sevas" element={<SevaList />} />

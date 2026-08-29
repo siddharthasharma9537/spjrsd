@@ -66,6 +66,10 @@ OTP_TTL_MINUTES = 5
 # Shared secret for the external scheduler (GitHub Actions) that triggers the
 # weekly panchangam digest - no browser session exists to hold an admin JWT.
 CRON_SECRET = os.environ.get('CRON_SECRET')
+# OAuth 2.0 Client ID from Google Cloud Console (APIs & Services > Credentials),
+# with the site's origin added under "Authorized JavaScript origins". Devotee
+# Google Sign-In is inactive until this is set.
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
 
 app = FastAPI()
 origins = [
@@ -217,20 +221,17 @@ async def get_optional_devotee(credentials: HTTPAuthorizationCredentials = Depen
         return None
 
 # --- Pydantic Models ---
-class DevoteeRegister(BaseModel):
-    name: str
-    mobile: str
-    email: Optional[str] = ""
-    gotram: Optional[str] = ""
-    password: str
-
 class DevoteeLogin(BaseModel):
-    mobile: str
+    identifier: str  # mobile or email
     password: str
 
-class DevoteeForgotPassword(BaseModel):
-    mobile: str
-    email: str
+class DevoteePasswordResetSend(BaseModel):
+    identifier: str  # mobile or email of an existing devotee
+    channel: str  # "sms" | "whatsapp" | "email"
+
+class DevoteePasswordResetVerify(BaseModel):
+    identifier: str
+    code: str
     new_password: str
 
 class DevoteeOTPSend(BaseModel):
@@ -240,10 +241,14 @@ class DevoteeOTPSend(BaseModel):
     name: Optional[str] = None
     email: Optional[str] = None
     gotram: Optional[str] = ""
+    password: Optional[str] = None
 
 class DevoteeOTPVerify(BaseModel):
     mobile: str
     code: str
+
+class DevoteeGoogleAuth(BaseModel):
+    credential: str  # Google Identity Services ID token (JWT)
 
 class AdminLogin(BaseModel):
     username: str
@@ -509,39 +514,85 @@ class LiveBlogPostUpdate(BaseModel):
     active_flag: Optional[bool] = None
 
 # ==================== AUTH ROUTES ====================
-@api_router.post("/auth/devotee/register")
-async def devotee_register(data: DevoteeRegister):
-    existing = await db.devotees.find_one({"mobile": data.mobile}, {"_id": 0})
-    if existing:
-        raise HTTPException(status_code=400, detail="Mobile already registered")
-    devotee = {
-        "id": str(uuid.uuid4()), "name": data.name, "mobile": data.mobile,
-        "email": data.email, "gotram": data.gotram,
-        "password_hash": hash_password(data.password),
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "last_login_at": datetime.now(timezone.utc).isoformat()
-    }
-    await db.devotees.insert_one(devotee)
-    token = create_token({"sub": devotee["id"], "name": devotee["name"], "mobile": devotee["mobile"], "role": "devotee"})
-    return {"token": token, "devotee": {k: v for k, v in devotee.items() if k not in ["_id", "password_hash"]}}
+async def _find_devotee_by_identifier(identifier: str):
+    identifier = identifier.strip()
+    return await db.devotees.find_one(
+        {"$or": [{"mobile": identifier}, {"email": {"$regex": f"^{re.escape(identifier)}$", "$options": "i"}}]},
+        {"_id": 0},
+    )
 
 @api_router.post("/auth/devotee/login")
 async def devotee_login(data: DevoteeLogin):
-    devotee = await db.devotees.find_one({"mobile": data.mobile}, {"_id": 0})
+    devotee = await _find_devotee_by_identifier(data.identifier)
     if not devotee or not verify_password(data.password, devotee.get("password_hash", "")):
-        raise HTTPException(status_code=401, detail="Invalid mobile or password")
+        raise HTTPException(status_code=401, detail="Invalid mobile/email or password")
     await db.devotees.update_one({"id": devotee["id"]}, {"$set": {"last_login_at": datetime.now(timezone.utc).isoformat()}})
     token = create_token({"sub": devotee["id"], "name": devotee["name"], "mobile": devotee["mobile"], "role": "devotee"})
     return {"token": token, "devotee": {k: v for k, v in devotee.items() if k not in ["_id", "password_hash"]}}
 
-@api_router.post("/auth/devotee/forgot-password")
-async def devotee_forgot_password(data: DevoteeForgotPassword):
-    devotee = await db.devotees.find_one({"mobile": data.mobile})
-    registered_email = (devotee or {}).get("email", "").strip().lower()
-    if not devotee or not registered_email or registered_email != data.email.strip().lower():
-        raise HTTPException(status_code=400, detail="No devotee account matches that mobile number and email")
+@api_router.post("/auth/devotee/password-reset/send-otp")
+async def devotee_password_reset_send_otp(data: DevoteePasswordResetSend):
+    if data.channel not in ("sms", "whatsapp", "email"):
+        raise HTTPException(status_code=400, detail="channel must be one of: sms, whatsapp, email")
+    devotee = await _find_devotee_by_identifier(data.identifier)
+    if not devotee:
+        raise HTTPException(status_code=404, detail="No devotee account found with that mobile number or email")
+    if data.channel == "email" and not devotee.get("email"):
+        raise HTTPException(status_code=400, detail="This account has no email on file to receive an OTP")
+    if not devotee.get("mobile") and data.channel in ("sms", "whatsapp"):
+        raise HTTPException(status_code=400, detail="This account has no mobile number on file for that channel")
+
+    code = generate_otp_code()
+    # OTP always goes to the ACCOUNT's own registered mobile/email, never to
+    # whatever contact info the requester typed as the identifier.
+    await db.otp_codes.update_one(
+        {"mobile": devotee["mobile"] or devotee["id"]},
+        {"$set": {
+            "mobile": devotee["mobile"] or devotee["id"],
+            "code_hash": hash_password(code),
+            "channel": data.channel,
+            "purpose": "password_reset",
+            "reset_devotee_id": devotee["id"],
+            "pending_registration": None,
+            "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=OTP_TTL_MINUTES)).isoformat(),
+            "attempts": 0,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }},
+        upsert=True,
+    )
+
+    if data.channel == "sms":
+        send_sms_otp(devotee["mobile"], code)
+    elif data.channel == "whatsapp":
+        send_whatsapp_otp(devotee["mobile"], code)
+    elif data.channel == "email":
+        send_email_otp(devotee["email"], code)
+
+    return {"message": "OTP sent", "channel": data.channel}
+
+@api_router.post("/auth/devotee/password-reset/verify")
+async def devotee_password_reset_verify(data: DevoteePasswordResetVerify):
     if len(data.new_password) < 4:
         raise HTTPException(status_code=400, detail="Password must be at least 4 characters")
+    devotee = await _find_devotee_by_identifier(data.identifier)
+    if not devotee:
+        raise HTTPException(status_code=404, detail="No devotee account found with that mobile number or email")
+
+    otp_key = devotee["mobile"] or devotee["id"]
+    record = await db.otp_codes.find_one({"mobile": otp_key})
+    if not record or record.get("purpose") != "password_reset" or record.get("reset_devotee_id") != devotee["id"]:
+        raise HTTPException(status_code=400, detail="No OTP was requested for this account")
+    if datetime.now(timezone.utc) > datetime.fromisoformat(record["expires_at"]):
+        await db.otp_codes.delete_one({"mobile": otp_key})
+        raise HTTPException(status_code=400, detail="OTP expired, please request a new one")
+    if record.get("attempts", 0) >= 5:
+        await db.otp_codes.delete_one({"mobile": otp_key})
+        raise HTTPException(status_code=400, detail="Too many attempts, please request a new OTP")
+    if hash_password(data.code) != record["code_hash"]:
+        await db.otp_codes.update_one({"mobile": otp_key}, {"$inc": {"attempts": 1}})
+        raise HTTPException(status_code=400, detail="Incorrect OTP")
+
+    await db.otp_codes.delete_one({"mobile": otp_key})
     await db.devotees.update_one({"id": devotee["id"]}, {"$set": {"password_hash": hash_password(data.new_password)}})
     return {"message": "Password reset successful"}
 
@@ -551,8 +602,11 @@ async def devotee_send_otp(data: DevoteeOTPSend):
         raise HTTPException(status_code=400, detail="channel must be one of: sms, whatsapp, email")
 
     existing = await db.devotees.find_one({"mobile": data.mobile}, {"_id": 0})
-    if not existing and not data.name:
-        raise HTTPException(status_code=400, detail="name is required to register a new devotee")
+    if not existing:
+        if not data.name:
+            raise HTTPException(status_code=400, detail="name is required to register a new devotee")
+        if not data.password or len(data.password) < 4:
+            raise HTTPException(status_code=400, detail="password (at least 4 characters) is required to register")
 
     email_for_otp = (existing or {}).get("email") or data.email
     if data.channel == "email" and not email_for_otp:
@@ -565,8 +619,10 @@ async def devotee_send_otp(data: DevoteeOTPSend):
             "mobile": data.mobile,
             "code_hash": hash_password(code),
             "channel": data.channel,
+            "purpose": "signup",
             "pending_registration": None if existing else {
-                "name": data.name, "email": data.email or "", "gotram": data.gotram or ""
+                "name": data.name, "email": data.email or "", "gotram": data.gotram or "",
+                "password_hash": hash_password(data.password),
             },
             "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=OTP_TTL_MINUTES)).isoformat(),
             "attempts": 0,
@@ -587,7 +643,7 @@ async def devotee_send_otp(data: DevoteeOTPSend):
 @api_router.post("/auth/devotee/verify-otp")
 async def devotee_verify_otp(data: DevoteeOTPVerify):
     record = await db.otp_codes.find_one({"mobile": data.mobile})
-    if not record:
+    if not record or record.get("purpose", "signup") != "signup":
         raise HTTPException(status_code=400, detail="No OTP was requested for this number")
     if datetime.now(timezone.utc) > datetime.fromisoformat(record["expires_at"]):
         await db.otp_codes.delete_one({"mobile": data.mobile})
@@ -607,6 +663,7 @@ async def devotee_verify_otp(data: DevoteeOTPVerify):
         devotee = {
             "id": str(uuid.uuid4()), "name": pending.get("name", ""), "mobile": data.mobile,
             "email": pending.get("email", ""), "gotram": pending.get("gotram", ""),
+            "password_hash": pending.get("password_hash", ""),
             "created_at": datetime.now(timezone.utc).isoformat(),
             "last_login_at": datetime.now(timezone.utc).isoformat(),
         }
@@ -615,6 +672,39 @@ async def devotee_verify_otp(data: DevoteeOTPVerify):
         await db.devotees.update_one({"id": devotee["id"]}, {"$set": {"last_login_at": datetime.now(timezone.utc).isoformat()}})
 
     token = create_token({"sub": devotee["id"], "name": devotee["name"], "mobile": devotee["mobile"], "role": "devotee"})
+    return {"token": token, "devotee": {k: v for k, v in devotee.items() if k not in ["_id", "password_hash"]}}
+
+@api_router.post("/auth/devotee/google")
+async def devotee_google_auth(data: DevoteeGoogleAuth):
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=503, detail="Google Sign-In is not configured")
+    resp = requests.get("https://oauth2.googleapis.com/tokeninfo", params={"id_token": data.credential}, timeout=15)
+    if resp.status_code >= 300:
+        raise HTTPException(status_code=401, detail="Invalid Google credential")
+    info = resp.json()
+    if info.get("aud") != GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=401, detail="Google credential was not issued for this site")
+    email = (info.get("email") or "").strip().lower()
+    if not email or info.get("email_verified") not in ("true", True):
+        raise HTTPException(status_code=401, detail="Google account has no verified email")
+    google_sub = info.get("sub", "")
+    name = info.get("name") or email.split("@")[0]
+
+    devotee = await db.devotees.find_one({"$or": [{"email": email}, {"google_sub": google_sub}]}, {"_id": 0})
+    if not devotee:
+        devotee = {
+            "id": str(uuid.uuid4()), "name": name, "mobile": "", "email": email, "gotram": "",
+            "google_sub": google_sub,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "last_login_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.devotees.insert_one(devotee)
+    else:
+        await db.devotees.update_one({"id": devotee["id"]}, {"$set": {
+            "last_login_at": datetime.now(timezone.utc).isoformat(), "google_sub": google_sub,
+        }})
+
+    token = create_token({"sub": devotee["id"], "name": devotee["name"], "mobile": devotee.get("mobile", ""), "role": "devotee"})
     return {"token": token, "devotee": {k: v for k, v in devotee.items() if k not in ["_id", "password_hash"]}}
 
 @api_router.post("/auth/admin/login")
