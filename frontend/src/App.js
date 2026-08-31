@@ -100,7 +100,7 @@ const ROUTE_META = [
 ];
 
 const HOME_META = {
-  description: 'Official website of Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu, Nalgonda — the 108th and final Shiva Linga consecrated by Lord Parashurama. Book sevas, donate and plan your visit.',
+  description: 'Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu, Nalgonda — the 108th and final Shiva Linga consecrated by Lord Parashurama. Book sevas, donate and plan your visit.',
 };
 
 /* React Router does not scroll to #hash targets on its own, so footer links like
