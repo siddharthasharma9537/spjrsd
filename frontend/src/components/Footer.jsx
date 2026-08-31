@@ -10,8 +10,19 @@ export default function Footer() {
   const [stats, setStats] = useState({ total_visitors: 0, todays_visitors: 0 });
 
   useEffect(() => {
-    api.post('/visitor-stats/track').catch(() => {});
-    api.get('/visitor-stats').then(r => setStats(r.data)).catch(() => {});
+    api.post('/visitor-stats/track').catch(err => console.error('Failed to track visitor:', err));
+
+    const fetchStats = (isRetry = false) => {
+      api.get('/visitor-stats')
+        .then(r => setStats(r.data))
+        .catch(err => {
+          console.error('Failed to fetch visitor stats:', err);
+          // Render's free-tier backend can take 15-30s to wake from a cold
+          // start, so the first attempt may fail before it's up.
+          if (!isRetry) setTimeout(() => fetchStats(true), 15000);
+        });
+    };
+    fetchStats();
   }, []);
 
   /* Every link below must lead somewhere that actually shows what the label
