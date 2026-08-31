@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { Analytics } from "@vercel/analytics/react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
@@ -218,6 +219,7 @@ function App() {
       </BrowserRouter>
       </LanguageProvider>
     </AuthProvider>
+    <Analytics />
     </ErrorBoundary>
   );
 }
