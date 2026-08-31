@@ -1987,6 +1987,7 @@ async def seed_data():
     await db.live_blog.insert_many(live_blog_posts)
     return {"message": "Seed data created successfully", "sevas": len(sevas), "profiles": len(profiles), "slots": len(slots), "accommodations": len(accommodations), "news": len(news_items), "gallery": len(gallery_items), "panchangam": 1, "live_blog": len(live_blog_posts)}
 
+@api_router.head("/")
 @api_router.get("/")
 async def root():
     return {"message": "Sri Parvati Jadala Ramalingeshwara Swamy Devastanam API"}
