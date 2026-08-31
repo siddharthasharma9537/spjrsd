@@ -1992,6 +1992,38 @@ async def seed_data():
 async def root():
     return {"message": "Sri Parvati Jadala Ramalingeshwara Swamy Devastanam API"}
 
+@api_router.head("/health")
+@api_router.get("/health")
+async def health_check():
+    services = {"backend": "ok"}
+    overall_ok = True
+
+    try:
+        await db.command("ping")
+        services["database"] = "ok"
+    except Exception as e:
+        services["database"] = f"error: {e}"
+        overall_ok = False
+
+    try:
+        resp = requests.get("https://cheruvugattu.online", timeout=5)
+        if resp.status_code < 400:
+            services["frontend"] = "ok"
+        else:
+            services["frontend"] = f"error: HTTP {resp.status_code}"
+            overall_ok = False
+    except Exception as e:
+        services["frontend"] = f"error: {e}"
+        overall_ok = False
+
+    # Live calls to these providers aren't made on every health check to avoid
+    # burning OTP/messaging quota; this only reflects whether credentials are set.
+    services["msg91"] = "configured" if os.environ.get("MSG91_AUTH_KEY") else "not configured"
+    services["whatsapp"] = "configured" if os.environ.get("WHATSAPP_TOKEN") else "not configured"
+    services["google_oauth"] = "configured" if os.environ.get("GOOGLE_CLIENT_ID") else "not configured"
+
+    return {"status": "ok" if overall_ok else "degraded", "services": services}
+
 app.include_router(api_router)
 app.include_router(volunteer.router)
 app.include_router(contact.router)
