@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Query, UploadFile, File, Request
+from fastapi import FastAPI, APIRouter, BackgroundTasks, HTTPException, Depends, Query, UploadFile, File, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -22,6 +22,7 @@ from zoneinfo import ZoneInfo
 from app.routes import volunteer
 from app.database.db import db
 from app.routes import contact
+from app.services import syndication
 
 IST = ZoneInfo("Asia/Kolkata")
 
@@ -1136,10 +1137,15 @@ async def get_news(news_id: str):
     return item
 
 @api_router.post("/admin/news")
-async def create_news(data: NewsCreate, user=Depends(get_current_admin)):
+async def create_news(data: NewsCreate, background_tasks: BackgroundTasks, user=Depends(get_current_admin)):
     item = {"id": str(uuid.uuid4()), **data.model_dump(), "created_at": datetime.now(timezone.utc).isoformat()}
     await db.news.insert_one(item)
-    return {k: v for k, v in item.items() if k != "_id"}
+    result = {k: v for k, v in item.items() if k != "_id"}
+    # Mirror to the temple's other channels after the response is sent, so a slow
+    # or failing channel never delays or breaks publishing here.
+    if item.get("active_flag"):
+        background_tasks.add_task(syndication.publish, result)
+    return result
 
 @api_router.put("/admin/news/{news_id}")
 async def update_news(news_id: str, data: NewsUpdate, user=Depends(get_current_admin)):
