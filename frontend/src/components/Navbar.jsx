@@ -40,6 +40,7 @@ const navGroups = [
   { label: 'About', labelTe: 'గురించి', to: '/about' },
   { label: 'Temples', labelTe: 'ఆలయాలు', to: '/temples' },
   { label: 'Panchangam', labelTe: 'పంచాంగం', to: '/panchangam' },
+  { label: 'Stotrams', labelTe: 'స్తోత్రాలు', to: '/stotrams' },
   { label: 'Sevas & Darshanam', labelTe: 'సేవలు & దర్శనం', children: [
     { to: '/sevas', label: 'Pratyaksha Seva', labelTe: 'ప్రత్యక్ష సేవ' },
     { to: '/paroksha-seva', label: 'Paroksha Seva', labelTe: 'పరోక్ష సేవ' },
