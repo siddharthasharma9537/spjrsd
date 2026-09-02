@@ -26,6 +26,7 @@ import Temples from "@/pages/Temples";
 import Gallery from "@/pages/Gallery";
 import TicketLookup from "@/pages/TicketLookup";
 import NewsPage from "@/pages/NewsPage";
+import Stotrams from "@/pages/Stotrams";
 import LiveTV from "@/pages/LiveTV";
 import Panchangam from "@/pages/Panchangam";
 import LiveBlog from "@/pages/LiveBlog";
@@ -83,6 +84,7 @@ const ROUTE_META = [
   ['/print-ticket', { title: 'Print Your Ticket', description: 'Look up and reprint your seva booking ticket by booking number or mobile number.' }],
   ['/my-bookings', { title: 'My Bookings', noIndex: true }],
   ['/news', { title: 'News & Events', description: 'Latest announcements, festival notices and events from Cheruvugattu temple.' }],
+  ['/stotrams', { title: 'Stotrams', description: 'Stotrams in Telugu chanted during Abhishekam, Archana and Rudra Abhishekam at Cheruvugattu temple.' }],
   ['/panchangam', { title: 'Daily Panchangam', description: 'Tithi, Nakshatra, sunrise/sunset and auspicious timings for Cheruvugattu temple.' }],
   ['/live-blog', { title: 'Live Blog', description: 'Real-time updates from festivals and events at Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu.' }],
   ['/media/live-tv', { title: 'Live TV', description: 'Watch live darshan and temple broadcasts from Cheruvugattu.' }],
@@ -171,6 +173,7 @@ function App() {
           <Route path="/media/live-tv" element={<LiveTV />} />
           <Route path="/news" element={<NewsPage />} />
           <Route path="/media/news" element={<NewsPage />} />
+          <Route path="/stotrams" element={<Stotrams />} />
           <Route path="/panchangam" element={<Panchangam />} />
           <Route path="/live-blog" element={<LiveBlog />} />
           <Route path="/media/live-blog" element={<LiveBlog />} />

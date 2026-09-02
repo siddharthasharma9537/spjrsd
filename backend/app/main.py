@@ -392,6 +392,26 @@ class GalleryUpdate(BaseModel):
     category: Optional[str] = None
     active_flag: Optional[bool] = None
 
+class StotramCreate(BaseModel):
+    title: str
+    title_telugu: str
+    text_telugu: str = ""
+    deity: Optional[str] = "Shiva"
+    # Set when the stotram accompanies a particular seva, so a devotee can read
+    # along with what is being chanted. Ordering is curated, not chronological.
+    seva_id: Optional[str] = None
+    display_order: int = 0
+    active_flag: bool = True
+
+class StotramUpdate(BaseModel):
+    title: Optional[str] = None
+    title_telugu: Optional[str] = None
+    text_telugu: Optional[str] = None
+    deity: Optional[str] = None
+    seva_id: Optional[str] = None
+    display_order: Optional[int] = None
+    active_flag: Optional[bool] = None
+
 class DonationReceiptRequest(BaseModel):
     donation_id: str
 
@@ -1442,6 +1462,44 @@ async def delete_gallery(item_id: str, user=Depends(get_current_admin)):
         raise HTTPException(status_code=404, detail="Gallery item not found")
     return {"message": "Gallery item deleted"}
 
+# ==================== STOTRAM ROUTES ====================
+@api_router.get("/stotrams")
+async def list_stotrams(active_only: bool = True, seva_id: Optional[str] = None):
+    query = {}
+    if active_only:
+        query["active_flag"] = True
+    if seva_id:
+        query["seva_id"] = seva_id
+    return await db.stotrams.find(query, {"_id": 0}).sort("display_order", 1).to_list(100)
+
+@api_router.get("/stotrams/{stotram_id}")
+async def get_stotram(stotram_id: str):
+    item = await db.stotrams.find_one({"id": stotram_id}, {"_id": 0})
+    if not item:
+        raise HTTPException(status_code=404, detail="Stotram not found")
+    return item
+
+@api_router.post("/admin/stotrams")
+async def create_stotram(data: StotramCreate, user=Depends(get_current_admin)):
+    item = {"id": str(uuid.uuid4()), **data.model_dump(), "created_at": datetime.now(timezone.utc).isoformat()}
+    await db.stotrams.insert_one(item)
+    return {k: v for k, v in item.items() if k != "_id"}
+
+@api_router.put("/admin/stotrams/{stotram_id}")
+async def update_stotram(stotram_id: str, data: StotramUpdate, user=Depends(get_current_admin)):
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    await db.stotrams.update_one({"id": stotram_id}, {"$set": update_data})
+    return await db.stotrams.find_one({"id": stotram_id}, {"_id": 0})
+
+@api_router.delete("/admin/stotrams/{stotram_id}")
+async def delete_stotram(stotram_id: str, user=Depends(get_current_admin)):
+    result = await db.stotrams.delete_one({"id": stotram_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Stotram not found")
+    return {"message": "Stotram deleted"}
+
 # ==================== ADMIN DEVOTEES + STATS ====================
 @api_router.get("/admin/devotees")
 async def admin_list_devotees(user=Depends(get_current_admin)):
@@ -1992,6 +2050,53 @@ async def seed_data():
     ]
     await db.live_blog.insert_many(live_blog_posts)
     return {"message": "Seed data created successfully", "sevas": len(sevas), "profiles": len(profiles), "slots": len(slots), "accommodations": len(accommodations), "news": len(news_items), "gallery": len(gallery_items), "panchangam": 1, "live_blog": len(live_blog_posts)}
+
+@api_router.post("/seed/stotrams")
+async def seed_stotrams():
+    """Create the stotram entries the temple chants, with their text left blank.
+
+    Titles and seva links only - the text itself is entered by the Devasthanam
+    from its own verified source, so nothing here asserts a wording.
+    """
+    if await db.stotrams.find_one({}):
+        return {"message": "Stotrams already seeded"}
+
+    async def seva_id_for(name_english):
+        seva = await db.sevas.find_one({"name_english": name_english}, {"id": 1})
+        return seva["id"] if seva else None
+
+    entries = [
+        ("Shiva Panchakshari Stotram", "శివ పంచాక్షరీ స్తోత్రం", "Shiva", None),
+        ("Lingashtakam", "లింగాష్టకం", "Shiva", "Abhishekam"),
+        ("Bilvashtakam", "బిల్వాష్టకం", "Shiva", "Abhishekam"),
+        ("Rudrashtakam", "రుద్రాష్టకం", "Shiva", None),
+        ("Sri Rudram - Namakam", "శ్రీ రుద్రం - నమకం", "Shiva", "Rudra Homam"),
+        ("Sri Rudram - Chamakam", "శ్రీ రుద్రం - చమకం", "Shiva", "Rudra Homam"),
+        ("Shiva Ashtottara Shatanamavali", "శివ అష్టోత్తర శతనామావళి", "Shiva", "Ashtottaram"),
+        ("Shiva Sahasranama Stotram", "శివ సహస్రనామ స్తోత్రం", "Shiva", "Sahasranamarchana"),
+        ("Shiva Tandava Stotram", "శివ తాండవ స్తోత్రం", "Shiva", None),
+        ("Uma Maheswara Stotram", "ఉమా మహేశ్వర స్తోత్రం", "Shiva and Parvati", "Swamy Vari Kalyanam"),
+        ("Ardhanarishvara Ashtakam", "అర్ధనారీశ్వర అష్టకం", "Shiva and Parvati", None),
+        ("Parvati Ashtottara Shatanamavali", "పార్వతీ అష్టోత్తర శతనామావళి", "Parvati", "Kumkumarchana"),
+    ]
+
+    stotrams = []
+    for order, (title, title_telugu, deity, seva_name) in enumerate(entries, start=1):
+        stotrams.append({
+            "id": str(uuid.uuid4()),
+            "title": title,
+            "title_telugu": title_telugu,
+            "text_telugu": "",
+            "deity": deity,
+            "seva_id": await seva_id_for(seva_name) if seva_name else None,
+            "display_order": order,
+            "active_flag": True,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+
+    await db.stotrams.insert_many(stotrams)
+    linked = len([s for s in stotrams if s["seva_id"]])
+    return {"message": "Stotrams seeded", "stotrams": len(stotrams), "linked_to_sevas": linked}
 
 @api_router.head("/")
 @api_router.get("/")
