@@ -45,6 +45,7 @@ export default function Footer() {
         { to: '/sevas', label: 'Pratyaksha Seva', labelTe: 'ప్రత్యక్ష సేవ' },
         { to: '/paroksha-seva', label: 'Paroksha Seva', labelTe: 'పరోక్ష సేవ' },
         { to: '/aashirvachanam', label: 'Personalized Aashirvachanam', labelTe: 'వ్యక్తిగత ఆశీర్వచనం' },
+        { to: '/stotrams', label: 'Stotrams', labelTe: 'స్తోత్రాలు' },
         { to: '/print-ticket', label: 'Print a Ticket', labelTe: 'టికెట్ ప్రింట్ చేయండి' },
       ],
     },
