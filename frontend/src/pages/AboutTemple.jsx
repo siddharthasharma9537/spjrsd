@@ -223,20 +223,30 @@ export default function AboutTemple() {
               <div className="max-w-4xl mx-auto bg-white border border-[#E6DCCA] rounded-[2rem] p-8 md:p-14 shadow-sm">
                 <div className="text-[#5D4037] text-base md:text-lg leading-relaxed md:leading-loose space-y-6">
                   
-                  {/* Lead-in sizing rather than a ::first-letter drop cap, so this
-                      matches the Telugu tab (where a drop cap would split an akshara). */}
-                  <p className="text-lg md:text-xl text-[#621B00]">
-                    In the sacred Treta Yuga, when Adharma spread across the earth, the sixth incarnation of Lord Vishnu, <strong>Lord Parashurama</strong>, incarnated to re-establish Dharma.
-                    After destroying Kartavirya Arjuna and cleansing the earth of corrupt Kshatriya rulers, Parashurama felt the burden of the bloodshed. Following the divine guidance of Sage Jamadagni, he undertook a sacred pilgrimage and consecrated <strong>108 Shiva Lingas</strong> across Bharata Varsha to atone and restore cosmic balance.
-                  </p>
+                  {/* Each narrative beat gets its own labeled segment - matching how the
+                      rest of the page reads (a small caption over a block of prose)
+                      instead of running all three story beats together undifferentiated. */}
+                  <div>
+                    <p className="font-english-heading text-sm tracking-wide text-[#C43E00] uppercase mb-2">The Incarnation</p>
+                    <p className="text-lg md:text-xl text-[#621B00]">
+                      In the sacred Treta Yuga, when Adharma spread across the earth, the sixth incarnation of Lord Vishnu, <strong>Lord Parashurama</strong>, incarnated to re-establish Dharma.
+                      After destroying Kartavirya Arjuna and cleansing the earth of corrupt Kshatriya rulers, Parashurama felt the burden of the bloodshed. Following the divine guidance of Sage Jamadagni, he undertook a sacred pilgrimage and consecrated <strong>108 Shiva Lingas</strong> across Bharata Varsha to atone and restore cosmic balance.
+                    </p>
+                  </div>
 
-                  <p>
-                    After installing 107 Lingas, Parashurama arrived at the sacred hill known as <strong>Ikshwadri (present-day Cheruvugattu)</strong>. Recognizing its immense spiritual potency, he consecrated the <strong>108th and final Shiva Linga</strong> within a cave on this hill, installing it in a rare and powerful <strong>west-facing direction</strong>.
-                  </p>
+                  <div>
+                    <p className="font-english-heading text-sm tracking-wide text-[#C43E00] uppercase mb-2">The 108th Linga, at Ikshwadri</p>
+                    <p>
+                      After installing 107 Lingas, Parashurama arrived at the sacred hill known as <strong>Ikshwadri (present-day Cheruvugattu)</strong>. Recognizing its immense spiritual potency, he consecrated the <strong>108th and final Shiva Linga</strong> within a cave on this hill, installing it in a rare and powerful <strong>west-facing direction</strong>.
+                    </p>
+                  </div>
 
-                  <p>
-                    Engaging in intense penance, Parashurama’s tapas radiated divine energy, causing the Linga to rise on its own. When he gently struck it with his axe (<em>Parashu</em>), Lord Shiva manifested in divine form with radiant matted locks (<em>Jadala</em>), and blessed Parashurama with absolution.
-                  </p>
+                  <div>
+                    <p className="font-english-heading text-sm tracking-wide text-[#C43E00] uppercase mb-2">The Divine Manifestation</p>
+                    <p>
+                      Engaging in intense penance, Parashurama’s tapas radiated divine energy, causing the Linga to rise on its own. When he gently struck it with his axe (<em>Parashu</em>), Lord Shiva manifested in divine form with radiant matted locks (<em>Jadala</em>), and blessed Parashurama with absolution.
+                    </p>
+                  </div>
 
                   <hr className="my-12 border-[#E6DCCA]" />
 
@@ -270,18 +280,28 @@ export default function AboutTemple() {
                 <div className="font-telugu-body text-[#5D4037] text-base md:text-lg leading-relaxed md:leading-loose space-y-6">
                   
                   {/* No CSS drop cap here: ::first-letter splits a Telugu akshara
-                      (త్రే + తాయుగమున) and breaks the word. Lead-in sizing instead. */}
-                  <p className="text-lg md:text-xl text-[#621B00]">
-                    త్రేతాయుగమున అధర్మము విస్తరించెడి కాలమున, శ్రీమహావిష్ణువు ఆరవ అవతారముగా <strong>శ్రీ పరశురాముడు</strong> అవతరించెను. కార్తవీర్యార్జునుని సంహరించి, అధర్మపరులైన క్షత్రియ రాజులనుండి భూమిని శుద్ధిచేసిన అనంతరం, ఆ సంహార పాపభారము తన హృదయమునకు భారముగా అనిపించగా, జమదగ్ని మహర్షి ఉపదేశముచేత పరమేశ్వరుని అనుగ్రహార్థము భారతదేశమంతట <strong>108 శివలింగములను</strong> ప్రతిష్ఠించెను.
-                  </p>
+                      (త్రే + తాయుగమున) and breaks the word. Lead-in sizing instead.
+                      Same three labeled segments as the English tab. */}
+                  <div>
+                    <p className="font-telugu-heading text-sm text-[#C43E00] mb-2">అవతారము</p>
+                    <p className="text-lg md:text-xl text-[#621B00]">
+                      త్రేతాయుగమున అధర్మము విస్తరించెడి కాలమున, శ్రీమహావిష్ణువు ఆరవ అవతారముగా <strong>శ్రీ పరశురాముడు</strong> అవతరించెను. కార్తవీర్యార్జునుని సంహరించి, అధర్మపరులైన క్షత్రియ రాజులనుండి భూమిని శుద్ధిచేసిన అనంతరం, ఆ సంహార పాపభారము తన హృదయమునకు భారముగా అనిపించగా, జమదగ్ని మహర్షి ఉపదేశముచేత పరమేశ్వరుని అనుగ్రహార్థము భారతదేశమంతట <strong>108 శివలింగములను</strong> ప్రతిష్ఠించెను.
+                    </p>
+                  </div>
 
-                  <p>
-                    107 శివలింగములను ప్రతిష్ఠించిన అనంతరం, నేటి <strong>చెరువుగట్టు అను ఇక్ష్వాద్రి గిరిపై</strong> చేరుకొనెను. ఆ గిరి యొక్క అపారమైన ఆధ్యాత్మిక శక్తిని గుర్తించి, ఆ కొండపైగల గుహలో <strong>108వ మరియు చివరి శివలింగమును</strong> అత్యంత అరుదైన, మహిమాన్వితమైన పశ్చిమాభిముఖముగా ప్రతిష్ఠించెను.
-                  </p>
+                  <div>
+                    <p className="font-telugu-heading text-sm text-[#C43E00] mb-2">108వ లింగం - ఇక్ష్వాద్రి</p>
+                    <p>
+                      107 శివలింగములను ప్రతిష్ఠించిన అనంతరం, నేటి <strong>చెరువుగట్టు అను ఇక్ష్వాద్రి గిరిపై</strong> చేరుకొనెను. ఆ గిరి యొక్క అపారమైన ఆధ్యాత్మిక శక్తిని గుర్తించి, ఆ కొండపైగల గుహలో <strong>108వ మరియు చివరి శివలింగమును</strong> అత్యంత అరుదైన, మహిమాన్వితమైన పశ్చిమాభిముఖముగా ప్రతిష్ఠించెను.
+                    </p>
+                  </div>
 
-                  <p>
-                    అక్కడ ఉగ్రమైన తపస్సు ఆచరించగా, పరశురాముని తపఃశక్తి దివ్యతేజస్సును వెదజల్లి ఆ లింగము స్వయంగా పైకెత్తబడెను. పరశురాముడు తన పరశువుతో (గొడ్డలితో) మెల్లగా తాకగా, పరమేశ్వరుడు ప్రకాశవంతమైన <strong>జడలతో</strong> దివ్యరూపమున ప్రత్యక్షమై, పరశురామునకు పాపవిమోచనమును అనుగ్రహించెను.
-                  </p>
+                  <div>
+                    <p className="font-telugu-heading text-sm text-[#C43E00] mb-2">దివ్య ఆవిర్భావం</p>
+                    <p>
+                      అక్కడ ఉగ్రమైన తపస్సు ఆచరించగా, పరశురాముని తపఃశక్తి దివ్యతేజస్సును వెదజల్లి ఆ లింగము స్వయంగా పైకెత్తబడెను. పరశురాముడు తన పరశువుతో (గొడ్డలితో) మెల్లగా తాకగా, పరమేశ్వరుడు ప్రకాశవంతమైన <strong>జడలతో</strong> దివ్యరూపమున ప్రత్యక్షమై, పరశురామునకు పాపవిమోచనమును అనుగ్రహించెను.
+                    </p>
+                  </div>
 
                   <hr className="my-12 border-[#E6DCCA]" />
 
