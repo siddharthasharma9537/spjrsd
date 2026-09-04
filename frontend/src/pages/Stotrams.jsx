@@ -22,13 +22,43 @@ export default function Stotrams() {
 
   useEffect(() => {
     if (!openId || stotrams.length === 0) return;
+    // Restore the exact scroll offset the devotee was at, not just the top
+    // of the card - they may be mid-way through a long stotram like the
+    // Namakam. Only meaningful for this same card: a saved position for a
+    // stotram the visitor has since switched away from is stale and ignored.
+    const saved = sessionStorage.getItem('stotrams-scroll');
+    if (saved) {
+      const { id, y } = JSON.parse(saved);
+      if (id === openId) {
+        window.scrollTo(0, y);
+        return;
+      }
+    }
     const el = document.querySelector(`[data-testid="stotram-${openId}"]`);
     el?.scrollIntoView({ block: 'start' });
   }, [openId, stotrams]);
 
+  useEffect(() => {
+    if (!openId) return;
+    let frame = null;
+    const onScroll = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        sessionStorage.setItem('stotrams-scroll', JSON.stringify({ id: openId, y: window.scrollY }));
+        frame = null;
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [openId]);
+
   const toggle = (id, isOpen) => {
     const next = isOpen ? id : null;
     setOpenId(next);
+    if (!next) sessionStorage.removeItem('stotrams-scroll');
     // replaceState, not pushState - opening/closing entries shouldn't pile
     // up in browser history.
     const url = next ? `#${next}` : window.location.pathname + window.location.search;
