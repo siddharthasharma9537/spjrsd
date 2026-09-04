@@ -11,10 +11,29 @@ export default function Stotrams() {
   const [stotrams, setStotrams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  // Which card is expanded, kept in sync with the URL hash (#<id>) so a
+  // refresh - or sharing the link - reopens the same stotram instead of
+  // silently collapsing back to the closed list.
+  const [openId, setOpenId] = useState(() => window.location.hash.slice(1) || null);
 
   useEffect(() => {
     api.get('/stotrams').then(r => setStotrams(r.data)).catch(() => setLoadError(true)).finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!openId || stotrams.length === 0) return;
+    const el = document.querySelector(`[data-testid="stotram-${openId}"]`);
+    el?.scrollIntoView({ block: 'start' });
+  }, [openId, stotrams]);
+
+  const toggle = (id, isOpen) => {
+    const next = isOpen ? id : null;
+    setOpenId(next);
+    // replaceState, not pushState - opening/closing entries shouldn't pile
+    // up in browser history.
+    const url = next ? `#${next}` : window.location.pathname + window.location.search;
+    window.history.replaceState(null, '', url);
+  };
 
   return (
     <div className="min-h-screen bg-[#FFFCF5]">
@@ -30,7 +49,7 @@ export default function Stotrams() {
         ) : (
           <div className="space-y-4">
             {stotrams.map(s => (
-              <details key={s.id} className="bg-white border border-[#E6DCCA] rounded-xl overflow-hidden group" data-testid={`stotram-${s.id}`}>
+              <details key={s.id} open={openId === s.id} onToggle={e => toggle(s.id, e.target.open)} className="bg-white border border-[#E6DCCA] rounded-xl overflow-hidden group" data-testid={`stotram-${s.id}`}>
                 <summary className="flex items-center gap-3 p-6 cursor-pointer list-none">
                   <ScrollText className="h-5 w-5 text-[#8D6E63] shrink-0" />
                   <div className="flex-1">
