@@ -1470,7 +1470,7 @@ async def list_stotrams(active_only: bool = True, seva_id: Optional[str] = None)
         query["active_flag"] = True
     if seva_id:
         query["seva_id"] = seva_id
-    return await db.stotrams.find(query, {"_id": 0}).sort("display_order", 1).to_list(100)
+    return await db.stotrams.find(query, {"_id": 0}).sort("display_order", 1).to_list(500)
 
 @api_router.get("/stotrams/{stotram_id}")
 async def get_stotram(stotram_id: str):
