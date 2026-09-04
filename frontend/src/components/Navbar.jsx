@@ -104,7 +104,7 @@ function Dropdown({ label, children }) {
         }`}
       >
         {children.map((c, i) => (
-          <Link key={i} to={c.to} onClick={() => setOpen(false)} className="block px-4 py-2 text-xs text-[#5D4037] hover:bg-[#C43E00]/5 hover:text-[#C43E00] transition-colors">{c.label}</Link>
+          <Link key={i} to={c.to} onClick={() => setOpen(false)} className="block px-4 py-2 text-xs text-[#5D4037] hover:bg-[#D4AF37]/20 hover:text-[#C43E00] transition-colors">{c.label}</Link>
         ))}
       </div>
     </div>
