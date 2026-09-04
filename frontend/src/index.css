@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=Lato:wght@300;400;700&family=Ramabhadra&family=Tenali+Ramakrishna&family=Noto+Sans+Telugu:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=Lato:wght@300;400;700&family=Ramabhadra&family=Tenali+Ramakrishna&family=Noto+Sans+Telugu:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -43,7 +43,11 @@
   font-synthesis-weight: none;
 }
 /* Body copy does use <strong>, so it needs a face with real 400-700 weights. */
-.font-telugu-body { font-family: 'Noto Sans Telugu', 'Tenali Ramakrishna', sans-serif; }
+/* Noto Sans Telugu has no glyphs for Vedic accent marks (udatta/anudatta etc.,
+   U+0951-0952 and the Vedic Extensions block) since those are conventionally
+   paired with Devanagari - Noto Sans Devanagari covers them, so list it before
+   the plain sans-serif fallback to avoid .notdef boxes in Rudram-style texts. */
+.font-telugu-body { font-family: 'Noto Sans Telugu', 'Noto Sans Devanagari', 'Tenali Ramakrishna', sans-serif; }
 .font-english-heading { font-family: 'Cinzel', serif; }
 .font-english-body { font-family: 'Lato', sans-serif; }
 

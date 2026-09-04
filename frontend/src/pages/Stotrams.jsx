@@ -43,7 +43,7 @@ export default function Stotrams() {
                 <div className="px-6 pb-6 pt-0 border-t border-[#E6DCCA]/60">
                   {s.text_telugu ? (
                     /* Stotram lines are metrical - preserve the breaks exactly as entered. */
-                    <p className="whitespace-pre-line text-[#2D1B0E] leading-loose text-[17px] mt-4">{s.text_telugu}</p>
+                    <p className="font-telugu-body whitespace-pre-line text-[#2D1B0E] leading-loose text-[17px] mt-4">{s.text_telugu}</p>
                   ) : (
                     <p className="text-sm text-[#8D6E63] mt-4">{t('Text is being added.', 'పాఠ్యం చేర్చబడుతోంది.')}</p>
                   )}
