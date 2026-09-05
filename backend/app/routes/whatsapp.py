@@ -33,7 +33,13 @@ MENU_TEXT = (
     "3️⃣ Donations / విరాళాలు\n"
     "4️⃣ Accommodation / వసతి\n"
     "5️⃣ Address & Directions / చిరునామా\n"
-    "6️⃣ Talk to the temple office / కార్యాలయాన్ని సంప్రదించండి"
+    "6️⃣ Talk to the temple office / కార్యాలయాన్ని సంప్రదించండి\n"
+    "7️⃣ Temple History / ఆలయ చరిత్ర\n"
+    "8️⃣ Stotrams / స్తోత్రాలు\n"
+    "9️⃣ Photo & Video Gallery / గ్యాలరీ\n"
+    "10. Live Blog / లైవ్ బ్లాగ్\n"
+    "11. Devotee Registration / భక్తుల నమోదు\n"
+    "12. Volunteer Registration / వాలంటీర్ నమోదు"
 )
 
 REPLIES = {
@@ -82,6 +88,37 @@ REPLIES = {
         "Email: admin@cheruvugattu.online\n\n"
         f"Or write to us here: {SITE}/support/contact"
     ),
+    "7": (
+        "📜 Temple History / ఆలయ చరిత్ర\n\n"
+        "Read the full story of Sri Parvathi Jadala Ramalingeshwara Swamy "
+        "Devastanam:\n"
+        f"{SITE}/about#history"
+    ),
+    "8": (
+        "🎶 Stotrams / స్తోత్రాలు\n\n"
+        "Browse and read temple stotrams:\n"
+        f"{SITE}/stotrams"
+    ),
+    "9": (
+        "📸 Photo & Video Gallery / గ్యాలరీ\n\n"
+        f"Photos: {SITE}/gallery\n"
+        f"Videos: {SITE}/media/gallery/videos"
+    ),
+    "10": (
+        "📰 Live Blog / లైవ్ బ్లాగ్\n\n"
+        "Follow live updates from the temple:\n"
+        f"{SITE}/live-blog"
+    ),
+    "11": (
+        "📝 Devotee Registration / భక్తుల నమోదు\n\n"
+        "Register as a devotee to book sevas, accommodation, and more:\n"
+        f"{SITE}/register"
+    ),
+    "12": (
+        "🤝 Volunteer Registration / వాలంటీర్ నమోదు\n\n"
+        "Sign up to volunteer with the temple:\n"
+        f"{SITE}/volunteer"
+    ),
 }
 
 # Lets devotees type a keyword instead of memorizing the menu number. Checked
@@ -104,6 +141,18 @@ MENU_KEYWORDS = {
     "contact": "6",
     "office": "6",
     "phone": "6",
+    "history": "7",
+    "stotram": "8",
+    "gallery": "9",
+    "photo": "9",
+    "video": "9",
+    "blog": "10",
+    # "volunteer" is checked before the generic "regist"/"sign up" entries so
+    # a message like "volunteer registration" routes to 12, not 11.
+    "volunteer": "12",
+    "regist": "11",
+    "sign up": "11",
+    "signup": "11",
 }
 
 
