@@ -2,8 +2,7 @@ import Navbar from '@/components/Navbar';
 import TopStrip from '@/components/TopStrip';
 import Footer from '@/components/Footer';
 import { useT } from "@/contexts/LanguageContext";
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect } from 'react';
 
 const faqs = [
   { q: 'How to book a seva online?', qTe: 'ఆన్‌లైన్‌లో సేవ ఎలా బుక్ చేయాలి?', a: 'Sign in with your mobile number, go to Sevas page, select a seva, choose date and time slot, fill in gotram details and confirm booking. You will receive a ticket immediately.', aTe: 'మీ మొబైల్ నంబర్‌తో సైన్ ఇన్ చేయండి, సేవలు పేజీకి వెళ్ళి, ఒక సేవను ఎంచుకుని, తేదీ మరియు సమయం ఎంచుకుని, గోత్ర వివరాలు నింపి బుకింగ్ ధృవీకరించండి. మీకు వెంటనే టికెట్ లభిస్తుంది.' },
@@ -20,7 +19,26 @@ const faqs = [
 
 export default function FAQ() {
   const { t, heading } = useT();
-  const [openIdx, setOpenIdx] = useState(null);
+
+  // FAQPage structured data makes this page eligible for Google's expandable
+  // FAQ rich result. Needs the *English* Q&A regardless of the viewer's
+  // current language toggle, since that is what the crawler's static parse
+  // sees rendered - see the accordion bug this replaced, below.
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.text = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqs.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    });
+    document.head.appendChild(script);
+    return () => script.remove();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#FFFCF5] flex flex-col">
@@ -31,20 +49,21 @@ export default function FAQ() {
           <h1 className={`${heading} text-2xl md:text-4xl text-[#621B00] mb-1`} data-testid="faq-title">{t("Frequently Asked Questions", "తరచుగా అడిగే ప్రశ్నలు")}</h1>
         </div>
         <div className="space-y-3" data-testid="faq-list">
+          {/* Native <details>/<summary>, not a JS-toggled div: the answer stays
+              in the DOM (just collapsed) even when closed, so a crawler that
+              doesn't run every click sees the full Q&A instead of ten
+              questions with no answers. */}
           {faqs.map((f, i) => (
-            <div key={i} className="bg-white border border-[#E6DCCA] rounded-xl overflow-hidden" data-testid={`faq-item-${i}`}>
-              <button onClick={() => setOpenIdx(openIdx === i ? null : i)} className="w-full flex items-center justify-between p-5 text-left hover:bg-[#FDFBF7] transition-colors">
-                <div>
-                  <p className="text-sm font-medium text-[#2D1B0E]">{t(f.q, f.qTe)}</p>
-                </div>
-                {openIdx === i ? <ChevronUp className="h-5 w-5 text-[#8D6E63] shrink-0" /> : <ChevronDown className="h-5 w-5 text-[#8D6E63] shrink-0" />}
-              </button>
-              {openIdx === i && (
-                <div className="px-5 pb-5 text-sm text-[#5D4037] leading-relaxed border-t border-[#E6DCCA]">
-                  <p className="pt-4">{t(f.a, f.aTe)}</p>
-                </div>
-              )}
-            </div>
+            <details key={i} className="bg-white border border-[#E6DCCA] rounded-xl overflow-hidden group" data-testid={`faq-item-${i}`}>
+              <summary className="flex items-center justify-between p-5 cursor-pointer list-none hover:bg-[#FDFBF7] transition-colors">
+                <p className="text-sm font-medium text-[#2D1B0E] pr-4">{t(f.q, f.qTe)}</p>
+                <span className="text-xs text-[#8D6E63] shrink-0 group-open:hidden">+</span>
+                <span className="text-xs text-[#8D6E63] shrink-0 hidden group-open:inline">−</span>
+              </summary>
+              <div className="px-5 pb-5 text-sm text-[#5D4037] leading-relaxed border-t border-[#E6DCCA]">
+                <p className="pt-4">{t(f.a, f.aTe)}</p>
+              </div>
+            </details>
           ))}
         </div>
       </div>
