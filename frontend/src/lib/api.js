@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { removeItem } from '@/lib/storage';
 
 // Falls back to a same-origin /api so a missing REACT_APP_BACKEND_URL yields a
 // real 404 rather than the literal string "undefined/api", which the SPA
@@ -43,6 +44,9 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('userType');
+      removeItem('token');
+      removeItem('user');
+      removeItem('userType');
     }
     return Promise.reject(err);
   }

@@ -1,0 +1,14 @@
+{
+  "webcredentials": {
+    "apps": ["TEAMID.online.cheruvugattu.app"]
+  },
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAMID.online.cheruvugattu.app",
+        "paths": ["*"]
+      }
+    ]
+  }
+}

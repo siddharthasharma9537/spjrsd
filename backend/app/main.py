@@ -19,6 +19,10 @@ import pandas as pd
 from pymongo import UpdateOne
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
+import webauthn
+from webauthn.helpers import options_to_json_dict, bytes_to_base64url, base64url_to_bytes
+from webauthn.helpers.structs import AuthenticatorSelectionCriteria, ResidentKeyRequirement, UserVerificationRequirement
+from webauthn.helpers.exceptions import InvalidRegistrationResponse, InvalidAuthenticationResponse
 from app.routes import volunteer
 from app.database.db import db
 from app.routes import contact
@@ -72,6 +76,18 @@ CRON_SECRET = os.environ.get('CRON_SECRET')
 # with the site's origin added under "Authorized JavaScript origins". Devotee
 # Google Sign-In is inactive until this is set.
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
+
+# Passkeys / biometric sign-in (WebAuthn). RP_ID must be the bare domain the
+# site (and the mobile apps, via Capacitor's server.hostname trick - see
+# frontend/capacitor.config.json) are served from, with no scheme/port, and
+# must match a domain listed in WEBAUTHN_ORIGINS below. Changing RP_ID
+# invalidates every passkey already registered against the old value.
+WEBAUTHN_RP_ID = os.environ.get('WEBAUTHN_RP_ID', 'cheruvugattu.online')
+WEBAUTHN_RP_NAME = os.environ.get('WEBAUTHN_RP_NAME', 'Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam')
+WEBAUTHN_ORIGINS = [o.strip() for o in os.environ.get(
+    'WEBAUTHN_ORIGINS', 'https://cheruvugattu.online,https://www.cheruvugattu.online'
+).split(',') if o.strip()]
+WEBAUTHN_CHALLENGE_TTL_MINUTES = 5
 
 app = FastAPI()
 origins = [
@@ -251,6 +267,17 @@ class DevoteeOTPVerify(BaseModel):
 
 class DevoteeGoogleAuth(BaseModel):
     credential: str  # Google Identity Services ID token (JWT)
+
+class WebAuthnRegisterVerify(BaseModel):
+    credential: dict  # raw JSON from navigator.credentials.create() (via @simplewebauthn/browser)
+    device_name: Optional[str] = "Passkey"
+
+class WebAuthnLoginOptions(BaseModel):
+    identifier: Optional[str] = None  # mobile or email; omitted for usernameless/discoverable sign-in
+
+class WebAuthnLoginVerify(BaseModel):
+    challenge_id: str
+    credential: dict  # raw JSON from navigator.credentials.get()
 
 class AdminLogin(BaseModel):
     username: str
@@ -553,7 +580,7 @@ async def devotee_login(data: DevoteeLogin):
         raise HTTPException(status_code=401, detail="Invalid mobile/email or password")
     await db.devotees.update_one({"id": devotee["id"]}, {"$set": {"last_login_at": datetime.now(timezone.utc).isoformat()}})
     token = create_token({"sub": devotee["id"], "name": devotee["name"], "mobile": devotee["mobile"], "role": "devotee"})
-    return {"token": token, "devotee": {k: v for k, v in devotee.items() if k not in ["_id", "password_hash"]}}
+    return {"token": token, "devotee": {k: v for k, v in devotee.items() if k not in ["_id", "password_hash", "webauthn_credentials"]}}
 
 @api_router.post("/auth/devotee/password-reset/send-otp")
 async def devotee_password_reset_send_otp(data: DevoteePasswordResetSend):
@@ -697,7 +724,7 @@ async def devotee_verify_otp(data: DevoteeOTPVerify):
         await db.devotees.update_one({"id": devotee["id"]}, {"$set": {"last_login_at": datetime.now(timezone.utc).isoformat()}})
 
     token = create_token({"sub": devotee["id"], "name": devotee["name"], "mobile": devotee["mobile"], "role": "devotee"})
-    return {"token": token, "devotee": {k: v for k, v in devotee.items() if k not in ["_id", "password_hash"]}}
+    return {"token": token, "devotee": {k: v for k, v in devotee.items() if k not in ["_id", "password_hash", "webauthn_credentials"]}}
 
 @api_router.post("/auth/devotee/google")
 async def devotee_google_auth(data: DevoteeGoogleAuth):
@@ -730,7 +757,159 @@ async def devotee_google_auth(data: DevoteeGoogleAuth):
         }})
 
     token = create_token({"sub": devotee["id"], "name": devotee["name"], "mobile": devotee.get("mobile", ""), "role": "devotee"})
-    return {"token": token, "devotee": {k: v for k, v in devotee.items() if k not in ["_id", "password_hash"]}}
+    return {"token": token, "devotee": {k: v for k, v in devotee.items() if k not in ["_id", "password_hash", "webauthn_credentials"]}}
+
+@api_router.post("/auth/webauthn/register/options")
+async def webauthn_register_options(user=Depends(get_current_devotee)):
+    devotee = await db.devotees.find_one({"id": user["sub"]}, {"_id": 0})
+    if not devotee:
+        raise HTTPException(status_code=404, detail="Devotee not found")
+
+    exclude_credentials = [
+        webauthn.helpers.structs.PublicKeyCredentialDescriptor(id=base64url_to_bytes(c["credential_id"]))
+        for c in devotee.get("webauthn_credentials", [])
+    ]
+    options = webauthn.generate_registration_options(
+        rp_id=WEBAUTHN_RP_ID,
+        rp_name=WEBAUTHN_RP_NAME,
+        user_id=devotee["id"].encode(),
+        user_name=devotee.get("mobile") or devotee.get("email") or devotee["id"],
+        user_display_name=devotee.get("name") or "Devotee",
+        authenticator_selection=AuthenticatorSelectionCriteria(
+            resident_key=ResidentKeyRequirement.PREFERRED,
+            user_verification=UserVerificationRequirement.REQUIRED,
+        ),
+        exclude_credentials=exclude_credentials,
+    )
+
+    await db.webauthn_challenges.update_one(
+        {"devotee_id": devotee["id"], "purpose": "register"},
+        {"$set": {
+            "devotee_id": devotee["id"],
+            "purpose": "register",
+            "challenge": bytes_to_base64url(options.challenge),
+            "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=WEBAUTHN_CHALLENGE_TTL_MINUTES)).isoformat(),
+        }},
+        upsert=True,
+    )
+    return options_to_json_dict(options)
+
+@api_router.post("/auth/webauthn/register/verify")
+async def webauthn_register_verify(data: WebAuthnRegisterVerify, user=Depends(get_current_devotee)):
+    challenge_doc = await db.webauthn_challenges.find_one({"devotee_id": user["sub"], "purpose": "register"})
+    if not challenge_doc:
+        raise HTTPException(status_code=400, detail="No passkey registration was requested")
+    if datetime.now(timezone.utc) > datetime.fromisoformat(challenge_doc["expires_at"]):
+        await db.webauthn_challenges.delete_one({"_id": challenge_doc["_id"]})
+        raise HTTPException(status_code=400, detail="Passkey setup expired, please try again")
+
+    try:
+        verification = webauthn.verify_registration_response(
+            credential=data.credential,
+            expected_challenge=base64url_to_bytes(challenge_doc["challenge"]),
+            expected_rp_id=WEBAUTHN_RP_ID,
+            expected_origin=WEBAUTHN_ORIGINS,
+        )
+    except InvalidRegistrationResponse as e:
+        raise HTTPException(status_code=400, detail=f"Could not verify passkey: {e}")
+
+    await db.webauthn_challenges.delete_one({"_id": challenge_doc["_id"]})
+    await db.devotees.update_one(
+        {"id": user["sub"]},
+        {"$push": {"webauthn_credentials": {
+            "credential_id": bytes_to_base64url(verification.credential_id),
+            "public_key": bytes_to_base64url(verification.credential_public_key),
+            "sign_count": verification.sign_count,
+            "transports": data.credential.get("response", {}).get("transports", []),
+            "device_name": data.device_name or "Passkey",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "last_used_at": None,
+        }}},
+    )
+    return {"message": "Passkey added"}
+
+@api_router.get("/auth/webauthn/credentials")
+async def webauthn_list_credentials(user=Depends(get_current_devotee)):
+    devotee = await db.devotees.find_one({"id": user["sub"]}, {"_id": 0, "webauthn_credentials": 1})
+    creds = (devotee or {}).get("webauthn_credentials", [])
+    return [{k: v for k, v in c.items() if k not in ["public_key", "sign_count"]} for c in creds]
+
+@api_router.delete("/auth/webauthn/credentials/{credential_id}")
+async def webauthn_delete_credential(credential_id: str, user=Depends(get_current_devotee)):
+    result = await db.devotees.update_one(
+        {"id": user["sub"]},
+        {"$pull": {"webauthn_credentials": {"credential_id": credential_id}}},
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Passkey not found")
+    return {"message": "Passkey removed"}
+
+@api_router.post("/auth/webauthn/login/options")
+async def webauthn_login_options(data: WebAuthnLoginOptions):
+    allow_credentials = None
+    if data.identifier:
+        devotee = await _find_devotee_by_identifier(data.identifier)
+        if devotee and devotee.get("webauthn_credentials"):
+            allow_credentials = [
+                webauthn.helpers.structs.PublicKeyCredentialDescriptor(id=base64url_to_bytes(c["credential_id"]))
+                for c in devotee["webauthn_credentials"]
+            ]
+
+    options = webauthn.generate_authentication_options(
+        rp_id=WEBAUTHN_RP_ID,
+        user_verification=UserVerificationRequirement.REQUIRED,
+        allow_credentials=allow_credentials,
+    )
+
+    challenge_id = str(uuid.uuid4())
+    await db.webauthn_challenges.insert_one({
+        "challenge_id": challenge_id,
+        "purpose": "login",
+        "challenge": bytes_to_base64url(options.challenge),
+        "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=WEBAUTHN_CHALLENGE_TTL_MINUTES)).isoformat(),
+    })
+    return {"challenge_id": challenge_id, "options": options_to_json_dict(options)}
+
+@api_router.post("/auth/webauthn/login/verify")
+async def webauthn_login_verify(data: WebAuthnLoginVerify):
+    challenge_doc = await db.webauthn_challenges.find_one({"challenge_id": data.challenge_id, "purpose": "login"})
+    if not challenge_doc:
+        raise HTTPException(status_code=400, detail="No passkey sign-in was requested")
+    if datetime.now(timezone.utc) > datetime.fromisoformat(challenge_doc["expires_at"]):
+        await db.webauthn_challenges.delete_one({"_id": challenge_doc["_id"]})
+        raise HTTPException(status_code=400, detail="Passkey sign-in expired, please try again")
+
+    credential_id = data.credential.get("id")
+    devotee = await db.devotees.find_one({"webauthn_credentials.credential_id": credential_id}, {"_id": 0})
+    if not devotee:
+        raise HTTPException(status_code=401, detail="This passkey is not registered")
+    matched = next(c for c in devotee["webauthn_credentials"] if c["credential_id"] == credential_id)
+
+    try:
+        verification = webauthn.verify_authentication_response(
+            credential=data.credential,
+            expected_challenge=base64url_to_bytes(challenge_doc["challenge"]),
+            expected_rp_id=WEBAUTHN_RP_ID,
+            expected_origin=WEBAUTHN_ORIGINS,
+            credential_public_key=base64url_to_bytes(matched["public_key"]),
+            credential_current_sign_count=matched["sign_count"],
+            require_user_verification=True,
+        )
+    except InvalidAuthenticationResponse as e:
+        raise HTTPException(status_code=401, detail=f"Could not verify passkey: {e}")
+
+    await db.webauthn_challenges.delete_one({"_id": challenge_doc["_id"]})
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.devotees.update_one(
+        {"id": devotee["id"], "webauthn_credentials.credential_id": credential_id},
+        {"$set": {
+            "webauthn_credentials.$.sign_count": verification.new_sign_count,
+            "webauthn_credentials.$.last_used_at": now_iso,
+            "last_login_at": now_iso,
+        }},
+    )
+    token = create_token({"sub": devotee["id"], "name": devotee["name"], "mobile": devotee.get("mobile", ""), "role": "devotee"})
+    return {"token": token, "devotee": {k: v for k, v in devotee.items() if k not in ["_id", "password_hash", "webauthn_credentials"]}}
 
 @api_router.post("/auth/admin/login")
 async def admin_login(data: AdminLogin):
@@ -744,7 +923,7 @@ async def admin_login(data: AdminLogin):
 
 @api_router.get("/devotee/profile")
 async def get_devotee_profile(user=Depends(get_current_devotee)):
-    devotee = await db.devotees.find_one({"id": user["sub"]}, {"_id": 0, "password_hash": 0})
+    devotee = await db.devotees.find_one({"id": user["sub"]}, {"_id": 0, "password_hash": 0, "webauthn_credentials": 0})
     if not devotee:
         raise HTTPException(status_code=404, detail="Devotee not found")
     return devotee
@@ -1533,7 +1712,7 @@ async def delete_stotram(stotram_id: str, user=Depends(get_current_admin)):
 # ==================== ADMIN DEVOTEES + STATS ====================
 @api_router.get("/admin/devotees")
 async def admin_list_devotees(user=Depends(get_current_admin)):
-    return await db.devotees.find({}, {"_id": 0, "password_hash": 0}).sort("created_at", -1).to_list(500)
+    return await db.devotees.find({}, {"_id": 0, "password_hash": 0, "webauthn_credentials": 0}).sort("created_at", -1).to_list(500)
 
 @api_router.get("/admin/devotees/{devotee_id}/activity")
 async def admin_devotee_activity(devotee_id: str, user=Depends(get_current_admin)):

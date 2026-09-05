@@ -1,10 +1,11 @@
-import { useState, useId } from 'react';
+import { useState, useId, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api';
 import { useT } from "@/contexts/LanguageContext";
-import { Flame, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { Flame, ArrowLeft, ShieldCheck, Fingerprint } from 'lucide-react';
 import { GoogleAuthSection } from '@/components/GoogleAuthButton';
+import { loginWithPasskey, browserSupportsWebAuthn } from '@/lib/webauthn';
 
 export default function SignIn() {
   const { t, heading } = useT();
@@ -13,8 +14,32 @@ export default function SignIn() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [passkeySupported, setPasskeySupported] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
+
+  useEffect(() => { setPasskeySupported(browserSupportsWebAuthn()); }, []);
+
+  const handlePasskeyLogin = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      // No identifier passed: this is a usernameless/discoverable sign-in,
+      // so the OS/browser shows whichever passkeys it holds for this site
+      // and prompts Face ID/Touch ID/fingerprint directly.
+      const { token, devotee } = await loginWithPasskey();
+      login(token, devotee, 'devotee');
+      navigate('/sevas');
+    } catch (err) {
+      if (err?.name === 'NotAllowedError') {
+        // User cancelled the biometric prompt - not a real error.
+      } else {
+        setError(err.response?.data?.detail || t('Passkey sign-in failed', 'పాస్‌కీ సైన్ ఇన్ విఫలమైంది'));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const inputCls = "w-full h-12 px-4 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-2 focus:ring-[#C43E00]/20 outline-none transition-all text-[#2D1B0E]";
 
@@ -67,6 +92,26 @@ export default function SignIn() {
             </h1>
 
             {error && <div className="bg-red-50 text-red-700 text-sm p-3 rounded-lg mb-4" data-testid="signin-error">{error}</div>}
+
+            {passkeySupported && (
+              <>
+                <button
+                  type="button"
+                  onClick={handlePasskeyLogin}
+                  disabled={loading}
+                  className="w-full h-12 flex items-center justify-center gap-2 border-2 border-[#621B00] text-[#621B00] font-english-heading tracking-wide rounded-full hover:bg-[#621B00]/5 transition-all disabled:opacity-50 mb-4"
+                  data-testid="passkey-signin-btn"
+                >
+                  <Fingerprint className="h-5 w-5" />
+                  {t('Sign in with Face ID / Fingerprint', 'ఫేస్ ఐడి / వేలిముద్రతో సైన్ ఇన్ చేయండి')}
+                </button>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-px bg-[#E6DCCA] flex-1" />
+                  <span className="text-xs text-[#8D6E63] uppercase tracking-wide">{t('or', 'లేదా')}</span>
+                  <div className="h-px bg-[#E6DCCA] flex-1" />
+                </div>
+              </>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>

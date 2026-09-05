@@ -64,6 +64,7 @@ export default function MyFamily() {
           </Link>
           <div className="flex items-center gap-3 text-sm">
             <Link to="/my-bookings" className="hover:text-[#D4AF37]">{t('My Bookings', 'నా బుకింగ్‌లు')}</Link>
+            <Link to="/my-security" className="hover:text-[#D4AF37]">{t('Security', 'భద్రత')}</Link>
             <button onClick={logout} className="text-[#FFE0B2] hover:text-white">{t('Logout', 'లాగ్ అవుట్')}</button>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { getItem, setItem, removeItem } from '@/lib/storage';
 
 const AuthContext = createContext(null);
 
@@ -9,27 +10,39 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedToken = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
-    const savedType = localStorage.getItem('userType');
-    if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
-      setUserType(savedType);
-    }
-    setLoading(false);
+    (async () => {
+      const [savedToken, savedUser, savedType] = await Promise.all([
+        getItem('token'),
+        getItem('user'),
+        getItem('userType'),
+      ]);
+      if (savedToken && savedUser) {
+        // Mirror into localStorage so the axios interceptor (which reads
+        // synchronously) sees the same token on native builds, where the
+        // source of truth is Capacitor Preferences.
+        localStorage.setItem('token', savedToken);
+        setToken(savedToken);
+        setUser(JSON.parse(savedUser));
+        setUserType(savedType);
+      }
+      setLoading(false);
+    })();
   }, []);
 
   const login = (tokenVal, userData, type) => {
+    setItem('token', tokenVal);
+    setItem('user', JSON.stringify(userData));
+    setItem('userType', type);
     localStorage.setItem('token', tokenVal);
-    localStorage.setItem('user', JSON.stringify(userData));
-    localStorage.setItem('userType', type);
     setToken(tokenVal);
     setUser(userData);
     setUserType(type);
   };
 
   const logout = () => {
+    removeItem('token');
+    removeItem('user');
+    removeItem('userType');
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('userType');

@@ -1,0 +1,23 @@
+{
+  "appId": "online.cheruvugattu.app",
+  "appName": "SPJRS Devasthanam",
+  "webDir": "build",
+  "server": {
+    "hostname": "cheruvugattu.online",
+    "androidScheme": "https",
+    "iosScheme": "https"
+  },
+  "ios": {
+    "contentInset": "always"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "backgroundColor": "#621B00"
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#621B00"
+    }
+  }
+}
