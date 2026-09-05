@@ -88,12 +88,39 @@ REPLIES = {
         "Email: admin@cheruvugattu.online\n\n"
         f"Or write to us here: {SITE}/support/contact"
     ),
-    "7": (
-        "📜 Temple History / ఆలయ చరిత్ర\n\n"
-        "Read the full story of Sri Parvathi Jadala Ramalingeshwara Swamy "
-        "Devastanam:\n"
-        f"{SITE}/about#history"
-    ),
+    # Sent as 4 separate messages (Telugu 1/2, Telugu 2/2, English 1/2,
+    # English 2/2) since the combined bilingual text is well over WhatsApp's
+    # ~4096-character-per-message limit - the English translation alone is
+    # already close to it. Kept in lockstep with the same verbatim Sthala
+    # Puranam text on the /about#history page (AboutTemple.jsx).
+    "7": [
+        (
+            "📜 స్థల పురాణము (1/2)\n\n"
+            "శ్లో॥ శ్రీమద్భార్గవరామనిర్మితమహాదివ్యాలయేసంస్థితం\n"
+            "నీహారాచలకన్యకార్థవపుషంబాలేందురేఖాధరం |\n"
+            "బ్రహ్మేంద్రాచ్యుతసేవ్యపాదజలజంసద్భక్తకల్పధృమం\n"
+            "సేవేసుందరఇక్షుశైలనిలయం శ్రీరామలింగంభజే ॥\n\n"
+            "పరిచయం\n\n"
+            "త్రేతాయుగంలో కార్తవీర్యార్జునుడు అనే మహాపరాక్రమశాలియైన చక్రవర్తి ఉండేవాడు. అతడు మహా బలవంతుడు. అతడికి వేయిచేతులు వుండేవి. అతడు ఒకరోజు తన సమస్త పరివారంతో కలిసి వేటకై అడవికి వెళ్ళాడు. వేటలో అలసిపోయిన రాజు విశ్రమించడానికై సమీపంలో గల జమదగ్ని మహారాజు ఆశ్రమానికి చేరుకున్నాడు. అప్పుడు జమదగ్ని మహర్షి తన వద్ద గల 'శబల' అనే హోమధేనువు సహాయంతో ఆ చక్రవర్తి యొక్క సమస్త పరివారానికి షడ్రసోపేతమైన విందును అతికొద్ది సమయంలో సమకూర్చగలిగాడు. అందుకు సంతోషించిన కార్తవీర్యార్జునుడు తనకు ఆ హోమధేనువును తనకిమ్మని మహర్షిని కోరాడు. అప్పుడు జమదగ్ని \"ఓ మహరాజా! ఈ హోమధేనువు తప:ప్రభావం వలన మహర్షుల వద్ద తనంతట తానుగా ఉంటుంది కాని, బలవంతంగా ఎవరివద్దా ఉంచుకొనుట సాధ్యంకాదు\" అని హితబోధ చేసాడు. ఆ మాటలు పట్టించుకోని చక్రవర్తి హోమధేనువును, దాని దూడను బలవంతంగా తన రాజ్యానికి తీసుకురమ్మని తన సైనికులను ఆజ్ఞాపించాడు. చేసేదేమి లేక జమదగ్ని మహర్షి ఆ గోవు వద్దకు వెళ్ళి, 'తల్లీ! నేను నిన్ను రక్షించలేకపోతున్నాను. నిన్ను నీవే రక్షించుకుని, నన్ను కూడా రక్షించు' అని ప్రార్ధించాడు. అప్పుడా హోమధేనువు శరీరము నుండి రోమమున (వెంట్రుక) సైనికుడు సమస్త ఆయుధాలతో ఆవిర్భవించి, కార్తవీర్యార్జునుని సైన్యానంతటినీ క్షణకాలంలో సంహరించారు. కోపం పట్టలేని కార్తవీర్యార్జునుడు జమదగ్ని మహర్షి పైకి యుద్ధానికి రాగా, మహర్షి కుమారుడు పరుశురాముడు కార్తవీర్యార్జునుడిని ఓడించాడు. ప్రతీకారంతో రగిలిపోతున్న కార్తవీర్యార్జునుడు పరశురాముడు లేని సమయం చూసి ఆశ్రమం పైకి దండెత్తి వెళ్ళి, జమదగ్ని మహర్షి తలను ఖండించి సంహరించాడు. ఆశ్రమానికి తిరిగి వచ్చిన పరశురాముడు ఈ విషయం తెలసుకుని మహోకోపోద్రేకుడై కార్తవీర్యార్జునుని రాజ్యంపై దండెత్తి అతడి వేయిచేతును ఖండించి, అతడిని సంహరించాడు. అయినా కోపం తగ్గని పరశురాముడు 21 మార్లు అలా భూప్రదక్షిణం చేసి క్షత్రియుడనేవాడు కనబడితే సంహరించి, భూమండలాన్నంతటినీ బ్రాహ్మణ శ్రేష్ఠుడు, బ్రహ్మ మానసపుత్రడైన కశ్యప ప్రజాపతికి దానదక్షిణగా సమర్పించి, శమంతపంచక తీర్ధంలో ఆ క్షత్రియ రక్తంతో తన తండ్రి అయిన జమదగ్నికి పితృతర్పణ చేసాడు. ఆ తర్వాత విశ్వకళ్యాణార్ధం కోసం, లోకం సుఖశాంతులతో వర్ధిల్లాలని భావించి, 108 పవిత్ర క్షేత్రాలలో శివలింగ ప్రతిష్ఠ చేసి, కొన్ని లక్షల సంవత్సరాల తన తపఃశ్శక్తిని ప్రతి క్షేత్రంలోను తాను ప్రతిష్ఠించిన శివలింగానికి ధారపోసి విశ్వశాంతిని నెలకొల్పాడు."
+        ),
+        (
+            "📜 స్థల పురాణము (2/2)\n\n"
+            "ముఖ్య గాథ\n\n"
+            "పరశురాముడు ప్రతిష్ఠించిన 108 శివలింగాల్లో ఆఖరిది చెరువుగట్టు క్షేత్రంలో ప్రతిష్ఠించి ఈ స్థలంలోనే తపోనిష్ఠతో ఎన్నో లక్షల సంవత్సరాలు తపస్సు చేసినా, శివుడు ప్రత్యక్షం కానందున ఆగ్రహించి తాను ప్రతిష్టించిన శివలింగంపై తన పరశువుతో కొట్టాడు. అప్పుడు పరమశివుడు ప్రత్యక్షమై 'ఇన్నాళ్లు నువ్వు తపస్సు చేసి నన్ను మెప్పించిన ఈ క్షేత్రం సుప్రసిద్ధ క్షేత్రాలలో ఒకటై ప్రకాశిస్తుందని, ఇక్కడినుండి కలియుగాంతం వరకు నేను నిలిచియుండి భక్తుల యొక్క చిరకాల వాంఛలను నెరవేరుస్తుంటాను\" అని వాగ్దానం చేసి అంతర్థానమయ్యాడు. నాటినుండి ఈ క్షేత్రం దినదిన ప్రవర్ధమానంగా విరాజిల్లుతూ సుప్రసిద్ధ శైవక్షేత్రంగా పేరుపొంది, భక్తులపాలిట మహిమాన్వితక్షేత్రంగా వెలుగొందుతుంది. ఈ దేవస్థానమునందు పార్వతీ అమ్మవారి ఆలయం గట్టు (కొండ) క్రింద కలదు. కొండ క్రింద ఆలయములో శ్రీ పార్వతీ అమ్మవారు కొలువై, పరివార దేవతలుగా, శ్రీ మల్లిఖార్జున స్వామి, సుబ్రహ్మణ్య స్వామి, శ్రీ భద్రకాళీ వీరభద్రస్వామి దేవతలు పరివార దేవతలుగా కొలువైయున్నారు. గట్టుమీద శ్రీ స్వామివారికి పరివార దేవతలుగా శ్రీ విఘ్నేశ్వర స్వామి వారు, శ్రీ ఆంజనేయ స్వామి వారు, శ్రీ ఎల్లమ్మ అమ్మవారు మరియు క్షేత్రపాలకుడుగా కాలభైరవ స్వామివారు మరియు అతి ప్రశస్త్యమైన మూడు గుండ్లపై ఊర్ధ్వలింగము మరియు కోనేరు ప్రక్కన గోగర్భకొలను కొలువైయుండి భక్తుల మనోభీష్టాలను నెరవేరుస్తున్నారని ప్రతీతి. ఈ క్షేత్రంలో శ్రీ స్వామివారు ఆరోగ్యప్రదాతగా భక్తుల చేత పూజింపబడుచున్నారు."
+        ),
+        (
+            "📜 Sthala Puranam (1/2)\n\n"
+            "The Shloka\n\n"
+            "I worship Sri Ramalingam, who resides in the great, divine temple built by the illustrious Bhargava Rama (Parashurama), who bears half His form as the daughter of the snow-capped mountain (Parvati) and wears the crescent moon, whose lotus feet are served by Brahma, Indra and Achyuta (Vishnu), who is the wish-fulfilling tree for true devotees, and who dwells beautifully upon the Ikshu hill (Ikshwadri).\n\n"
+            "Introduction\n\n"
+            "In the Treta Yuga, there lived an immensely powerful emperor named Kartavirya Arjuna. He was extraordinarily strong and possessed a thousand arms. One day, he went hunting in the forest with his entire retinue. Tired from the hunt, the king arrived at the nearby hermitage of the sage-king Jamadagni to rest. Sage Jamadagni, with the help of his divine wish-fulfilling cow Shabala, was able to arrange a sumptuous feast with all six flavours for the emperor's entire retinue within a very short time. Delighted by this, Kartavirya Arjuna asked the sage to give him the wish-fulfilling cow. Jamadagni advised him, saying, \"O King! By the power of its penance, this cow stays on its own accord only with sages; it cannot be kept by force by anyone.\" Ignoring these words, the emperor ordered his soldiers to forcibly bring the cow and its calf to his kingdom. Having no other option, Jamadagni went to the cow and prayed, \"O Mother! I am unable to protect you. Protect yourself, and thereby protect me too.\" Then, from a hair on the cow's body, a warrior fully equipped with weapons emerged and, in an instant, destroyed Kartavirya Arjuna's entire army. Unable to contain his anger, Kartavirya Arjuna came to wage war against Jamadagni, whereupon the sage's son, Parashurama, defeated him. Kartavirya Arjuna, burning with the desire for revenge, waited for a time when Parashurama was away, attacked the hermitage, and beheaded Sage Jamadagni. When Parashurama returned to the hermitage and learned of this, he flew into a towering rage, attacked Kartavirya Arjuna's kingdom, severed his thousand arms, and slew him. Even then, his anger unabated, Parashurama circled the earth twenty-one times, slaying every Kshatriya he encountered, and donated the entire earth as a gift to the foremost of Brahmins, Kashyapa Prajapati, the mind-born son of Brahma. At the sacred ford of Shamantapanchaka, he offered tarpana (libations) to his father Jamadagni with that Kshatriya blood. Thereafter, for the welfare of the universe and wishing the world to flourish in peace and happiness, he consecrated Shiva Lingas at 108 sacred sites, pouring the power of his penance - accumulated over hundreds of thousands of years - into each Shiva Linga he installed at every site, thereby establishing peace throughout the universe."
+        ),
+        (
+            "📜 Sthala Puranam (2/2)\n\n"
+            "The Main Legend\n\n"
+            "Of the 108 Shiva Lingas consecrated by Parashurama, the last was installed at the Cheruvugattu kshetram. Even after performing penance here with unwavering devotion for hundreds of thousands of years, Shiva did not appear before him. Enraged, Parashurama struck the Shiva Linga he had installed with his axe (Parashu). Lord Shiva then appeared and declared, \"For all these years you have performed penance and pleased me; this kshetram shall shine as one of the most renowned holy places. From here until the end of Kali Yuga, I shall remain and fulfil the long-cherished desires of my devotees,\" and with this promise, vanished. Since that day, this kshetram has flourished, growing more glorious day by day, gaining fame as an illustrious Shaiva kshetram, and shining as a place of great sanctity for devotees. In this Devasthanam, the temple of Sri Parvathi Devi lies at the foot of the hill (Gattu). In the temple at the foot of the hill, Sri Parvathi Devi is enshrined, with Sri Mallikarjuna Swamy, Subrahmanya Swamy, and Sri Bhadrakali Veerabhadra Swamy as attendant deities. Atop the hill, Sri Swamy's attendant deities are Sri Vighneshwara Swamy, Sri Anjaneya Swamy, and Sri Yellamma Devi, with Kalabhairava Swamy as the Kshetrapalaka (guardian deity); and it is believed that the revered Urdhva Linga atop the three sacred rock pools (Moodu Gundlu), along with the Gogarbha pond beside the Koneru, fulfil the heartfelt wishes of devotees. In this kshetram, Sri Swamy is worshipped by devotees as the Arogyapradata (bestower of health)."
+        ),
+    ],
     "8": (
         "🎶 Stotrams / స్తోత్రాలు\n\n"
         "Browse and read temple stotrams:\n"
@@ -156,7 +183,7 @@ MENU_KEYWORDS = {
 }
 
 
-def _reply_for(text_body: str | None) -> str:
+def _reply_for(text_body: str | None) -> str | list[str]:
     if text_body:
         stripped = text_body.strip()
         if stripped in REPLIES:
@@ -251,4 +278,7 @@ async def _handle_inbound_message(message: dict, value: dict):
     })
 
     if from_number:
-        _send_whatsapp_text(from_number, _reply_for(text_body))
+        reply = _reply_for(text_body)
+        parts = reply if isinstance(reply, list) else [reply]
+        for part in parts:
+            _send_whatsapp_text(from_number, part)

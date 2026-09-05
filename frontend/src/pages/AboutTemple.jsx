@@ -223,28 +223,27 @@ export default function AboutTemple() {
               <div className="max-w-4xl mx-auto bg-white border border-[#E6DCCA] rounded-[2rem] p-8 md:p-14 shadow-sm">
                 <div className="text-[#5D4037] text-base md:text-lg leading-relaxed md:leading-loose space-y-6">
                   
-                  {/* Each narrative beat gets its own labeled segment - matching how the
-                      rest of the page reads (a small caption over a block of prose)
-                      instead of running all three story beats together undifferentiated. */}
+                  {/* English translation of the same verbatim Sthala Puranam text used in
+                      the Telugu tab - shloka plus two labeled segments, kept in lockstep
+                      with that tab rather than the old three-beat paraphrase. */}
+                  <div className="text-center bg-[#FDFBF7] border border-[#E6DCCA]/50 rounded-2xl p-6 md:p-8">
+                    <p className="font-english-heading text-sm tracking-wide text-[#C43E00] uppercase mb-3">The Shloka</p>
+                    <p className="italic text-[#621B00] leading-loose">
+                      I worship Sri Ramalingam, who resides in the great, divine temple built by the illustrious Bhargava Rama (Parashurama), who bears half His form as the daughter of the snow-capped mountain (Parvati) and wears the crescent moon, whose lotus feet are served by Brahma, Indra and Achyuta (Vishnu), who is the wish-fulfilling tree for true devotees, and who dwells beautifully upon the Ikshu hill (Ikshwadri).
+                    </p>
+                  </div>
+
                   <div>
-                    <p className="font-english-heading text-sm tracking-wide text-[#C43E00] uppercase mb-2">The Incarnation</p>
+                    <p className="font-english-heading text-sm tracking-wide text-[#C43E00] uppercase mb-2">Introduction</p>
                     <p className="text-lg md:text-xl text-[#621B00]">
-                      In the sacred Treta Yuga, when Adharma spread across the earth, the sixth incarnation of Lord Vishnu, <strong>Lord Parashurama</strong>, incarnated to re-establish Dharma.
-                      After destroying Kartavirya Arjuna and cleansing the earth of corrupt Kshatriya rulers, Parashurama felt the burden of the bloodshed. Following the divine guidance of Sage Jamadagni, he undertook a sacred pilgrimage and consecrated <strong>108 Shiva Lingas</strong> across Bharata Varsha to atone and restore cosmic balance.
+                      In the Treta Yuga, there lived an immensely powerful emperor named <strong>Kartavirya Arjuna</strong>. He was extraordinarily strong and possessed a thousand arms. One day, he went hunting in the forest with his entire retinue. Tired from the hunt, the king arrived at the nearby hermitage of the sage-king Jamadagni to rest. Sage Jamadagni, with the help of his divine wish-fulfilling cow <strong>Shabala</strong>, was able to arrange a sumptuous feast with all six flavours for the emperor's entire retinue within a very short time. Delighted by this, Kartavirya Arjuna asked the sage to give him the wish-fulfilling cow. Jamadagni advised him, saying, "O King! By the power of its penance, this cow stays on its own accord only with sages; it cannot be kept by force by anyone." Ignoring these words, the emperor ordered his soldiers to forcibly bring the cow and its calf to his kingdom. Having no other option, Jamadagni went to the cow and prayed, "O Mother! I am unable to protect you. Protect yourself, and thereby protect me too." Then, from a hair on the cow's body, a warrior fully equipped with weapons emerged and, in an instant, destroyed Kartavirya Arjuna's entire army. Unable to contain his anger, Kartavirya Arjuna came to wage war against Jamadagni, whereupon the sage's son, <strong>Parashurama</strong>, defeated him. Kartavirya Arjuna, burning with the desire for revenge, waited for a time when Parashurama was away, attacked the hermitage, and beheaded Sage Jamadagni. When Parashurama returned to the hermitage and learned of this, he flew into a towering rage, attacked Kartavirya Arjuna's kingdom, severed his thousand arms, and slew him. Even then, his anger unabated, Parashurama circled the earth twenty-one times, slaying every Kshatriya he encountered, and donated the entire earth as a gift to the foremost of Brahmins, Kashyapa Prajapati, the mind-born son of Brahma. At the sacred ford of Shamantapanchaka, he offered tarpana (libations) to his father Jamadagni with that Kshatriya blood. Thereafter, for the welfare of the universe and wishing the world to flourish in peace and happiness, he consecrated <strong>Shiva Lingas at 108 sacred sites</strong>, pouring the power of his penance — accumulated over hundreds of thousands of years — into each Shiva Linga he installed at every site, thereby establishing peace throughout the universe.
                     </p>
                   </div>
 
                   <div>
-                    <p className="font-english-heading text-sm tracking-wide text-[#C43E00] uppercase mb-2">The 108th Linga, at Ikshwadri</p>
+                    <p className="font-english-heading text-sm tracking-wide text-[#C43E00] uppercase mb-2">The Main Legend</p>
                     <p>
-                      After installing 107 Lingas, Parashurama arrived at the sacred hill known as <strong>Ikshwadri (present-day Cheruvugattu)</strong>. Recognizing its immense spiritual potency, he consecrated the <strong>108th and final Shiva Linga</strong> within a cave on this hill, installing it in a rare and powerful <strong>west-facing direction</strong>.
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="font-english-heading text-sm tracking-wide text-[#C43E00] uppercase mb-2">The Divine Manifestation</p>
-                    <p>
-                      Engaging in intense penance, Parashurama’s tapas radiated divine energy, causing the Linga to rise on its own. When he gently struck it with his axe (<em>Parashu</em>), Lord Shiva manifested in divine form with radiant matted locks (<em>Jadala</em>), and blessed Parashurama with absolution.
+                      Of the 108 Shiva Lingas consecrated by Parashurama, the last was installed at the <strong>Cheruvugattu kshetram</strong>. Even after performing penance here with unwavering devotion for hundreds of thousands of years, Shiva did not appear before him. Enraged, Parashurama struck the Shiva Linga he had installed with his axe (<em>Parashu</em>). Lord Shiva then appeared and declared, "For all these years you have performed penance and pleased me; this kshetram shall shine as one of the most renowned holy places. From here until the end of Kali Yuga, I shall remain and fulfil the long-cherished desires of my devotees," and with this promise, vanished. Since that day, this kshetram has flourished, growing more glorious day by day, gaining fame as an illustrious Shaiva kshetram, and shining as a place of great sanctity for devotees. In this Devasthanam, the temple of Sri Parvathi Devi lies at the foot of the hill (Gattu). In the temple at the foot of the hill, Sri Parvathi Devi is enshrined, with Sri Mallikarjuna Swamy, Subrahmanya Swamy, and Sri Bhadrakali Veerabhadra Swamy as attendant deities. Atop the hill, Sri Swamy's attendant deities are Sri Vighneshwara Swamy, Sri Anjaneya Swamy, and Sri Yellamma Devi, with Kalabhairava Swamy as the Kshetrapalaka (guardian deity); and it is believed that the revered Urdhva Linga atop the three sacred rock pools (Moodu Gundlu), along with the Gogarbha pond beside the Koneru, fulfil the heartfelt wishes of devotees. In this kshetram, <strong>Sri Swamy is worshipped by devotees as the Arogyapradata</strong> (bestower of health).
                     </p>
                   </div>
 
