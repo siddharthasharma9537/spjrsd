@@ -23,19 +23,32 @@ What's left is account/credential setup and building the native projects —
 things that need your Google/Apple/Play Console accounts and, for iOS, a Mac
 with Xcode. I can't do those from here.
 
-## 1. Install dependencies and add the native projects
+## 1. Install dependencies
 
 ```bash
 cd frontend
 yarn install                      # pulls in the new Capacitor + @simplewebauthn/browser deps
-yarn build
-npx cap add android
-npx cap add ios                   # only works on a Mac with Xcode installed
-npx cap sync
 ```
 
-This creates `frontend/android/` and `frontend/ios/` — real, editable native
-projects. Commit them.
+Both native projects are already scaffolded and committed:
+`frontend/android/` and `frontend/ios/`. After pulling this branch you only
+need `npx cap sync` (or `yarn cap:android` / `yarn cap:ios`) after changing
+web code or Capacitor plugins — not `cap add` again.
+
+The iOS project (`frontend/ios/App/App.xcodeproj`) already has:
+- Bundle ID `online.cheruvugattu.app` and display name "SPJRS Devasthanam",
+  read from `capacitor.config.json`.
+- The **Associated Domains** entitlement pre-wired
+  (`frontend/ios/App/App/App.entitlements`, referenced by both Debug and
+  Release build configs) for `webcredentials:cheruvugattu.online` and
+  `applinks:cheruvugattu.online` — this is what step 5 below needs; you
+  don't have to add the capability by hand in Xcode.
+- Swift Package Manager dependencies (no CocoaPods/`pod install` needed —
+  Capacitor 8 uses SPM by default).
+
+Opening it needs a Mac with Xcode 15+ (`npx cap open ios`, or open
+`frontend/ios/App/App.xcodeproj` directly) — I scaffolded and validated the
+project structure here, but building/running it needs your Mac.
 
 ## 2. Backend: turn on passkeys
 
@@ -90,11 +103,13 @@ Ask me to wire this in if the web-origin approach doesn't work for you.
    it now if you want a different package name (must be done before your
    first Play Console upload; it can't change after).
 
-## 5. iOS: Associated Domains and the site association file
+## 5. iOS: the site association file
 
-1. In Xcode (`npx cap open ios`), under **Signing & Capabilities**, add the
-   **Associated Domains** capability, and add:
-   `webcredentials:cheruvugattu.online`
+The Associated Domains capability itself is already wired into the Xcode
+project (see step 1) — you just need to point it at your real Apple team:
+
+1. In Xcode, under **Signing & Capabilities**, set your **Team** (this is
+   what needs a paid Apple Developer account, $99/year).
 2. Replace `TEAMID` in
    `frontend/public/.well-known/apple-app-site-association` with your real
    10-character Apple Developer Team ID, and deploy the site (this file must
@@ -121,9 +136,12 @@ Ask me to wire this in if the web-origin approach doesn't work for you.
 
 The code is complete and internally consistent, but three things are outside
 what I can verify from this sandbox and need your involvement:
-- I have no iOS hardware/Xcode or Android emulator here, so the native
-  builds and the actual biometric prompts are untested by me — the backend
-  WebAuthn logic itself is verified against the `webauthn` and
+- I have no Mac/Xcode or Android emulator here, so while both native
+  projects are scaffolded, synced, and structurally verified (Android via
+  `npx cap sync android`, iOS's entitlements/build settings hand-checked
+  for balance and correctness), neither has actually been built or run,
+  and the real biometric prompts are untested by me. The backend WebAuthn
+  logic itself is verified against the `webauthn` and
   `@simplewebauthn/browser` libraries' real APIs, not guessed.
 - Google Sign-In inside a WebView is a known grey area (works for many
   Capacitor apps as-is, sometimes needs the native plugin swap in step 3).
