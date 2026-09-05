@@ -402,6 +402,8 @@ class StotramCreate(BaseModel):
     seva_id: Optional[str] = None
     display_order: int = 0
     active_flag: bool = True
+    # Auto-derived from title if left blank - see slugify_stotram_title().
+    slug: Optional[str] = None
 
 class StotramUpdate(BaseModel):
     title: Optional[str] = None
@@ -410,6 +412,7 @@ class StotramUpdate(BaseModel):
     deity: Optional[str] = None
     seva_id: Optional[str] = None
     display_order: Optional[int] = None
+    slug: Optional[str] = None
     active_flag: Optional[bool] = None
 
 class DonationReceiptRequest(BaseModel):
@@ -1463,6 +1466,23 @@ async def delete_gallery(item_id: str, user=Depends(get_current_admin)):
     return {"message": "Gallery item deleted"}
 
 # ==================== STOTRAM ROUTES ====================
+def slugify_stotram_title(title: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
+    return slug or str(uuid.uuid4())[:8]
+
+async def unique_stotram_slug(title: str, exclude_id: Optional[str] = None) -> str:
+    base = slugify_stotram_title(title)
+    slug = base
+    suffix = 2
+    while True:
+        query = {"slug": slug}
+        if exclude_id:
+            query["id"] = {"$ne": exclude_id}
+        if not await db.stotrams.find_one(query, {"id": 1}):
+            return slug
+        slug = f"{base}-{suffix}"
+        suffix += 1
+
 @api_router.get("/stotrams")
 async def list_stotrams(active_only: bool = True, seva_id: Optional[str] = None):
     query = {}
@@ -1471,6 +1491,13 @@ async def list_stotrams(active_only: bool = True, seva_id: Optional[str] = None)
     if seva_id:
         query["seva_id"] = seva_id
     return await db.stotrams.find(query, {"_id": 0}).sort("display_order", 1).to_list(500)
+
+@api_router.get("/stotrams/slug/{slug}")
+async def get_stotram_by_slug(slug: str):
+    item = await db.stotrams.find_one({"slug": slug, "active_flag": True}, {"_id": 0})
+    if not item:
+        raise HTTPException(status_code=404, detail="Stotram not found")
+    return item
 
 @api_router.get("/stotrams/{stotram_id}")
 async def get_stotram(stotram_id: str):
@@ -1481,7 +1508,9 @@ async def get_stotram(stotram_id: str):
 
 @api_router.post("/admin/stotrams")
 async def create_stotram(data: StotramCreate, user=Depends(get_current_admin)):
-    item = {"id": str(uuid.uuid4()), **data.model_dump(), "created_at": datetime.now(timezone.utc).isoformat()}
+    payload = data.model_dump()
+    payload["slug"] = await unique_stotram_slug(payload.get("slug") or payload["title"])
+    item = {"id": str(uuid.uuid4()), **payload, "created_at": datetime.now(timezone.utc).isoformat()}
     await db.stotrams.insert_one(item)
     return {k: v for k, v in item.items() if k != "_id"}
 

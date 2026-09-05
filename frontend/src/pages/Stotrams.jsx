@@ -1,69 +1,21 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import TopStrip from '@/components/TopStrip';
 import Navbar from '@/components/Navbar';
 import api from '@/lib/api';
 import LoadState from "@/components/LoadState";
 import { useT } from "@/contexts/LanguageContext";
-import { ScrollText } from 'lucide-react';
+import { ScrollText, ChevronRight } from 'lucide-react';
 
 export default function Stotrams() {
   const { t, heading } = useT();
   const [stotrams, setStotrams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  // Which card is expanded, kept in sync with the URL hash (#<id>) so a
-  // refresh - or sharing the link - reopens the same stotram instead of
-  // silently collapsing back to the closed list.
-  const [openId, setOpenId] = useState(() => window.location.hash.slice(1) || null);
 
   useEffect(() => {
     api.get('/stotrams').then(r => setStotrams(r.data)).catch(() => setLoadError(true)).finally(() => setLoading(false));
   }, []);
-
-  useEffect(() => {
-    if (!openId || stotrams.length === 0) return;
-    // Restore the exact scroll offset the devotee was at, not just the top
-    // of the card - they may be mid-way through a long stotram like the
-    // Namakam. Only meaningful for this same card: a saved position for a
-    // stotram the visitor has since switched away from is stale and ignored.
-    const saved = sessionStorage.getItem('stotrams-scroll');
-    if (saved) {
-      const { id, y } = JSON.parse(saved);
-      if (id === openId) {
-        window.scrollTo(0, y);
-        return;
-      }
-    }
-    const el = document.querySelector(`[data-testid="stotram-${openId}"]`);
-    el?.scrollIntoView({ block: 'start' });
-  }, [openId, stotrams]);
-
-  useEffect(() => {
-    if (!openId) return;
-    let frame = null;
-    const onScroll = () => {
-      if (frame) return;
-      frame = requestAnimationFrame(() => {
-        sessionStorage.setItem('stotrams-scroll', JSON.stringify({ id: openId, y: window.scrollY }));
-        frame = null;
-      });
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      if (frame) cancelAnimationFrame(frame);
-    };
-  }, [openId]);
-
-  const toggle = (id, isOpen) => {
-    const next = isOpen ? id : null;
-    setOpenId(next);
-    if (!next) sessionStorage.removeItem('stotrams-scroll');
-    // replaceState, not pushState - opening/closing entries shouldn't pile
-    // up in browser history.
-    const url = next ? `#${next}` : window.location.pathname + window.location.search;
-    window.history.replaceState(null, '', url);
-  };
 
   return (
     <div className="min-h-screen bg-[#FFFCF5]">
@@ -77,27 +29,24 @@ export default function Stotrams() {
         {loading ? <p className="text-center text-[#8D6E63]">{t('Loading...', 'లోడ్ అవుతోంది...')}</p> : stotrams.length === 0 ? (
           <LoadState error={loadError} emptyText={t('Stotrams will be added here soon.', 'స్తోత్రాలు త్వరలో ఇక్కడ చేర్చబడతాయి.')} />
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
+            {/* Each stotram is its own route (/stotrams/:slug) rather than an
+                inline accordion, so it gets its own indexable URL, title and
+                meta description - see StotramDetail.jsx. */}
             {stotrams.map(s => (
-              <details key={s.id} open={openId === s.id} onToggle={e => toggle(s.id, e.target.open)} className="bg-white border border-[#E6DCCA] rounded-xl overflow-hidden group" data-testid={`stotram-${s.id}`}>
-                <summary className="flex items-center gap-3 p-6 cursor-pointer list-none">
-                  <ScrollText className="h-5 w-5 text-[#8D6E63] shrink-0" />
-                  <div className="flex-1">
-                    <h2 className="font-medium text-[#2D1B0E]">{t(s.title, s.title_telugu)}</h2>
-                    {s.deity && <p className="text-xs text-[#8D6E63] mt-0.5">{s.deity}</p>}
-                  </div>
-                  <span className="text-xs text-[#8D6E63] group-open:hidden">{t('Read', 'చదవండి')}</span>
-                  <span className="text-xs text-[#8D6E63] hidden group-open:inline">{t('Close', 'మూసివేయండి')}</span>
-                </summary>
-                <div className="px-6 pb-6 pt-0 border-t border-[#E6DCCA]/60">
-                  {s.text_telugu ? (
-                    /* Stotram lines are metrical - preserve the breaks exactly as entered. */
-                    <p className="font-telugu-body whitespace-pre-line text-[#2D1B0E] leading-loose text-[17px] mt-4">{s.text_telugu}</p>
-                  ) : (
-                    <p className="text-sm text-[#8D6E63] mt-4">{t('Text is being added.', 'పాఠ్యం చేర్చబడుతోంది.')}</p>
-                  )}
+              <Link
+                key={s.id}
+                to={`/stotrams/${s.slug}`}
+                className="flex items-center gap-3 bg-white border border-[#E6DCCA] rounded-xl p-6 hover:border-[#C43E00]/40 transition-colors"
+                data-testid={`stotram-${s.id}`}
+              >
+                <ScrollText className="h-5 w-5 text-[#8D6E63] shrink-0" />
+                <div className="flex-1">
+                  <h2 className="font-medium text-[#2D1B0E]">{t(s.title, s.title_telugu)}</h2>
+                  {s.deity && <p className="text-xs text-[#8D6E63] mt-0.5">{s.deity}</p>}
                 </div>
-              </details>
+                <ChevronRight className="h-4 w-4 text-[#8D6E63] shrink-0" />
+              </Link>
             ))}
           </div>
         )}

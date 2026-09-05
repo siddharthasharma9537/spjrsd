@@ -27,6 +27,7 @@ import Gallery from "@/pages/Gallery";
 import TicketLookup from "@/pages/TicketLookup";
 import NewsPage from "@/pages/NewsPage";
 import Stotrams from "@/pages/Stotrams";
+import StotramDetail from "@/pages/StotramDetail";
 import LiveTV from "@/pages/LiveTV";
 import Panchangam from "@/pages/Panchangam";
 import LiveBlog from "@/pages/LiveBlog";
@@ -175,6 +176,7 @@ function App() {
           <Route path="/news" element={<NewsPage />} />
           <Route path="/media/news" element={<NewsPage />} />
           <Route path="/stotrams" element={<Stotrams />} />
+          <Route path="/stotrams/:slug" element={<StotramDetail />} />
           <Route path="/panchangam" element={<Panchangam />} />
           <Route path="/live-blog" element={<LiveBlog />} />
           <Route path="/media/live-blog" element={<LiveBlog />} />
