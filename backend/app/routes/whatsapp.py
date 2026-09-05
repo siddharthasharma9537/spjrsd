@@ -18,13 +18,105 @@ WHATSAPP_PHONE_NUMBER_ID = os.environ.get("WHATSAPP_PHONE_NUMBER_ID")
 WHATSAPP_VERIFY_TOKEN = os.environ.get("WHATSAPP_VERIFY_TOKEN")
 META_APP_SECRET = os.environ.get("META_APP_SECRET")
 
-# Devotee-facing auto-reply sent for any inbound message. Kept as a single
-# constant so it's easy to find and edit without touching the webhook logic.
-AUTO_REPLY_TEXT = (
-    "Namaste! Thank you for messaging Sri Parvathi Jadala Ramalingeshwara "
-    "Swamy Devastanam. We've received your message and our team will get "
-    "back to you shortly."
+# All devotee-facing copy lives here, bilingual (English + Telugu), so it can
+# be edited without touching the webhook/routing logic below. Add a new menu
+# item by adding a key to REPLIES and a matching line + keywords to MENU_KEYWORDS.
+SITE = "https://cheruvugattu.online"
+
+MENU_TEXT = (
+    "🙏 Namaste! Welcome to Sri Parvathi Jadala Ramalingeshwara Swamy "
+    "Devastanam.\n\n"
+    "నమస్తే! శ్రీ పార్వతీ జడల రామలింగేశ్వర స్వామి దేవస్థానానికి స్వాగతం.\n\n"
+    "Reply with a number:\n"
+    "1️⃣ Temple Timings / ఆలయ సమయాలు\n"
+    "2️⃣ Sevas & Booking / సేవలు & బుకింగ్\n"
+    "3️⃣ Donations / విరాళాలు\n"
+    "4️⃣ Accommodation / వసతి\n"
+    "5️⃣ Address & Directions / చిరునామా\n"
+    "6️⃣ Talk to the temple office / కార్యాలయాన్ని సంప్రదించండి"
 )
+
+REPLIES = {
+    "1": (
+        "🕉️ Temple Timings / ఆలయ సమయాలు\n\n"
+        "Morning: 5:00 AM – 1:00 PM\n"
+        "Evening: 3:00 PM – 7:00 PM\n\n"
+        "ఉదయం: 5:00 - 1:00\n"
+        "సాయంత్రం: 3:00 - 7:00"
+    ),
+    "2": (
+        "🪔 Sevas & Booking / సేవలు & బుకింగ్\n\n"
+        "Some popular sevas:\n"
+        "- Kumkumarchana / కుంకుమార్చన – ₹30\n"
+        "- Abhishekam / అభిషేకం – ₹200\n"
+        "- Sri Satyanarayana Swamy Vratam / శ్రీ సత్యనారాయణ స్వామి వ్రతం – ₹300\n"
+        "- Swamy Vari Kalyanam / శ్రీ స్వామివారి కళ్యాణం – ₹1000\n\n"
+        f"See the full list and book online: {SITE}/sevas"
+    ),
+    "3": (
+        "🙏 Donations / విరాళాలు\n\n"
+        "You can contribute towards e-Hundi, Annadanam, and other temple "
+        "sevas online:\n"
+        f"{SITE}/donations"
+    ),
+    "4": (
+        "🛏️ Accommodation / వసతి\n\n"
+        "- Siva Nilayam (AC Room) – ₹800/day\n"
+        "- Parvathi Sadanam (Non-AC Room) – ₹400/day\n"
+        "- Nandi Cottage – ₹1500/day\n"
+        "- Pilgrim Dormitory – ₹100/day\n\n"
+        f"Check availability and book: {SITE}/accommodation"
+    ),
+    "5": (
+        "📍 Address & Directions / చిరునామా\n\n"
+        "Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanams, "
+        "Cheruvugattu, Narketpally Mandal, Nalgonda District, "
+        "Telangana - 508254, India\n\n"
+        "శ్రీ పార్వతీ జడల రామలింగేశ్వర స్వామి దేవస్థానం, చెరువుగట్టు, "
+        "నార్కట్‌పల్లి మండలం, నల్గొండ జిల్లా, తెలంగాణ - 508254"
+    ),
+    "6": (
+        "☎️ Temple Office / కార్యాలయం\n\n"
+        "Sri S. Mohan Babu, Executive Officer\n"
+        "Phone: +91 94910 00701\n"
+        "Email: admin@cheruvugattu.online\n\n"
+        f"Or write to us here: {SITE}/support/contact"
+    ),
+}
+
+# Lets devotees type a keyword instead of memorizing the menu number. Checked
+# as a substring against the lowercased message, in this order, before
+# falling back to an exact match on the menu number itself.
+MENU_KEYWORDS = {
+    "timing": "1",
+    "hour": "1",
+    "seva": "2",
+    "book": "2",
+    "donat": "3",
+    "hundi": "3",
+    "annadanam": "3",
+    "accommodation": "4",
+    "room": "4",
+    "stay": "4",
+    "address": "5",
+    "location": "5",
+    "direction": "5",
+    "contact": "6",
+    "office": "6",
+    "phone": "6",
+}
+
+
+def _reply_for(text_body: str | None) -> str:
+    if text_body:
+        stripped = text_body.strip()
+        if stripped in REPLIES:
+            return REPLIES[stripped]
+        lowered = stripped.lower()
+        for keyword, option in MENU_KEYWORDS.items():
+            if keyword in lowered:
+                return REPLIES[option]
+    return MENU_TEXT
 
 
 def _send_whatsapp_text(to: str, body: str):
@@ -110,4 +202,4 @@ async def _handle_inbound_message(message: dict, value: dict):
     })
 
     if from_number:
-        _send_whatsapp_text(from_number, AUTO_REPLY_TEXT)
+        _send_whatsapp_text(from_number, _reply_for(text_body))
