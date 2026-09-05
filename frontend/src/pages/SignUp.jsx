@@ -6,6 +6,7 @@ import { useT } from "@/contexts/LanguageContext";
 import { Flame, ArrowLeft, MessageCircle, Phone, Mail } from 'lucide-react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { GoogleAuthSection } from '@/components/GoogleAuthButton';
+import { AppleAuthSection } from '@/components/AppleAuthButton';
 
 const CHANNELS = [
   { id: 'sms', icon: Phone, label: 'SMS', labelTe: 'SMS' },
@@ -69,6 +70,20 @@ export default function SignUp() {
     setLoading(true);
     try {
       const res = await api.post('/auth/devotee/google', { credential });
+      login(res.data.token, res.data.devotee, 'devotee');
+      navigate('/sevas');
+    } catch (err) {
+      setError(err.response?.data?.detail || t('Something went wrong', 'ఏదో పొరపాటు జరిగింది'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAppleIdentity = async ({ identityToken, fullName }) => {
+    setError('');
+    setLoading(true);
+    try {
+      const res = await api.post('/auth/devotee/apple', { identity_token: identityToken, full_name: fullName });
       login(res.data.token, res.data.devotee, 'devotee');
       navigate('/sevas');
     } catch (err) {
@@ -155,6 +170,7 @@ export default function SignUp() {
                   </button>
                 </form>
                 <GoogleAuthSection onCredential={handleGoogleCredential} text="signup_with" />
+                <AppleAuthSection onIdentity={handleAppleIdentity} text="signup_with" />
               </>
             ) : (
               <form onSubmit={handleVerify} className="space-y-6">

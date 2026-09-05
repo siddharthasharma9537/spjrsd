@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import { useT } from "@/contexts/LanguageContext";
 import { Flame, ArrowLeft, ShieldCheck, Fingerprint } from 'lucide-react';
 import { GoogleAuthSection } from '@/components/GoogleAuthButton';
+import { AppleAuthSection } from '@/components/AppleAuthButton';
 import { loginWithPasskey, browserSupportsWebAuthn } from '@/lib/webauthn';
 
 export default function SignIn() {
@@ -63,6 +64,20 @@ export default function SignIn() {
     setLoading(true);
     try {
       const res = await api.post('/auth/devotee/google', { credential });
+      login(res.data.token, res.data.devotee, 'devotee');
+      navigate('/sevas');
+    } catch (err) {
+      setError(err.response?.data?.detail || t('Something went wrong', 'ఏదో పొరపాటు జరిగింది'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAppleIdentity = async ({ identityToken, fullName }) => {
+    setError('');
+    setLoading(true);
+    try {
+      const res = await api.post('/auth/devotee/apple', { identity_token: identityToken, full_name: fullName });
       login(res.data.token, res.data.devotee, 'devotee');
       navigate('/sevas');
     } catch (err) {
@@ -136,6 +151,7 @@ export default function SignIn() {
             </form>
 
             <GoogleAuthSection onCredential={handleGoogleCredential} text="signin_with" />
+            <AppleAuthSection onIdentity={handleAppleIdentity} text="signin_with" />
 
             <p className="text-center text-sm text-[#5D4037] mt-6">
               {t('New devotee?', 'కొత్త భక్తులా?')}{' '}

@@ -1,12 +1,13 @@
-from fastapi import FastAPI, APIRouter, BackgroundTasks, HTTPException, Depends, Query, UploadFile, File, Request
+from fastapi import FastAPI, APIRouter, BackgroundTasks, HTTPException, Depends, Query, UploadFile, File, Request, Form
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import RedirectResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 import os
 import io
 import re
 import logging
-from urllib.parse import urlencode
+from urllib.parse import urlencode, quote
 from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Optional
@@ -14,6 +15,7 @@ import uuid
 import secrets
 import hashlib
 import jwt
+from jwt import PyJWKClient
 import requests
 import pandas as pd
 from pymongo import UpdateOne
@@ -76,6 +78,32 @@ CRON_SECRET = os.environ.get('CRON_SECRET')
 # with the site's origin added under "Authorized JavaScript origins". Devotee
 # Google Sign-In is inactive until this is set.
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
+
+# Native "Sign in with Apple" for the Android/iOS apps (frontend's
+# nativeAppleAuth.js, via @capgo/capacitor-social-login). iOS talks to Apple
+# directly (AuthenticationServices) and its identity token lands here for
+# verification only. Android has no native Apple SDK, so it drives a web
+# OAuth flow through Apple's own sign-in page; APPLE_REDIRECT_URI below is
+# this backend's callback for that flow - it must be registered as a "Return
+# URL" on the Apple Services ID, and must match REACT_APP_APPLE_REDIRECT_URI
+# (or its computed default) character-for-character.
+APPLE_TEAM_ID = os.environ.get('APPLE_TEAM_ID')
+APPLE_KEY_ID = os.environ.get('APPLE_KEY_ID')
+# Contents of the "Sign in with Apple" .p8 private key from Apple Developer >
+# Certificates, Identifiers & Profiles > Keys, as a PEM string. Store it in
+# .env with literal "\n" for line breaks (they're unescaped below).
+APPLE_PRIVATE_KEY = (os.environ.get('APPLE_PRIVATE_KEY') or '').replace('\\n', '\n') or None
+# The Services ID (not the app's Bundle ID) created for web-based Sign in
+# with Apple - this is Android's OAuth client_id. Must be grouped with the
+# app's primary Bundle ID in Apple Developer for its tokens to be accepted.
+APPLE_SERVICES_ID = os.environ.get('APPLE_SERVICES_ID')
+# The iOS app's own Bundle ID - the `aud` claim on identity tokens minted by
+# native Sign in with Apple (iOS never goes through APPLE_SERVICES_ID at all).
+APPLE_BUNDLE_ID = os.environ.get('APPLE_BUNDLE_ID', 'online.cheruvugattu.app')
+APPLE_REDIRECT_URI = os.environ.get('APPLE_REDIRECT_URI')
+# Custom URL scheme the Android app registers in its manifest to receive the
+# final redirect from this backend once Apple's code has been exchanged.
+APPLE_ANDROID_REDIRECT_SCHEME = os.environ.get('APPLE_ANDROID_REDIRECT_SCHEME', 'online.cheruvugattu.app://apple-callback')
 
 # Passkeys / biometric sign-in (WebAuthn). RP_ID must be the bare domain the
 # site (and the mobile apps, via Capacitor's server.hostname trick - see
@@ -267,6 +295,10 @@ class DevoteeOTPVerify(BaseModel):
 
 class DevoteeGoogleAuth(BaseModel):
     credential: str  # Google Identity Services ID token (JWT)
+
+class DevoteeAppleAuth(BaseModel):
+    identity_token: str  # Apple identity token (JWT) - from native iOS or the Android OAuth callback
+    full_name: Optional[str] = None  # Apple only ever sends this once, on first authorization; client resends it here since we never see it again
 
 class WebAuthnRegisterVerify(BaseModel):
     credential: dict  # raw JSON from navigator.credentials.create() (via @simplewebauthn/browser)
@@ -564,6 +596,48 @@ class LiveBlogPostUpdate(BaseModel):
     image_url: Optional[str] = None
     is_pinned: Optional[bool] = None
     active_flag: Optional[bool] = None
+
+def generate_apple_client_secret() -> str:
+    if not (APPLE_TEAM_ID and APPLE_KEY_ID and APPLE_PRIVATE_KEY and APPLE_SERVICES_ID):
+        raise HTTPException(status_code=503, detail="Sign in with Apple is not configured")
+    now = datetime.now(timezone.utc)
+    payload = {
+        "iss": APPLE_TEAM_ID,
+        "iat": now,
+        # Short-lived by design - minted fresh for each token exchange rather
+        # than cached, so there's no long-lived Apple secret sitting in memory.
+        "exp": now + timedelta(minutes=5),
+        "aud": "https://appleid.apple.com",
+        "sub": APPLE_SERVICES_ID,
+    }
+    return jwt.encode(payload, APPLE_PRIVATE_KEY, algorithm="ES256", headers={"kid": APPLE_KEY_ID})
+
+_apple_jwk_client = None
+
+def _get_apple_jwk_client() -> PyJWKClient:
+    global _apple_jwk_client
+    if _apple_jwk_client is None:
+        _apple_jwk_client = PyJWKClient("https://appleid.apple.com/auth/keys")
+    return _apple_jwk_client
+
+def verify_apple_identity_token(identity_token: str) -> dict:
+    # Accepts tokens minted for either the native iOS app (aud = Bundle ID) or
+    # Android's web-based OAuth flow (aud = the Services ID) - both are the
+    # same Apple developer account's sign-in, just two different client types.
+    accepted_audiences = [aud for aud in [APPLE_BUNDLE_ID, APPLE_SERVICES_ID] if aud]
+    if not accepted_audiences:
+        raise HTTPException(status_code=503, detail="Sign in with Apple is not configured")
+    try:
+        signing_key = _get_apple_jwk_client().get_signing_key_from_jwt(identity_token)
+        return jwt.decode(
+            identity_token,
+            signing_key.key,
+            algorithms=["RS256"],
+            audience=accepted_audiences,
+            issuer="https://appleid.apple.com",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Invalid Apple identity token: {e}")
 
 # ==================== AUTH ROUTES ====================
 async def _find_devotee_by_identifier(identifier: str):
@@ -910,6 +984,80 @@ async def webauthn_login_verify(data: WebAuthnLoginVerify):
     )
     token = create_token({"sub": devotee["id"], "name": devotee["name"], "mobile": devotee.get("mobile", ""), "role": "devotee"})
     return {"token": token, "devotee": {k: v for k, v in devotee.items() if k not in ["_id", "password_hash", "webauthn_credentials"]}}
+
+@api_router.post("/auth/devotee/apple")
+async def devotee_apple_auth(data: DevoteeAppleAuth):
+    claims = verify_apple_identity_token(data.identity_token)
+    apple_sub = claims.get("sub", "")
+    if not apple_sub:
+        raise HTTPException(status_code=401, detail="Apple credential is missing a user identifier")
+    # Present only the first time this Apple ID authorizes the app - absent
+    # (not merely unverified) on every later sign-in.
+    email = (claims.get("email") or "").strip().lower()
+    name = data.full_name or (email.split("@")[0] if email else "Devotee")
+
+    match = {"$or": [{"apple_sub": apple_sub}]}
+    if email:
+        match["$or"].append({"email": email})
+    devotee = await db.devotees.find_one(match, {"_id": 0})
+    if not devotee:
+        devotee = {
+            "id": str(uuid.uuid4()), "name": name, "mobile": "", "email": email, "gotram": "",
+            "apple_sub": apple_sub,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "last_login_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.devotees.insert_one(devotee)
+    else:
+        await db.devotees.update_one({"id": devotee["id"]}, {"$set": {
+            "last_login_at": datetime.now(timezone.utc).isoformat(), "apple_sub": apple_sub,
+        }})
+
+    token = create_token({"sub": devotee["id"], "name": devotee["name"], "mobile": devotee.get("mobile", ""), "role": "devotee"})
+    return {"token": token, "devotee": {k: v for k, v in devotee.items() if k not in ["_id", "password_hash", "webauthn_credentials"]}}
+
+@api_router.post("/auth/apple/callback")
+async def apple_oauth_callback(
+    code: Optional[str] = Form(None),
+    state: Optional[str] = Form(None),
+    error: Optional[str] = Form(None),
+):
+    """Apple's own redirect_uri for the Android sign-in flow (there's no native
+    Apple SDK on Android, so it goes through Apple's web OAuth page). Apple
+    form-POSTs the authorization code here; this exchanges it for tokens
+    server-side (keeping the Apple client secret off the device) and hands
+    the app back its identity token via the custom-scheme redirect the
+    Android app's manifest is registered to catch."""
+    if not APPLE_ANDROID_REDIRECT_SCHEME:
+        raise HTTPException(status_code=503, detail="Sign in with Apple (Android) is not configured")
+
+    if error or not code:
+        return RedirectResponse(
+            f"{APPLE_ANDROID_REDIRECT_SCHEME}?success=false&error={quote(error or 'missing_code')}",
+            status_code=302,
+        )
+
+    resp = requests.post(
+        "https://appleid.apple.com/auth/token",
+        data={
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": APPLE_REDIRECT_URI,
+            "client_id": APPLE_SERVICES_ID,
+            "client_secret": generate_apple_client_secret(),
+        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        timeout=15,
+    )
+    if resp.status_code >= 300:
+        logger.error("Apple token exchange failed (%s): %s", resp.status_code, resp.text)
+        return RedirectResponse(f"{APPLE_ANDROID_REDIRECT_SCHEME}?success=false&error=token_exchange_failed", status_code=302)
+
+    tokens = resp.json()
+    params = {"success": "true", "id_token": tokens.get("id_token", ""), "access_token": tokens.get("access_token", "")}
+    if tokens.get("refresh_token"):
+        params["refresh_token"] = tokens["refresh_token"]
+    return RedirectResponse(f"{APPLE_ANDROID_REDIRECT_SCHEME}?{urlencode(params)}", status_code=302)
 
 @api_router.post("/auth/admin/login")
 async def admin_login(data: AdminLogin):

@@ -24,6 +24,14 @@ Everything code-level is already in place:
   GoogleSignIn SDK instead of the web Google Identity Services script, but
   still hands the backend the same kind of ID token, so no backend changes
   were needed.
+- Native "Sign in with Apple" on both platforms, same plugin
+  (`frontend/src/lib/nativeAppleAuth.js`, `AppleAuthButton.jsx`). iOS is
+  fully native (`AuthenticationServices`, no backend involved); Android
+  round-trips through a new backend endpoint
+  (`POST /api/auth/apple/callback`) that exchanges Apple's code for tokens
+  server-side, then redirects into the app via a custom URL scheme that
+  `MainActivity.java`'s `onNewIntent` picks up. `POST /api/auth/devotee/apple`
+  verifies the resulting identity token against Apple's public keys.
 
 What's left is account/credential setup and building the native projects —
 things that need your Google/Apple/Play Console accounts and, for iOS, a Mac
@@ -119,7 +127,60 @@ Until `REACT_APP_GOOGLE_IOS_CLIENT_ID` is set, iOS silently falls back to the
 web-embedded Google button (which may or may not work in a WKWebView) —
 Android only needs the Web client ID you already have.
 
-## 4. Android: signing key, package ID, and passkey domain link
+## 4. Native "Sign in with Apple" in the apps
+
+Done — same plugin as Google (`@capgo/capacitor-social-login`). iOS uses
+Apple's native `AuthenticationServices` directly (no backend involved,
+already entitled in `App.entitlements`). Android has no native Apple SDK, so
+it opens Apple's own web sign-in page and needs a backend round trip:
+
+- `backend/app/main.py` → `POST /api/auth/apple/callback` receives Apple's
+  authorization code, exchanges it for tokens **server-side** (so the Apple
+  client secret never touches a device), then redirects back into the
+  Android app via its own custom URL scheme.
+- `frontend/android/.../MainActivity.java` catches that redirect
+  (`onNewIntent`) and hands it to the plugin — this only exists because
+  Capacitor's own intent forwarding doesn't cover this case; already wired.
+- `frontend/android/app/src/main/AndroidManifest.xml` already has the
+  matching intent-filter (`online.cheruvugattu.app://apple-callback`).
+- `POST /api/auth/devotee/apple` verifies the identity token (against
+  Apple's public keys, checking issuer/audience/expiry — not just trusting
+  the client) and creates/logs in the devotee, same pattern as Google.
+
+What you still need from Apple Developer (**requires a paid $99/year
+account**, same one used for iOS distribution):
+
+1. **A Key**: Certificates, Identifiers & Profiles → Keys → new key with
+   "Sign in with Apple" enabled. Download the `.p8` file **immediately** —
+   Apple only lets you download it once. Note its 10-character Key ID.
+2. **A Services ID**: Identifiers → "+" → Services IDs → enable "Sign in
+   with Apple" → configure it to be grouped under the app's primary Bundle
+   ID (`online.cheruvugattu.app`) → add
+   `https://<your-backend-domain>/api/auth/apple/callback` as a Return URL
+   (must match exactly, including the domain your FastAPI backend is
+   actually deployed at — not the frontend's domain).
+3. Fill in `backend/.env`: `APPLE_TEAM_ID` (top-right of the developer
+   portal), `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` (the `.p8` contents, with
+   `\n` for line breaks), `APPLE_SERVICES_ID`, `APPLE_REDIRECT_URI`
+   (the same Return URL from step 2). `APPLE_BUNDLE_ID` and
+   `APPLE_ANDROID_REDIRECT_SCHEME` already default correctly.
+4. Fill in `frontend/.env`: `REACT_APP_APPLE_SERVICES_ID` (same value as
+   `APPLE_SERVICES_ID` above).
+5. In Xcode, under **Signing & Capabilities**, "Sign in with Apple" should
+   already show as a capability (from `App.entitlements`) once your Team is
+   set — no separate toggle needed there.
+6. Rebuild and re-sync: `yarn build && npx cap sync`.
+
+Until the env vars above are set, the Apple button is hidden on Android
+(`nativeAppleAuthAvailable()` returns `false`); iOS needs no env var at all
+since it's tied to the Bundle ID and entitlement, not a client ID.
+
+Apple Sign-In is also an **App Store requirement**, not just a nice-to-have:
+guideline 4.8 requires offering it whenever you offer another third-party
+login (which this app now does, via Google) — so this isn't optional if you
+want the iOS app approved.
+
+## 5. Android: signing key, package ID, and passkey domain link
 
 1. In Android Studio (`npx cap open android`), generate a release signing
    key (Build → Generate Signed Bundle/APK → Create new...). **Back this up
@@ -140,7 +201,7 @@ Android only needs the Web client ID you already have.
    it now if you want a different package name (must be done before your
    first Play Console upload; it can't change after).
 
-## 5. iOS: the site association file
+## 6. iOS: the site association file
 
 The Associated Domains capability itself is already wired into the Xcode
 project (see step 1) — you just need to point it at your real Apple team:
@@ -156,7 +217,7 @@ project (see step 1) — you just need to point it at your real Apple team:
 3. This is what lets Face ID/Touch ID passkeys registered on the website be
    used inside the iOS app, and vice versa.
 
-## 6. Build, test, and ship
+## 7. Build, test, and ship
 
 - Android: `npx cap open android` → Run on a device or the Play Console's
   internal testing track first. Play Console → App content → fill required
@@ -165,9 +226,10 @@ project (see step 1) — you just need to point it at your real Apple team:
   the iOS Simulator without a workaround — test on real hardware), then
   Archive → distribute via App Store Connect (TestFlight first).
 - Test the actual golden paths on real devices before submitting: password
-  login, OTP login (SMS/WhatsApp/email), Google Sign-In, registering a
-  passkey from `/my-security`, then signing out and back in with just the
-  passkey.
+  login, OTP login (SMS/WhatsApp/email), Google Sign-In, Apple Sign-In
+  (iOS native sheet and Android's web flow round-trip through the backend),
+  registering a passkey from `/my-security`, then signing out and back in
+  with just the passkey.
 
 ## What "flawless" realistically means here
 
@@ -180,12 +242,17 @@ what I can verify from this sandbox and need your involvement:
   and the real biometric prompts are untested by me. The backend WebAuthn
   logic itself is verified against the `webauthn` and
   `@simplewebauthn/browser` libraries' real APIs, not guessed.
-- Native Google Sign-In (step 3) is wired against the plugin's documented
-  API and its generated native project files (Android Gradle registration,
-  iOS `Package.swift`/`AppDelegate`) were verified to update correctly on
-  `npx cap sync` — but the actual Credential Manager / GoogleSignIn SDK
-  prompts are untested by me, and depend on OAuth client IDs I can't create
-  (no Google Cloud Console access from here).
+- Native Google and Apple Sign-In (steps 3-4) are wired against each
+  plugin's documented API, and their generated native project files
+  (Android Gradle registration, iOS `Package.swift`/`AppDelegate`/
+  entitlements, the Android manifest intent-filter and `MainActivity`
+  changes for Apple's redirect) were verified to update correctly on
+  `npx cap sync` — the Apple backend callback logic (ES256 client-secret
+  JWT generation, Apple's token-exchange response shape, identity-token
+  verification via `PyJWKClient`) was checked against real library APIs and
+  a self-signed test key, not guessed. What's untested by me: the actual
+  on-device sign-in sheets, and both depend on Google Cloud Console /
+  Apple Developer credentials I can't create from here.
 - Store review (Apple in particular) can reject apps for reasons unrelated
   to this code (metadata, screenshots, privacy labels) — budget a review
   cycle or two.

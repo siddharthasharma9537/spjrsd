@@ -22,6 +22,17 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Sign in with Apple: catches the redirect from this app's own
+                 /api/auth/apple/callback (backend/app/main.py) once it has
+                 exchanged Apple's authorization code for tokens. Must match
+                 APPLE_ANDROID_REDIRECT_SCHEME in backend/.env. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="online.cheruvugattu.app" android:host="apple-callback" />
+            </intent-filter>
+
         </activity>
 
         <provider

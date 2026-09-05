@@ -7,5 +7,9 @@
 		<string>webcredentials:cheruvugattu.online</string>
 		<string>applinks:cheruvugattu.online</string>
 	</array>
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
 </dict>
 </plist>
