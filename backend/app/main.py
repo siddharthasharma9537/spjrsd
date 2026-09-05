@@ -22,6 +22,7 @@ from zoneinfo import ZoneInfo
 from app.routes import volunteer
 from app.database.db import db
 from app.routes import contact
+from app.routes import whatsapp
 from app.services import syndication
 
 IST = ZoneInfo("Asia/Kolkata")
@@ -2167,6 +2168,7 @@ async def health_check():
 app.include_router(api_router)
 app.include_router(volunteer.router)
 app.include_router(contact.router)
+app.include_router(whatsapp.router)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
