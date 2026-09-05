@@ -3,11 +3,11 @@ import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import Newsletter from '@/components/Newsletter';
 import { useT } from '@/contexts/LanguageContext';
-import { MapPin, Phone, Mail, ExternalLink, Users, Eye } from 'lucide-react';
+import { MapPin, Phone, Mail, ExternalLink, Users } from 'lucide-react';
 
 export default function Footer() {
   const { t } = useT();
-  const [stats, setStats] = useState({ total_visitors: 0, todays_visitors: 0 });
+  const [stats, setStats] = useState({ total_visitors: 0 });
 
   useEffect(() => {
     api.post('/visitor-stats/track').catch(err => console.error('Failed to track visitor:', err));
@@ -124,11 +124,6 @@ export default function Footer() {
                 <Users className="h-4 w-4 text-[#D4AF37] mx-auto mb-1" />
                 <p className="text-lg font-bold">{stats.total_visitors?.toLocaleString()}</p>
                 <p className="text-xs text-[#FFE0B2]/40">{t('Total Visitors', 'మొత్తం సందర్శకులు')}</p>
-              </div>
-              <div className="bg-[#3D1F0A] rounded-lg px-4 py-3 text-center">
-                <Eye className="h-4 w-4 text-[#D4AF37] mx-auto mb-1" />
-                <p className="text-lg font-bold">{stats.todays_visitors?.toLocaleString()}</p>
-                <p className="text-xs text-[#FFE0B2]/40">{t('Today', 'నేడు')}</p>
               </div>
             </div>
           </div>

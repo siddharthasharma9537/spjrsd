@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
-import { Users, BookOpen, Flame, IndianRupee, CalendarCheck, HandCoins, BedDouble, Newspaper } from 'lucide-react';
+import { Users, BookOpen, Flame, IndianRupee, CalendarCheck, HandCoins, BedDouble, Newspaper, Eye } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
@@ -21,6 +21,8 @@ export default function AdminDashboard() {
     { icon: HandCoins, label: 'Total Donations', value: stats.total_donations, color: 'text-[#D4AF37]', bg: 'bg-[#D4AF37]/10' },
     { icon: IndianRupee, label: 'Donation Amount', value: `Rs. ${stats.total_donation_amount.toLocaleString()}`, color: 'text-green-600', bg: 'bg-green-50' },
     { icon: BedDouble, label: 'Accommodation Bookings', value: stats.total_acc_bookings, color: 'text-[#621B00]', bg: 'bg-[#621B00]/10' },
+    { icon: Users, label: 'Total Visitors', value: stats.total_visitors?.toLocaleString(), color: 'text-[#C43E00]', bg: 'bg-[#C43E00]/10' },
+    { icon: Eye, label: "Today's Visitors", value: stats.todays_visitors?.toLocaleString(), color: 'text-[#D4AF37]', bg: 'bg-[#D4AF37]/10' },
   ] : [];
 
   return (

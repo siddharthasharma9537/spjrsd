@@ -1593,12 +1593,15 @@ async def admin_stats(user=Depends(get_current_admin)):
     don_rev = await db.donations.aggregate(don_pipeline).to_list(1)
     total_donation_amount = don_rev[0]["total"] if don_rev else 0
     total_acc_bookings = await db.accommodation_bookings.count_documents({})
+    visitor_stats = await db.visitor_stats.find_one({"key": "main"}, {"_id": 0}) or {}
     return {
         "total_devotees": total_devotees, "total_bookings": total_bookings,
         "today_bookings": today_bookings, "total_sevas": total_sevas,
         "confirmed_bookings": confirmed_bookings, "total_revenue": total_revenue,
         "total_donations": total_donations, "total_donation_amount": total_donation_amount,
-        "total_acc_bookings": total_acc_bookings
+        "total_acc_bookings": total_acc_bookings,
+        "total_visitors": visitor_stats.get("total_visitors", 0),
+        "todays_visitors": visitor_stats.get("todays_visitors", 0),
     }
 
 
