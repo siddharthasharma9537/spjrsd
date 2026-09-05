@@ -34,6 +34,7 @@ jobs:
       - name: Build web assets
         env:
           REACT_APP_BACKEND_URL: https://api.cheruvugattu.online
+          CI: false
         run: yarn build
 
       - name: Sync Capacitor Android project
