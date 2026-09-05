@@ -31,41 +31,68 @@ LANGUAGE_PROMPT = (
     "2️⃣ తెలుగు"
 )
 
-MENU_TEXT_EN = (
-    "🙏 Namaste! Welcome to Sri Parvathi Jadala Ramalingeshwara Swamy Devastanam.\n\n"
-    "Reply with a number:\n"
-    "1. Temple Timings\n"
-    "2. Sevas & Booking\n"
-    "3. Donations\n"
-    "4. Accommodation\n"
-    "5. Address & Directions\n"
-    "6. Talk to the temple office\n"
-    "7. Temple History\n"
-    "8. Stotrams\n"
-    "9. Photo & Video Gallery\n"
-    "10. Live Blog\n"
-    "11. Devotee Registration\n"
-    "12. Volunteer Registration\n\n"
-    "(Type 'telugu' to switch to Telugu)"
-)
+# The menu is shown as two native WhatsApp list messages (tap-to-select,
+# instead of the devotee having to type a number) - one list per message
+# because WhatsApp caps a single list message at 10 rows total. Typing a
+# number or keyword still works exactly as before; list rows just send the
+# same "1".."12" ids that _reply_for already understands.
+MENU_LISTS_EN = [
+    {
+        "header": "Temple Info",
+        "body": "🙏 Namaste! Welcome to Sri Parvathi Jadala Ramalingeshwara Swamy Devastanam.\n\nChoose an option below:",
+        "footer": "Type 'telugu' to switch language",
+        "rows": [
+            {"id": "1", "title": "Temple Timings", "description": "Morning & evening darshan hours"},
+            {"id": "2", "title": "Sevas & Booking", "description": "Popular sevas and online booking link"},
+            {"id": "3", "title": "Donations", "description": "e-Hundi, Annadanam and other sevas"},
+            {"id": "4", "title": "Accommodation", "description": "Rooms, cottages and dormitory rates"},
+            {"id": "5", "title": "Address & Directions", "description": "How to reach the temple"},
+            {"id": "6", "title": "Temple Office", "description": "Contact the executive officer"},
+            {"id": "7", "title": "Temple History", "description": "Sthala Puranam - the temple's legend"},
+            {"id": "8", "title": "Stotrams", "description": "Read temple stotrams online"},
+        ],
+    },
+    {
+        "header": "More Options",
+        "body": "More ways we can help:",
+        "footer": "Type 'telugu' to switch language",
+        "rows": [
+            {"id": "9", "title": "Photo & Video Gallery", "description": "Browse temple photos and videos"},
+            {"id": "10", "title": "Live Blog", "description": "Follow live updates from the temple"},
+            {"id": "11", "title": "Devotee Registration", "description": "Register to book sevas & accommodation"},
+            {"id": "12", "title": "Volunteer Registration", "description": "Sign up to volunteer with the temple"},
+        ],
+    },
+]
 
-MENU_TEXT_TE = (
-    "🙏 నమస్తే! శ్రీ పార్వతీ జడల రామలింగేశ్వర స్వామి దేవస్థానానికి స్వాగతం.\n\n"
-    "సంఖ్యతో సమాధానం ఇవ్వండి:\n"
-    "1. ఆలయ సమయాలు\n"
-    "2. సేవలు & బుకింగ్\n"
-    "3. విరాళాలు\n"
-    "4. వసతి\n"
-    "5. చిరునామా\n"
-    "6. కార్యాలయాన్ని సంప్రదించండి\n"
-    "7. ఆలయ చరిత్ర\n"
-    "8. స్తోత్రాలు\n"
-    "9. గ్యాలరీ\n"
-    "10. లైవ్ బ్లాగ్\n"
-    "11. భక్తుల నమోదు\n"
-    "12. వాలంటీర్ నమోదు\n\n"
-    "('english' అని టైప్ చేస్తే ఇంగ్లీష్‌కు మారుతుంది)"
-)
+MENU_LISTS_TE = [
+    {
+        "header": "ఆలయ సమాచారం",
+        "body": "🙏 నమస్తే! శ్రీ పార్వతీ జడల రామలింగేశ్వర స్వామి దేవస్థానానికి స్వాగతం.\n\nకింద ఒక ఎంపికను ఎంచుకోండి:",
+        "footer": "'english' అని టైప్ చేయండి",
+        "rows": [
+            {"id": "1", "title": "ఆలయ సమయాలు", "description": "ఉదయం & సాయంత్రం దర్శన సమయాలు"},
+            {"id": "2", "title": "సేవలు & బుకింగ్", "description": "ప్రసిద్ధ సేవలు, ఆన్‌లైన్ బుకింగ్"},
+            {"id": "3", "title": "విరాళాలు", "description": "ఈ-హుండీ, అన్నదానం మరియు ఇతర సేవలు"},
+            {"id": "4", "title": "వసతి", "description": "గదులు, కాటేజీలు, డార్మిటరీ ధరలు"},
+            {"id": "5", "title": "చిరునామా", "description": "ఆలయానికి చేరుకునే విధానం"},
+            {"id": "6", "title": "కార్యాలయం", "description": "కార్యనిర్వహణాధికారిని సంప్రదించండి"},
+            {"id": "7", "title": "ఆలయ చరిత్ర", "description": "స్థల పురాణము - ఆలయ చరిత్ర గాథ"},
+            {"id": "8", "title": "స్తోత్రాలు", "description": "ఆలయ స్తోత్రాలు చదవండి"},
+        ],
+    },
+    {
+        "header": "మరిన్ని ఎంపికలు",
+        "body": "మరింత సహాయం కోసం:",
+        "footer": "'english' అని టైప్ చేయండి",
+        "rows": [
+            {"id": "9", "title": "గ్యాలరీ", "description": "ఫోటోలు మరియు వీడియోలు"},
+            {"id": "10", "title": "లైవ్ బ్లాగ్", "description": "ఆలయం నుండి తాజా వార్తలు"},
+            {"id": "11", "title": "భక్తుల నమోదు", "description": "సేవలు, వసతి బుకింగ్ కోసం నమోదు"},
+            {"id": "12", "title": "వాలంటీర్ నమోదు", "description": "వాలంటీర్‌గా చేరడానికి నమోదు"},
+        ],
+    },
+]
 
 REPLIES_EN = {
     "1": (
@@ -287,33 +314,64 @@ MENU_KEYWORDS = {
 }
 
 
-def _reply_for(stripped: str, replies: dict, menu_text: str) -> str | list[str]:
+def _reply_for(stripped: str, replies: dict) -> str | list[str] | None:
     if stripped in replies:
         return replies[stripped]
     lowered = stripped.lower()
     for keyword, option in MENU_KEYWORDS.items():
         if keyword in lowered:
             return replies[option]
-    return menu_text
+    return None
 
 
-def _send_whatsapp_text(to: str, body: str):
+def _send_whatsapp_payload(to: str, message_type: str, payload: dict):
     if not WHATSAPP_TOKEN or not WHATSAPP_PHONE_NUMBER_ID:
         logger.warning("Skipping WhatsApp reply to %s: WHATSAPP_TOKEN/WHATSAPP_PHONE_NUMBER_ID not configured", to)
         return
     resp = requests.post(
         f"https://graph.facebook.com/v18.0/{WHATSAPP_PHONE_NUMBER_ID}/messages",
         headers={"Authorization": f"Bearer {WHATSAPP_TOKEN}", "Content-Type": "application/json"},
-        json={
-            "messaging_product": "whatsapp",
-            "to": to,
-            "type": "text",
-            "text": {"body": body},
-        },
+        json={"messaging_product": "whatsapp", "to": to, "type": message_type, **payload},
         timeout=15,
     )
     if resp.status_code >= 300:
         logger.error("WhatsApp send to %s failed (%s): %s", to, resp.status_code, resp.text)
+
+
+def _send_whatsapp_text(to: str, body: str):
+    _send_whatsapp_payload(to, "text", {"text": {"body": body}})
+
+
+def _send_menu(to: str, language: str):
+    """Sends the menu as native tap-to-select WhatsApp list messages (one
+    message per list, since a single list message is capped at 10 rows)."""
+    for menu_list in (MENU_LISTS_EN if language == "en" else MENU_LISTS_TE):
+        _send_whatsapp_payload(to, "interactive", {
+            "interactive": {
+                "type": "list",
+                "header": {"type": "text", "text": menu_list["header"]},
+                "body": {"text": menu_list["body"]},
+                "footer": {"text": menu_list["footer"]},
+                "action": {"button": "Select Option", "sections": [{"rows": menu_list["rows"]}]},
+            }
+        })
+
+
+def _send_language_prompt(to: str):
+    """Sends the language choice as native quick-reply buttons instead of
+    asking the devotee to type 1 or 2."""
+    _send_whatsapp_payload(to, "interactive", {
+        "interactive": {
+            "type": "button",
+            "body": {"text": LANGUAGE_PROMPT},
+            "action": {
+                "buttons": [
+                    {"type": "reply", "reply": {"id": "lang_en", "title": "English"}},
+                    {"type": "reply", "reply": {"id": "lang_te", "title": "తెలుగు"}},
+                ]
+            },
+        }
+    })
 
 
 def _verify_signature(raw_body: bytes, signature_header: str | None) -> bool:
@@ -364,7 +422,23 @@ async def receive_whatsapp_webhook(request: Request):
 async def _handle_inbound_message(message: dict, value: dict):
     from_number = message.get("from")
     message_type = message.get("type")
-    text_body = message.get("text", {}).get("body") if message_type == "text" else None
+    if message_type == "text":
+        text_body = message.get("text", {}).get("body")
+    elif message_type == "interactive":
+        # Tapping a menu list row delivers its id ("1".."12") the same way a
+        # typed number would; tapping a language button delivers "lang_en"/
+        # "lang_te", normalized here to "english"/"telugu" so the rest of the
+        # handler doesn't need to know buttons exist.
+        interactive = message.get("interactive", {})
+        if interactive.get("type") == "list_reply":
+            text_body = interactive.get("list_reply", {}).get("id")
+        elif interactive.get("type") == "button_reply":
+            button_id = interactive.get("button_reply", {}).get("id")
+            text_body = {"lang_en": "english", "lang_te": "telugu"}.get(button_id, button_id)
+        else:
+            text_body = None
+    else:
+        text_body = None
 
     contacts = value.get("contacts", [])
     profile_name = contacts[0]["profile"]["name"] if contacts else None
@@ -388,14 +462,14 @@ async def _handle_inbound_message(message: dict, value: dict):
     # Explicit language switch works at any time, regardless of prior state.
     if lowered == "english":
         await db.whatsapp_sessions.update_one({"phone": from_number}, {"$set": {"language": "en"}}, upsert=True)
-        _send_whatsapp_text(from_number, MENU_TEXT_EN)
+        _send_menu(from_number, "en")
         return
     if lowered == "telugu" or stripped == "తెలుగు":
         await db.whatsapp_sessions.update_one({"phone": from_number}, {"$set": {"language": "te"}}, upsert=True)
-        _send_whatsapp_text(from_number, MENU_TEXT_TE)
+        _send_menu(from_number, "te")
         return
     if lowered == "language" or stripped == "భాష":
-        _send_whatsapp_text(from_number, LANGUAGE_PROMPT)
+        _send_language_prompt(from_number)
         return
 
     session = await db.whatsapp_sessions.find_one({"phone": from_number}, {"_id": 0})
@@ -403,20 +477,23 @@ async def _handle_inbound_message(message: dict, value: dict):
 
     if language is None:
         # First contact (or language never picked): "1"/"2" pick a language
-        # here instead of meaning a menu item, since no language is set yet.
+        # here instead of meaning a menu item, since no language is set yet
+        # (kept for devotees who type instead of tapping the button).
         if stripped == "1":
             await db.whatsapp_sessions.update_one({"phone": from_number}, {"$set": {"language": "en"}}, upsert=True)
-            _send_whatsapp_text(from_number, MENU_TEXT_EN)
+            _send_menu(from_number, "en")
         elif stripped == "2":
             await db.whatsapp_sessions.update_one({"phone": from_number}, {"$set": {"language": "te"}}, upsert=True)
-            _send_whatsapp_text(from_number, MENU_TEXT_TE)
+            _send_menu(from_number, "te")
         else:
-            _send_whatsapp_text(from_number, LANGUAGE_PROMPT)
+            _send_language_prompt(from_number)
         return
 
     replies = REPLIES_EN if language == "en" else REPLIES_TE
-    menu_text = MENU_TEXT_EN if language == "en" else MENU_TEXT_TE
-    reply = _reply_for(stripped, replies, menu_text)
+    reply = _reply_for(stripped, replies)
+    if reply is None:
+        _send_menu(from_number, language)
+        return
     parts = reply if isinstance(reply, list) else [reply]
     for part in parts:
         _send_whatsapp_text(from_number, part)
