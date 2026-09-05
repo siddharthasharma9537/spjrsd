@@ -20,6 +20,24 @@
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<!--
+				Google Sign-In's redirect-back URL scheme: the REVERSED
+				client ID of REACT_APP_GOOGLE_IOS_CLIENT_ID (from
+				frontend/.env), e.g. an iOS client ID of
+				1234-abcd.apps.googleusercontent.com becomes
+				com.googleusercontent.apps.1234-abcd. Get the exact value
+				from the "iOS URL scheme" field Google Cloud Console shows
+				when you create that iOS OAuth client. See MOBILE_APP_SETUP.md.
+				-->
+				<string>REPLACE_WITH_YOUR_IOS_CLIENT_ID_REVERSED</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>

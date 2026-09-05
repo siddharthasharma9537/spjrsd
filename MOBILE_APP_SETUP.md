@@ -18,6 +18,12 @@ Everything code-level is already in place:
   (`backend/app/main.py`, `/api/auth/webauthn/*`), frontend helper
   (`frontend/src/lib/webauthn.js`), a "Sign in with Face ID / Fingerprint"
   button on `/login`, and a passkey management page at `/my-security`.
+- Native Google Sign-In on both platforms via `@capgo/capacitor-social-login`
+  (`frontend/src/lib/nativeGoogleAuth.js`, wired into
+  `GoogleAuthButton.jsx`) — drives Android's Credential Manager / iOS's
+  GoogleSignIn SDK instead of the web Google Identity Services script, but
+  still hands the backend the same kind of ID token, so no backend changes
+  were needed.
 
 What's left is account/credential setup and building the native projects —
 things that need your Google/Apple/Play Console accounts and, for iOS, a Mac
@@ -66,21 +72,52 @@ website. It also works in the apps once step 1 and step 4 (Android) /
 step 5 (iOS) are done, because passkeys are validated by domain (RP ID), not
 by app.
 
-## 3. Google Sign-In in the apps
+## 3. Native Google Sign-In in the apps
 
-`GOOGLE_CLIENT_ID` today is a **Web application** OAuth client, which only
-authorizes browser origins. Inside the app it'll still work for the same
-reason passkeys do (the WebView presents itself as `cheruvugattu.online`), so
-**you likely don't need to change anything** — test it first after step 1.
+Done — wired with `@capgo/capacitor-social-login` (the actively maintained
+fork of the old `@codetrix-studio/capacitor-google-auth`; that one is
+unmaintained and doesn't support Capacitor 8). Inside the app,
+`GoogleAuthButton.jsx` now detects it's running natively and swaps the
+web Google Identity Services button for one that drives the OS-native
+sign-in sheet (Android Credential Manager / iOS's GoogleSignIn SDK) via
+`frontend/src/lib/nativeGoogleAuth.js`. It still hands your existing backend
+the same shape of Google ID token, so `/api/auth/devotee/google` needed
+**no changes**.
 
-If Google's identity script refuses to load inside the app (some versions of
-Google Identity Services block WebViews outright), the fix is to add native
-Google Sign-In via `@codetrix-studio/capacitor-google-auth`, which needs:
-- An **Android** OAuth client (Google Cloud Console → Credentials → OAuth
-  client ID → Android), using the SHA-1 fingerprint from step 4 below.
-- An **iOS** OAuth client (type: iOS), using the bundle ID from step 5.
+What's already in place:
+- `capacitor.config.json` → `plugins.SocialLogin.providers` enables only
+  Google (Facebook/Apple/Twitter disabled, so they add zero app size).
+- Android: the plugin registered itself into
+  `android/capacitor.settings.gradle` / `android/app/capacitor.build.gradle`
+  automatically via `npx cap sync` — nothing else needed there. Per the
+  plugin's own docs, Android uses Credential Manager, which needs **no**
+  `google-services.json`, no Firebase project, and no Digital Asset Links.
+- iOS: `AppDelegate.swift` now imports `GoogleSignIn` and handles the
+  redirect-back URL in `application(_:open:options:)`; `Package.swift` picked
+  up the plugin's Swift package automatically.
 
-Ask me to wire this in if the web-origin approach doesn't work for you.
+What you still need to provide (Google Cloud Console → Credentials):
+
+1. **Android**: create an **Android**-type OAuth client — package name
+   `online.cheruvugattu.app` and the SHA-1 from step 4 below. You do **not**
+   put this ID into any config file; Google matches it by package name + SHA-1
+   automatically. Reuses the existing `GOOGLE_CLIENT_ID` (Web client) as
+   `webClientId` — set that in `frontend/.env` as `REACT_APP_GOOGLE_CLIENT_ID`
+   if you haven't already.
+2. **iOS**: create an **iOS**-type OAuth client with bundle ID
+   `online.cheruvugattu.app`. Put its value in `frontend/.env` as
+   `REACT_APP_GOOGLE_IOS_CLIENT_ID`. Then take the **"iOS URL scheme"** value
+   Google Cloud Console shows for that same client (looks like
+   `com.googleusercontent.apps.1234567890-abcdefg`) and replace
+   `REPLACE_WITH_YOUR_IOS_CLIENT_ID_REVERSED` in
+   `frontend/ios/App/App/Info.plist` with it — this is what lets Safari hand
+   control back to the app after sign-in.
+3. Rebuild the web assets and re-sync after setting the env vars:
+   `yarn build && npx cap sync`.
+
+Until `REACT_APP_GOOGLE_IOS_CLIENT_ID` is set, iOS silently falls back to the
+web-embedded Google button (which may or may not work in a WKWebView) —
+Android only needs the Web client ID you already have.
 
 ## 4. Android: signing key, package ID, and passkey domain link
 
@@ -143,8 +180,12 @@ what I can verify from this sandbox and need your involvement:
   and the real biometric prompts are untested by me. The backend WebAuthn
   logic itself is verified against the `webauthn` and
   `@simplewebauthn/browser` libraries' real APIs, not guessed.
-- Google Sign-In inside a WebView is a known grey area (works for many
-  Capacitor apps as-is, sometimes needs the native plugin swap in step 3).
+- Native Google Sign-In (step 3) is wired against the plugin's documented
+  API and its generated native project files (Android Gradle registration,
+  iOS `Package.swift`/`AppDelegate`) were verified to update correctly on
+  `npx cap sync` — but the actual Credential Manager / GoogleSignIn SDK
+  prompts are untested by me, and depend on OAuth client IDs I can't create
+  (no Google Cloud Console access from here).
 - Store review (Apple in particular) can reject apps for reasons unrelated
   to this code (metadata, screenshots, privacy labels) — budget a review
   cycle or two.

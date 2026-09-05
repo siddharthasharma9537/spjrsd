@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import GoogleSignIn
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -9,6 +10,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         return true
+    }
+
+    // Google Sign-In (via @capgo/capacitor-social-login) completes in Safari/
+    // the system browser, then bounces back into the app through the
+    // REVERSED_CLIENT_ID URL scheme registered in Info.plist - this hands
+    // that redirect back to the Google SDK to finish the sign-in.
+    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+        if GIDSignIn.sharedInstance.handle(url) {
+            return true
+        }
+        return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
     }
 
     func applicationWillResignActive(_ application: UIApplication) {

@@ -1166,6 +1166,13 @@
   resolved "https://registry.yarnpkg.com/@capacitor/status-bar/-/status-bar-8.0.3.tgz#b638524f021cb3147e6f36ad55e7e5171aee4fd6"
   integrity sha512-csSpfNeN49Hx9JaQBSJEIiEbOLtXg3kcc2IpScq2fu5L520h3AWEvsxoH8Srk1jxfRKepaJ4S4sqSC3foI4AgA==
 
+"@capgo/capacitor-social-login@^8.5.5":
+  version "8.5.5"
+  resolved "https://registry.yarnpkg.com/@capgo/capacitor-social-login/-/capacitor-social-login-8.5.5.tgz#340d48dee16cba3a03003e66b14bc616d4dc60a8"
+  integrity sha512-HNaWdyJGD+fpdo9MwylFLtbcjs9hqrROeG34goVYr0vqHB9egw34ZPzmmnEha2OIMLDFLosaHSCftz2EfYI1dw==
+  dependencies:
+    tslib "^2.8.1"
+
 "@craco/craco@^7.1.0":
   version "7.1.0"
   resolved "https://registry.npmjs.org/@craco/craco/-/craco-7.1.0.tgz"
