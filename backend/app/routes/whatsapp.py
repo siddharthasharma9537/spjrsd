@@ -18,55 +18,78 @@ WHATSAPP_PHONE_NUMBER_ID = os.environ.get("WHATSAPP_PHONE_NUMBER_ID")
 WHATSAPP_VERIFY_TOKEN = os.environ.get("WHATSAPP_VERIFY_TOKEN")
 META_APP_SECRET = os.environ.get("META_APP_SECRET")
 
-# All devotee-facing copy lives here, bilingual (English + Telugu), so it can
-# be edited without touching the webhook/routing logic below. Add a new menu
-# item by adding a key to REPLIES and a matching line + keywords to MENU_KEYWORDS.
+# All devotee-facing copy lives here, one language per menu item (chosen once
+# per phone number and remembered in db.whatsapp_sessions), so it can be
+# edited without touching the webhook/routing logic below. Add a new menu
+# item by adding a key to both REPLIES_EN/REPLIES_TE and a matching line +
+# keyword to MENU_KEYWORDS.
 SITE = "https://cheruvugattu.online"
 
-MENU_TEXT = (
-    "🙏 Namaste! Welcome to Sri Parvathi Jadala Ramalingeshwara Swamy "
-    "Devastanam.\n\n"
-    "నమస్తే! శ్రీ పార్వతీ జడల రామలింగేశ్వర స్వామి దేవస్థానానికి స్వాగతం.\n\n"
-    "Reply with a number:\n"
-    "1️⃣ Temple Timings / ఆలయ సమయాలు\n"
-    "2️⃣ Sevas & Booking / సేవలు & బుకింగ్\n"
-    "3️⃣ Donations / విరాళాలు\n"
-    "4️⃣ Accommodation / వసతి\n"
-    "5️⃣ Address & Directions / చిరునామా\n"
-    "6️⃣ Talk to the temple office / కార్యాలయాన్ని సంప్రదించండి\n"
-    "7️⃣ Temple History / ఆలయ చరిత్ర\n"
-    "8️⃣ Stotrams / స్తోత్రాలు\n"
-    "9️⃣ Photo & Video Gallery / గ్యాలరీ\n"
-    "10. Live Blog / లైవ్ బ్లాగ్\n"
-    "11. Devotee Registration / భక్తుల నమోదు\n"
-    "12. Volunteer Registration / వాలంటీర్ నమోదు"
+LANGUAGE_PROMPT = (
+    "🙏 Please select your language / దయచేసి మీ భాషను ఎంచుకోండి:\n\n"
+    "1️⃣ English\n"
+    "2️⃣ తెలుగు"
 )
 
-REPLIES = {
+MENU_TEXT_EN = (
+    "🙏 Namaste! Welcome to Sri Parvathi Jadala Ramalingeshwara Swamy Devastanam.\n\n"
+    "Reply with a number:\n"
+    "1. Temple Timings\n"
+    "2. Sevas & Booking\n"
+    "3. Donations\n"
+    "4. Accommodation\n"
+    "5. Address & Directions\n"
+    "6. Talk to the temple office\n"
+    "7. Temple History\n"
+    "8. Stotrams\n"
+    "9. Photo & Video Gallery\n"
+    "10. Live Blog\n"
+    "11. Devotee Registration\n"
+    "12. Volunteer Registration\n\n"
+    "(Type 'telugu' to switch to Telugu)"
+)
+
+MENU_TEXT_TE = (
+    "🙏 నమస్తే! శ్రీ పార్వతీ జడల రామలింగేశ్వర స్వామి దేవస్థానానికి స్వాగతం.\n\n"
+    "సంఖ్యతో సమాధానం ఇవ్వండి:\n"
+    "1. ఆలయ సమయాలు\n"
+    "2. సేవలు & బుకింగ్\n"
+    "3. విరాళాలు\n"
+    "4. వసతి\n"
+    "5. చిరునామా\n"
+    "6. కార్యాలయాన్ని సంప్రదించండి\n"
+    "7. ఆలయ చరిత్ర\n"
+    "8. స్తోత్రాలు\n"
+    "9. గ్యాలరీ\n"
+    "10. లైవ్ బ్లాగ్\n"
+    "11. భక్తుల నమోదు\n"
+    "12. వాలంటీర్ నమోదు\n\n"
+    "('english' అని టైప్ చేస్తే ఇంగ్లీష్‌కు మారుతుంది)"
+)
+
+REPLIES_EN = {
     "1": (
-        "🕉️ Temple Timings / ఆలయ సమయాలు\n\n"
+        "🕉️ Temple Timings\n\n"
         "Morning: 5:00 AM – 1:00 PM\n"
-        "Evening: 3:00 PM – 7:00 PM\n\n"
-        "ఉదయం: 5:00 - 1:00\n"
-        "సాయంత్రం: 3:00 - 7:00"
+        "Evening: 3:00 PM – 7:00 PM"
     ),
     "2": (
-        "🪔 Sevas & Booking / సేవలు & బుకింగ్\n\n"
+        "🪔 Sevas & Booking\n\n"
         "Some popular sevas:\n"
-        "- Kumkumarchana / కుంకుమార్చన – ₹30\n"
-        "- Abhishekam / అభిషేకం – ₹200\n"
-        "- Sri Satyanarayana Swamy Vratam / శ్రీ సత్యనారాయణ స్వామి వ్రతం – ₹300\n"
-        "- Swamy Vari Kalyanam / శ్రీ స్వామివారి కళ్యాణం – ₹1000\n\n"
+        "- Kumkumarchana – ₹30\n"
+        "- Abhishekam – ₹200\n"
+        "- Sri Satyanarayana Swamy Vratam – ₹300\n"
+        "- Swamy Vari Kalyanam – ₹1000\n\n"
         f"See the full list and book online: {SITE}/sevas"
     ),
     "3": (
-        "🙏 Donations / విరాళాలు\n\n"
+        "🙏 Donations\n\n"
         "You can contribute towards e-Hundi, Annadanam, and other temple "
         "sevas online:\n"
         f"{SITE}/donations"
     ),
     "4": (
-        "🛏️ Accommodation / వసతి\n\n"
+        "🛏️ Accommodation\n\n"
         "- Siva Nilayam (AC Room) – ₹800/day\n"
         "- Parvathi Sadanam (Non-AC Room) – ₹400/day\n"
         "- Nandi Cottage – ₹1500/day\n"
@@ -74,25 +97,104 @@ REPLIES = {
         f"Check availability and book: {SITE}/accommodation"
     ),
     "5": (
-        "📍 Address & Directions / చిరునామా\n\n"
+        "📍 Address & Directions\n\n"
         "Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanams, "
         "Cheruvugattu, Narketpally Mandal, Nalgonda District, "
-        "Telangana - 508254, India\n\n"
-        "శ్రీ పార్వతీ జడల రామలింగేశ్వర స్వామి దేవస్థానం, చెరువుగట్టు, "
-        "నార్కట్‌పల్లి మండలం, నల్గొండ జిల్లా, తెలంగాణ - 508254"
+        "Telangana - 508254, India"
     ),
     "6": (
-        "☎️ Temple Office / కార్యాలయం\n\n"
+        "☎️ Temple Office\n\n"
         "Sri S. Mohan Babu, Executive Officer\n"
         "Phone: +91 94910 00701\n"
         "Email: admin@cheruvugattu.online\n\n"
         f"Or write to us here: {SITE}/support/contact"
     ),
-    # Sent as 4 separate messages (Telugu 1/2, Telugu 2/2, English 1/2,
-    # English 2/2) since the combined bilingual text is well over WhatsApp's
-    # ~4096-character-per-message limit - the English translation alone is
-    # already close to it. Kept in lockstep with the same verbatim Sthala
-    # Puranam text on the /about#history page (AboutTemple.jsx).
+    # Sent as 2 messages - the combined shloka+Introduction+Main Legend text
+    # is close to WhatsApp's ~4096-character-per-message limit on its own.
+    # Kept in lockstep with the same verbatim Sthala Puranam text on the
+    # /about#history page (AboutTemple.jsx, English tab).
+    "7": [
+        (
+            "📜 Sthala Puranam (1/2)\n\n"
+            "The Shloka\n\n"
+            "I worship Sri Ramalingam, who resides in the great, divine temple built by the illustrious Bhargava Rama (Parashurama), who bears half His form as the daughter of the snow-capped mountain (Parvati) and wears the crescent moon, whose lotus feet are served by Brahma, Indra and Achyuta (Vishnu), who is the wish-fulfilling tree for true devotees, and who dwells beautifully upon the Ikshu hill (Ikshwadri).\n\n"
+            "Introduction\n\n"
+            "In the Treta Yuga, there lived an immensely powerful emperor named Kartavirya Arjuna. He was extraordinarily strong and possessed a thousand arms. One day, he went hunting in the forest with his entire retinue. Tired from the hunt, the king arrived at the nearby hermitage of the sage-king Jamadagni to rest. Sage Jamadagni, with the help of his divine wish-fulfilling cow Shabala, was able to arrange a sumptuous feast with all six flavours for the emperor's entire retinue within a very short time. Delighted by this, Kartavirya Arjuna asked the sage to give him the wish-fulfilling cow. Jamadagni advised him, saying, \"O King! By the power of its penance, this cow stays on its own accord only with sages; it cannot be kept by force by anyone.\" Ignoring these words, the emperor ordered his soldiers to forcibly bring the cow and its calf to his kingdom. Having no other option, Jamadagni went to the cow and prayed, \"O Mother! I am unable to protect you. Protect yourself, and thereby protect me too.\" Then, from a hair on the cow's body, a warrior fully equipped with weapons emerged and, in an instant, destroyed Kartavirya Arjuna's entire army. Unable to contain his anger, Kartavirya Arjuna came to wage war against Jamadagni, whereupon the sage's son, Parashurama, defeated him. Kartavirya Arjuna, burning with the desire for revenge, waited for a time when Parashurama was away, attacked the hermitage, and beheaded Sage Jamadagni. When Parashurama returned to the hermitage and learned of this, he flew into a towering rage, attacked Kartavirya Arjuna's kingdom, severed his thousand arms, and slew him. Even then, his anger unabated, Parashurama circled the earth twenty-one times, slaying every Kshatriya he encountered, and donated the entire earth as a gift to the foremost of Brahmins, Kashyapa Prajapati, the mind-born son of Brahma. At the sacred ford of Shamantapanchaka, he offered tarpana (libations) to his father Jamadagni with that Kshatriya blood. Thereafter, for the welfare of the universe and wishing the world to flourish in peace and happiness, he consecrated Shiva Lingas at 108 sacred sites, pouring the power of his penance - accumulated over hundreds of thousands of years - into each Shiva Linga he installed at every site, thereby establishing peace throughout the universe."
+        ),
+        (
+            "📜 Sthala Puranam (2/2)\n\n"
+            "The Main Legend\n\n"
+            "Of the 108 Shiva Lingas consecrated by Parashurama, the last was installed at the Cheruvugattu kshetram. Even after performing penance here with unwavering devotion for hundreds of thousands of years, Shiva did not appear before him. Enraged, Parashurama struck the Shiva Linga he had installed with his axe (Parashu). Lord Shiva then appeared and declared, \"For all these years you have performed penance and pleased me; this kshetram shall shine as one of the most renowned holy places. From here until the end of Kali Yuga, I shall remain and fulfil the long-cherished desires of my devotees,\" and with this promise, vanished. Since that day, this kshetram has flourished, growing more glorious day by day, gaining fame as an illustrious Shaiva kshetram, and shining as a place of great sanctity for devotees. In this Devasthanam, the temple of Sri Parvathi Devi lies at the foot of the hill (Gattu). In the temple at the foot of the hill, Sri Parvathi Devi is enshrined, with Sri Mallikarjuna Swamy, Subrahmanya Swamy, and Sri Bhadrakali Veerabhadra Swamy as attendant deities. Atop the hill, Sri Swamy's attendant deities are Sri Vighneshwara Swamy, Sri Anjaneya Swamy, and Sri Yellamma Devi, with Kalabhairava Swamy as the Kshetrapalaka (guardian deity); and it is believed that the revered Urdhva Linga atop the three sacred rock pools (Moodu Gundlu), along with the Gogarbha pond beside the Koneru, fulfil the heartfelt wishes of devotees. In this kshetram, Sri Swamy is worshipped by devotees as the Arogyapradata (bestower of health)."
+        ),
+    ],
+    "8": (
+        "🎶 Stotrams\n\n"
+        "Browse and read temple stotrams:\n"
+        f"{SITE}/stotrams"
+    ),
+    "9": (
+        "📸 Photo & Video Gallery\n\n"
+        f"Photos: {SITE}/gallery\n"
+        f"Videos: {SITE}/media/gallery/videos"
+    ),
+    "10": (
+        "📰 Live Blog\n\n"
+        "Follow live updates from the temple:\n"
+        f"{SITE}/live-blog"
+    ),
+    "11": (
+        "📝 Devotee Registration\n\n"
+        "Register as a devotee to book sevas, accommodation, and more:\n"
+        f"{SITE}/register"
+    ),
+    "12": (
+        "🤝 Volunteer Registration\n\n"
+        "Sign up to volunteer with the temple:\n"
+        f"{SITE}/volunteer"
+    ),
+}
+
+REPLIES_TE = {
+    "1": (
+        "🕉️ ఆలయ సమయాలు\n\n"
+        "ఉదయం: 5:00 - 1:00\n"
+        "సాయంత్రం: 3:00 - 7:00"
+    ),
+    "2": (
+        "🪔 సేవలు & బుకింగ్\n\n"
+        "కొన్ని ప్రసిద్ధ సేవలు:\n"
+        "- కుంకుమార్చన – ₹30\n"
+        "- అభిషేకం – ₹200\n"
+        "- శ్రీ సత్యనారాయణ స్వామి వ్రతం – ₹300\n"
+        "- శ్రీ స్వామివారి కళ్యాణం – ₹1000\n\n"
+        f"పూర్తి జాబితా మరియు బుకింగ్ కోసం: {SITE}/sevas"
+    ),
+    "3": (
+        "🙏 విరాళాలు\n\n"
+        "ఈ-హుండీ, అన్నదానం మరియు ఇతర ఆలయ సేవలకు ఆన్‌లైన్‌లో విరాళం అందించవచ్చు:\n"
+        f"{SITE}/donations"
+    ),
+    "4": (
+        "🛏️ వసతి\n\n"
+        "- శివ నిలయం (ఏసీ రూమ్) – ₹800/రోజు\n"
+        "- పార్వతి సదనం (నాన్ ఏసీ రూమ్) – ₹400/రోజు\n"
+        "- నంది కాటేజ్ – ₹1500/రోజు\n"
+        "- యాత్రికుల డార్మిటరీ – ₹100/రోజు\n\n"
+        f"లభ్యత చూసి బుక్ చేసుకోండి: {SITE}/accommodation"
+    ),
+    "5": (
+        "📍 చిరునామా\n\n"
+        "శ్రీ పార్వతీ జడల రామలింగేశ్వర స్వామి దేవస్థానం, చెరువుగట్టు, "
+        "నార్కట్‌పల్లి మండలం, నల్గొండ జిల్లా, తెలంగాణ - 508254"
+    ),
+    "6": (
+        "☎️ కార్యాలయం\n\n"
+        "శ్రీ ఎస్. మోహన్ బాబు, కార్యనిర్వహణాధికారి\n"
+        "ఫోన్: +91 94910 00701\n"
+        "ఇమెయిల్: admin@cheruvugattu.online\n\n"
+        f"లేదా ఇక్కడ రాయండి: {SITE}/support/contact"
+    ),
+    # Sent as 2 messages, same reasoning as REPLIES_EN["7"].
     "7": [
         (
             "📜 స్థల పురాణము (1/2)\n\n"
@@ -108,91 +210,91 @@ REPLIES = {
             "ముఖ్య గాథ\n\n"
             "పరశురాముడు ప్రతిష్ఠించిన 108 శివలింగాల్లో ఆఖరిది చెరువుగట్టు క్షేత్రంలో ప్రతిష్ఠించి ఈ స్థలంలోనే తపోనిష్ఠతో ఎన్నో లక్షల సంవత్సరాలు తపస్సు చేసినా, శివుడు ప్రత్యక్షం కానందున ఆగ్రహించి తాను ప్రతిష్టించిన శివలింగంపై తన పరశువుతో కొట్టాడు. అప్పుడు పరమశివుడు ప్రత్యక్షమై 'ఇన్నాళ్లు నువ్వు తపస్సు చేసి నన్ను మెప్పించిన ఈ క్షేత్రం సుప్రసిద్ధ క్షేత్రాలలో ఒకటై ప్రకాశిస్తుందని, ఇక్కడినుండి కలియుగాంతం వరకు నేను నిలిచియుండి భక్తుల యొక్క చిరకాల వాంఛలను నెరవేరుస్తుంటాను\" అని వాగ్దానం చేసి అంతర్థానమయ్యాడు. నాటినుండి ఈ క్షేత్రం దినదిన ప్రవర్ధమానంగా విరాజిల్లుతూ సుప్రసిద్ధ శైవక్షేత్రంగా పేరుపొంది, భక్తులపాలిట మహిమాన్వితక్షేత్రంగా వెలుగొందుతుంది. ఈ దేవస్థానమునందు పార్వతీ అమ్మవారి ఆలయం గట్టు (కొండ) క్రింద కలదు. కొండ క్రింద ఆలయములో శ్రీ పార్వతీ అమ్మవారు కొలువై, పరివార దేవతలుగా, శ్రీ మల్లిఖార్జున స్వామి, సుబ్రహ్మణ్య స్వామి, శ్రీ భద్రకాళీ వీరభద్రస్వామి దేవతలు పరివార దేవతలుగా కొలువైయున్నారు. గట్టుమీద శ్రీ స్వామివారికి పరివార దేవతలుగా శ్రీ విఘ్నేశ్వర స్వామి వారు, శ్రీ ఆంజనేయ స్వామి వారు, శ్రీ ఎల్లమ్మ అమ్మవారు మరియు క్షేత్రపాలకుడుగా కాలభైరవ స్వామివారు మరియు అతి ప్రశస్త్యమైన మూడు గుండ్లపై ఊర్ధ్వలింగము మరియు కోనేరు ప్రక్కన గోగర్భకొలను కొలువైయుండి భక్తుల మనోభీష్టాలను నెరవేరుస్తున్నారని ప్రతీతి. ఈ క్షేత్రంలో శ్రీ స్వామివారు ఆరోగ్యప్రదాతగా భక్తుల చేత పూజింపబడుచున్నారు."
         ),
-        (
-            "📜 Sthala Puranam (1/2)\n\n"
-            "The Shloka\n\n"
-            "I worship Sri Ramalingam, who resides in the great, divine temple built by the illustrious Bhargava Rama (Parashurama), who bears half His form as the daughter of the snow-capped mountain (Parvati) and wears the crescent moon, whose lotus feet are served by Brahma, Indra and Achyuta (Vishnu), who is the wish-fulfilling tree for true devotees, and who dwells beautifully upon the Ikshu hill (Ikshwadri).\n\n"
-            "Introduction\n\n"
-            "In the Treta Yuga, there lived an immensely powerful emperor named Kartavirya Arjuna. He was extraordinarily strong and possessed a thousand arms. One day, he went hunting in the forest with his entire retinue. Tired from the hunt, the king arrived at the nearby hermitage of the sage-king Jamadagni to rest. Sage Jamadagni, with the help of his divine wish-fulfilling cow Shabala, was able to arrange a sumptuous feast with all six flavours for the emperor's entire retinue within a very short time. Delighted by this, Kartavirya Arjuna asked the sage to give him the wish-fulfilling cow. Jamadagni advised him, saying, \"O King! By the power of its penance, this cow stays on its own accord only with sages; it cannot be kept by force by anyone.\" Ignoring these words, the emperor ordered his soldiers to forcibly bring the cow and its calf to his kingdom. Having no other option, Jamadagni went to the cow and prayed, \"O Mother! I am unable to protect you. Protect yourself, and thereby protect me too.\" Then, from a hair on the cow's body, a warrior fully equipped with weapons emerged and, in an instant, destroyed Kartavirya Arjuna's entire army. Unable to contain his anger, Kartavirya Arjuna came to wage war against Jamadagni, whereupon the sage's son, Parashurama, defeated him. Kartavirya Arjuna, burning with the desire for revenge, waited for a time when Parashurama was away, attacked the hermitage, and beheaded Sage Jamadagni. When Parashurama returned to the hermitage and learned of this, he flew into a towering rage, attacked Kartavirya Arjuna's kingdom, severed his thousand arms, and slew him. Even then, his anger unabated, Parashurama circled the earth twenty-one times, slaying every Kshatriya he encountered, and donated the entire earth as a gift to the foremost of Brahmins, Kashyapa Prajapati, the mind-born son of Brahma. At the sacred ford of Shamantapanchaka, he offered tarpana (libations) to his father Jamadagni with that Kshatriya blood. Thereafter, for the welfare of the universe and wishing the world to flourish in peace and happiness, he consecrated Shiva Lingas at 108 sacred sites, pouring the power of his penance - accumulated over hundreds of thousands of years - into each Shiva Linga he installed at every site, thereby establishing peace throughout the universe."
-        ),
-        (
-            "📜 Sthala Puranam (2/2)\n\n"
-            "The Main Legend\n\n"
-            "Of the 108 Shiva Lingas consecrated by Parashurama, the last was installed at the Cheruvugattu kshetram. Even after performing penance here with unwavering devotion for hundreds of thousands of years, Shiva did not appear before him. Enraged, Parashurama struck the Shiva Linga he had installed with his axe (Parashu). Lord Shiva then appeared and declared, \"For all these years you have performed penance and pleased me; this kshetram shall shine as one of the most renowned holy places. From here until the end of Kali Yuga, I shall remain and fulfil the long-cherished desires of my devotees,\" and with this promise, vanished. Since that day, this kshetram has flourished, growing more glorious day by day, gaining fame as an illustrious Shaiva kshetram, and shining as a place of great sanctity for devotees. In this Devasthanam, the temple of Sri Parvathi Devi lies at the foot of the hill (Gattu). In the temple at the foot of the hill, Sri Parvathi Devi is enshrined, with Sri Mallikarjuna Swamy, Subrahmanya Swamy, and Sri Bhadrakali Veerabhadra Swamy as attendant deities. Atop the hill, Sri Swamy's attendant deities are Sri Vighneshwara Swamy, Sri Anjaneya Swamy, and Sri Yellamma Devi, with Kalabhairava Swamy as the Kshetrapalaka (guardian deity); and it is believed that the revered Urdhva Linga atop the three sacred rock pools (Moodu Gundlu), along with the Gogarbha pond beside the Koneru, fulfil the heartfelt wishes of devotees. In this kshetram, Sri Swamy is worshipped by devotees as the Arogyapradata (bestower of health)."
-        ),
     ],
     "8": (
-        "🎶 Stotrams / స్తోత్రాలు\n\n"
-        "Browse and read temple stotrams:\n"
+        "🎶 స్తోత్రాలు\n\n"
+        "ఆలయ స్తోత్రాలు చదవండి:\n"
         f"{SITE}/stotrams"
     ),
     "9": (
-        "📸 Photo & Video Gallery / గ్యాలరీ\n\n"
-        f"Photos: {SITE}/gallery\n"
-        f"Videos: {SITE}/media/gallery/videos"
+        "📸 గ్యాలరీ\n\n"
+        f"ఫోటోలు: {SITE}/gallery\n"
+        f"వీడియోలు: {SITE}/media/gallery/videos"
     ),
     "10": (
-        "📰 Live Blog / లైవ్ బ్లాగ్\n\n"
-        "Follow live updates from the temple:\n"
+        "📰 లైవ్ బ్లాగ్\n\n"
+        "ఆలయం నుండి తాజా వార్తలు:\n"
         f"{SITE}/live-blog"
     ),
     "11": (
-        "📝 Devotee Registration / భక్తుల నమోదు\n\n"
-        "Register as a devotee to book sevas, accommodation, and more:\n"
+        "📝 భక్తుల నమోదు\n\n"
+        "సేవలు, వసతి మొదలైనవి బుక్ చేసుకోవడానికి భక్తునిగా నమోదు చేసుకోండి:\n"
         f"{SITE}/register"
     ),
     "12": (
-        "🤝 Volunteer Registration / వాలంటీర్ నమోదు\n\n"
-        "Sign up to volunteer with the temple:\n"
+        "🤝 వాలంటీర్ నమోదు\n\n"
+        "ఆలయంతో వాలంటీర్‌గా చేరడానికి నమోదు చేసుకోండి:\n"
         f"{SITE}/volunteer"
     ),
 }
 
 # Lets devotees type a keyword instead of memorizing the menu number. Checked
-# as a substring against the lowercased message, in this order, before
-# falling back to an exact match on the menu number itself.
+# as a substring against the lowercased (English) or exact (Telugu) message,
+# in this order, before falling back to an exact match on the menu number.
 MENU_KEYWORDS = {
     "timing": "1",
     "hour": "1",
+    "సమయ": "1",
     "seva": "2",
     "book": "2",
+    "సేవ": "2",
     "donat": "3",
     "hundi": "3",
     "annadanam": "3",
+    "విరాళ": "3",
     "accommodation": "4",
     "room": "4",
     "stay": "4",
+    "వసతి": "4",
     "address": "5",
     "location": "5",
     "direction": "5",
+    "చిరునామా": "5",
     "contact": "6",
     "office": "6",
     "phone": "6",
+    "కార్యాలయ": "6",
     "history": "7",
+    "puranam": "7",
+    "చరిత్ర": "7",
+    "పురాణ": "7",
     "stotram": "8",
+    "స్తోత్ర": "8",
     "gallery": "9",
     "photo": "9",
     "video": "9",
+    "గ్యాలరీ": "9",
     "blog": "10",
-    # "volunteer" is checked before the generic "regist"/"sign up" entries so
-    # a message like "volunteer registration" routes to 12, not 11.
+    "బ్లాగ్": "10",
+    # "volunteer"/"వాలంటీర్" are checked before the generic registration
+    # entries so "volunteer registration" routes to 12, not 11.
     "volunteer": "12",
+    "వాలంటీర్": "12",
     "regist": "11",
     "sign up": "11",
     "signup": "11",
+    "నమోదు": "11",
 }
 
 
-def _reply_for(text_body: str | None) -> str | list[str]:
-    if text_body:
-        stripped = text_body.strip()
-        if stripped in REPLIES:
-            return REPLIES[stripped]
-        lowered = stripped.lower()
-        for keyword, option in MENU_KEYWORDS.items():
-            if keyword in lowered:
-                return REPLIES[option]
-    return MENU_TEXT
+def _reply_for(stripped: str, replies: dict, menu_text: str) -> str | list[str]:
+    if stripped in replies:
+        return replies[stripped]
+    lowered = stripped.lower()
+    for keyword, option in MENU_KEYWORDS.items():
+        if keyword in lowered:
+            return replies[option]
+    return menu_text
 
 
 def _send_whatsapp_text(to: str, body: str):
@@ -277,8 +379,44 @@ async def _handle_inbound_message(message: dict, value: dict):
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
 
-    if from_number:
-        reply = _reply_for(text_body)
-        parts = reply if isinstance(reply, list) else [reply]
-        for part in parts:
-            _send_whatsapp_text(from_number, part)
+    if not from_number:
+        return
+
+    stripped = (text_body or "").strip()
+    lowered = stripped.lower()
+
+    # Explicit language switch works at any time, regardless of prior state.
+    if lowered == "english":
+        await db.whatsapp_sessions.update_one({"phone": from_number}, {"$set": {"language": "en"}}, upsert=True)
+        _send_whatsapp_text(from_number, MENU_TEXT_EN)
+        return
+    if lowered == "telugu" or stripped == "తెలుగు":
+        await db.whatsapp_sessions.update_one({"phone": from_number}, {"$set": {"language": "te"}}, upsert=True)
+        _send_whatsapp_text(from_number, MENU_TEXT_TE)
+        return
+    if lowered == "language" or stripped == "భాష":
+        _send_whatsapp_text(from_number, LANGUAGE_PROMPT)
+        return
+
+    session = await db.whatsapp_sessions.find_one({"phone": from_number}, {"_id": 0})
+    language = session.get("language") if session else None
+
+    if language is None:
+        # First contact (or language never picked): "1"/"2" pick a language
+        # here instead of meaning a menu item, since no language is set yet.
+        if stripped == "1":
+            await db.whatsapp_sessions.update_one({"phone": from_number}, {"$set": {"language": "en"}}, upsert=True)
+            _send_whatsapp_text(from_number, MENU_TEXT_EN)
+        elif stripped == "2":
+            await db.whatsapp_sessions.update_one({"phone": from_number}, {"$set": {"language": "te"}}, upsert=True)
+            _send_whatsapp_text(from_number, MENU_TEXT_TE)
+        else:
+            _send_whatsapp_text(from_number, LANGUAGE_PROMPT)
+        return
+
+    replies = REPLIES_EN if language == "en" else REPLIES_TE
+    menu_text = MENU_TEXT_EN if language == "en" else MENU_TEXT_TE
+    reply = _reply_for(stripped, replies, menu_text)
+    parts = reply if isinstance(reply, list) else [reply]
+    for part in parts:
+        _send_whatsapp_text(from_number, part)
