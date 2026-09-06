@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
-import { Plus, Pencil, Trash2, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, UploadCloud } from 'lucide-react';
 
 export default function AdminGallery() {
   const [items, setItems] = useState([]);
@@ -9,6 +9,8 @@ export default function AdminGallery() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ title: '', image_url: '', category: 'Temple', active_flag: true });
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
 
   const load = () => api.get('/gallery?active_only=false').then(r => { setItems(r.data); setLoading(false); });
   useEffect(() => { load(); }, []);
@@ -24,6 +26,27 @@ export default function AdminGallery() {
   };
 
   const handleDelete = async (id) => { if (!window.confirm('Delete?')) return; await api.delete(`/admin/gallery/${id}`); load(); };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploading(true);
+    setUploadError('');
+    try {
+      const body = new FormData();
+      body.append('file', file);
+      const { data } = await api.post('/admin/gallery/upload', body, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 60000,
+      });
+      setForm((f) => ({ ...f, image_url: data.url }));
+    } catch (err) {
+      setUploadError(err.response?.data?.detail || 'Upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
   const inputCls = "w-full h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-1 focus:ring-[#C43E00]/20 outline-none text-sm text-[#2D1B0E]";
 
   return (
@@ -40,7 +63,17 @@ export default function AdminGallery() {
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div><label className="block text-xs font-medium text-[#5D4037] mb-1">Title</label><input className={inputCls} value={form.title} onChange={e => setForm({...form, title: e.target.value})} required data-testid="gallery-title-input" /></div>
-            <div><label className="block text-xs font-medium text-[#5D4037] mb-1">Image URL</label><input className={inputCls} value={form.image_url} onChange={e => setForm({...form, image_url: e.target.value})} required placeholder="https://..." data-testid="gallery-url-input" /></div>
+            <div>
+              <label className="block text-xs font-medium text-[#5D4037] mb-1">Image</label>
+              <label className="flex items-center gap-2 justify-center h-24 border-2 border-dashed border-[#E6DCCA] rounded-lg cursor-pointer text-sm text-[#8D6E63] hover:border-[#C43E00] mb-2">
+                <UploadCloud className="h-4 w-4" />
+                {uploading ? 'Uploading...' : 'Click to upload an image'}
+                <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleFileUpload} disabled={uploading} data-testid="gallery-upload-input" />
+              </label>
+              {uploadError && <p className="text-xs text-red-600 mb-2">{uploadError}</p>}
+              {form.image_url && <img src={form.image_url} alt="Preview" className="h-20 rounded-lg object-cover mb-2" />}
+              <input className={inputCls} value={form.image_url} onChange={e => setForm({...form, image_url: e.target.value})} required placeholder="Or paste an image URL" data-testid="gallery-url-input" />
+            </div>
             <div><label className="block text-xs font-medium text-[#5D4037] mb-1">Category</label>
               <select className={inputCls} value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
                 {['Temple','Festival','Seva','Devotees','Nature','Other'].map(c => <option key={c} value={c}>{c}</option>)}

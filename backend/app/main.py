@@ -1436,6 +1436,39 @@ async def delete_live_blog_post(post_id: str, user=Depends(get_current_admin)):
     return {"message": "Live blog post deleted"}
 
 # ==================== GALLERY ROUTES ====================
+
+R2_ACCOUNT_ID = os.environ.get("R2_ACCOUNT_ID")
+R2_ACCESS_KEY_ID = os.environ.get("R2_ACCESS_KEY_ID")
+R2_SECRET_ACCESS_KEY = os.environ.get("R2_SECRET_ACCESS_KEY")
+R2_BUCKET_NAME = os.environ.get("R2_BUCKET_NAME", "spjrsd-gallery")
+R2_PUBLIC_URL = os.environ.get("R2_PUBLIC_URL", "").rstrip("/")
+ALLOWED_GALLERY_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+
+def _r2_client():
+    import boto3
+    from botocore.config import Config as BotoConfig
+    return boto3.client(
+        "s3",
+        endpoint_url=f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com",
+        aws_access_key_id=R2_ACCESS_KEY_ID,
+        aws_secret_access_key=R2_SECRET_ACCESS_KEY,
+        config=BotoConfig(signature_version="s3v4"),
+        region_name="auto",
+    )
+
+@api_router.post("/admin/gallery/upload")
+async def upload_gallery_image(file: UploadFile = File(...), user=Depends(get_current_admin)):
+    """Uploads an image straight to R2 and hands back its public URL, so the
+    admin never has to place a file in the repo or know a path by hand."""
+    if not R2_ACCOUNT_ID or not R2_ACCESS_KEY_ID or not R2_SECRET_ACCESS_KEY or not R2_PUBLIC_URL:
+        raise HTTPException(status_code=500, detail="R2 storage is not configured")
+    if file.content_type not in ALLOWED_GALLERY_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="Only JPEG, PNG, WebP, or GIF images are allowed")
+    extension = Path(file.filename or "").suffix or ".jpg"
+    key = f"gallery/{uuid.uuid4()}{extension}"
+    _r2_client().upload_fileobj(file.file, R2_BUCKET_NAME, key, ExtraArgs={"ContentType": file.content_type})
+    return {"url": f"{R2_PUBLIC_URL}/{key}"}
+
 @api_router.get("/gallery")
 async def list_gallery(active_only: bool = True, media_type: Optional[str] = None):
     query = {}
