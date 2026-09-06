@@ -179,6 +179,16 @@ REPLIES_EN = {
         "Sign up to volunteer with the temple:\n"
         f"{SITE}/volunteer"
     ),
+    # Not a numbered menu item - reached only via MENU_KEYWORDS, since
+    # devotees ask about this specific seva's timings directly.
+    "kalyana_katta": (
+        "🙏 Kalyana Katta (Thalanelalu) Timings\n\n"
+        "06:00 AM – 12:00 PM\n"
+        "03:00 PM – 06:00 PM\n\n"
+        "All days.\n\n"
+        "Timings may vary +/- 30 minutes on certain days due to high/low public reach.\n\n"
+        "Om Namo Bhagavate Ramalingaya 🙏"
+    ),
 }
 
 REPLIES_TE = {
@@ -263,12 +273,30 @@ REPLIES_TE = {
         "ఆలయంతో వాలంటీర్‌గా చేరడానికి నమోదు చేసుకోండి:\n"
         f"{SITE}/volunteer"
     ),
+    "kalyana_katta": (
+        "🙏 కళ్యాణ కట్ట (తలనీలాలు) సమయాలు\n\n"
+        "ఉదయం 06:00 - మధ్యాహ్నం 12:00\n"
+        "మధ్యాహ్నం 03:00 - సాయంత్రం 06:00\n\n"
+        "అన్ని రోజులు.\n\n"
+        "ప్రజా రద్దీని బట్టి కొన్ని రోజుల్లో సమయాలు +/- 30 నిమిషాలు మారవచ్చు.\n\n"
+        "ఓం నమో భగవతే రామలింగాయ 🙏"
+    ),
 }
 
 # Lets devotees type a keyword instead of memorizing the menu number. Checked
 # as a substring against the lowercased (English) or exact (Telugu) message,
 # in this order, before falling back to an exact match on the menu number.
 MENU_KEYWORDS = {
+    # Checked before "seva"/"book" below so "kalyana katta timings" doesn't
+    # get swallowed by the generic Sevas & Booking match.
+    "kalyana katta": "kalyana_katta",
+    "kalyanakatta": "kalyana_katta",
+    "thalanelalu": "kalyana_katta",
+    "thala neelalu": "kalyana_katta",
+    "talaneelalu": "kalyana_katta",
+    "tonsure": "kalyana_katta",
+    "కళ్యాణ కట్ట": "kalyana_katta",
+    "తలనీలాలు": "kalyana_katta",
     "timing": "1",
     "hour": "1",
     "సమయ": "1",
