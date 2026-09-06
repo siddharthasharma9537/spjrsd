@@ -3,7 +3,7 @@ import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
 import { Plus, Pencil, Trash2, X, Pin } from 'lucide-react';
 
-const EMPTY_FORM = { event_name: '', event_name_telugu: '', title: '', title_telugu: '', content: '', content_telugu: '', image_url: '', is_pinned: false, active_flag: true };
+const EMPTY_FORM = { event_name: '', event_name_telugu: '', title: '', title_telugu: '', content: '', content_telugu: '', image_url: '', is_pinned: false, active_flag: true, also_show_in_ticker: false };
 
 export default function AdminLiveBlog() {
   const [items, setItems] = useState([]);
@@ -21,8 +21,12 @@ export default function AdminLiveBlog() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (editing) await api.put(`/admin/live-blog/${editing}`, form);
-    else await api.post('/admin/live-blog', form);
+    if (editing) {
+      const { also_show_in_ticker, ...update } = form;
+      await api.put(`/admin/live-blog/${editing}`, update);
+    } else {
+      await api.post('/admin/live-blog', form);
+    }
     resetForm(); load();
   };
 
@@ -56,6 +60,9 @@ export default function AdminLiveBlog() {
             <div className="flex gap-4">
               <label className="flex items-center gap-2 text-sm text-[#5D4037]"><input type="checkbox" checked={form.is_pinned} onChange={e => setForm({ ...form, is_pinned: e.target.checked })} /> Pinned</label>
               <label className="flex items-center gap-2 text-sm text-[#5D4037]"><input type="checkbox" checked={form.active_flag} onChange={e => setForm({ ...form, active_flag: e.target.checked })} /> Active</label>
+              {!editing && (
+                <label className="flex items-center gap-2 text-sm text-[#5D4037]"><input type="checkbox" checked={form.also_show_in_ticker} onChange={e => setForm({ ...form, also_show_in_ticker: e.target.checked })} data-testid="live-blog-ticker-checkbox" /> Also show in News ticker</label>
+              )}
             </div>
             <div className="flex justify-end gap-3">
               <button type="button" onClick={resetForm} className="px-6 py-2 text-sm border border-[#E6DCCA] rounded-full">Cancel</button>

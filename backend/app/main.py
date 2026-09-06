@@ -526,6 +526,7 @@ class LiveBlogPostCreate(BaseModel):
     image_url: Optional[str] = ""
     is_pinned: bool = False
     active_flag: bool = True
+    also_show_in_ticker: bool = False
 
 class LiveBlogPostUpdate(BaseModel):
     event_name: Optional[str] = None
@@ -1409,13 +1410,26 @@ async def admin_list_live_blog(user=Depends(get_current_admin)):
     return await db.live_blog.find({}, {"_id": 0}).sort([("is_pinned", -1), ("posted_at", -1)]).to_list(200)
 
 @api_router.post("/admin/live-blog")
-async def create_live_blog_post(data: LiveBlogPostCreate, user=Depends(get_current_admin)):
+async def create_live_blog_post(data: LiveBlogPostCreate, background_tasks: BackgroundTasks, user=Depends(get_current_admin)):
     item = {
-        "id": str(uuid.uuid4()), **data.model_dump(),
+        "id": str(uuid.uuid4()), **data.model_dump(exclude={"also_show_in_ticker"}),
         "posted_at": datetime.now(timezone.utc).isoformat(),
         "posted_by": user.get("name", "")
     }
     await db.live_blog.insert_one(item)
+    if data.also_show_in_ticker:
+        news_item = {
+            "id": str(uuid.uuid4()),
+            "title": data.title,
+            "title_telugu": data.title_telugu,
+            "content": data.content,
+            "content_telugu": data.content_telugu,
+            "is_important": False,
+            "active_flag": True,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.news.insert_one(news_item)
+        background_tasks.add_task(syndication.publish, {k: v for k, v in news_item.items() if k != "_id"})
     return {k: v for k, v in item.items() if k != "_id"}
 
 @api_router.put("/admin/live-blog/{post_id}")
