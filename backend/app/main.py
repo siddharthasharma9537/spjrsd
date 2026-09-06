@@ -1169,7 +1169,7 @@ async def create_news(data: NewsCreate, background_tasks: BackgroundTasks, user=
     # Mirror to the temple's other channels after the response is sent, so a slow
     # or failing channel never delays or breaks publishing here.
     if item.get("active_flag"):
-        background_tasks.add_task(syndication.publish, result)
+        background_tasks.add_task(syndication.publish, result, f"/news/{item['id']}")
     return result
 
 @api_router.put("/admin/news/{news_id}")
@@ -1434,7 +1434,7 @@ async def create_live_blog_post(data: LiveBlogPostCreate, background_tasks: Back
     # regardless of also_show_in_ticker - that flag only controls whether it
     # also appears in the on-site News ticker, not whether it's syndicated.
     if result.get("active_flag"):
-        background_tasks.add_task(syndication.publish, result, "/live-blog")
+        background_tasks.add_task(syndication.publish, result, f"/live-blog/{item['id']}")
     return result
 
 @api_router.put("/admin/live-blog/{post_id}")

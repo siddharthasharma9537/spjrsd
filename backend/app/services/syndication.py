@@ -124,8 +124,8 @@ def _post_to_google_business_profile(message, link):
 def publish(item, path='/news'):
     """Mirror one news or live blog item to every configured channel.
 
-    `path` is the site path the mirrored post links back to - '/news' for a
-    News item, '/live-blog' for a Live Blog post. Safe to call from a
+    `path` is the site path the mirrored post links back to - the item's own
+    detail page, e.g. '/news/{id}' or '/live-blog/{id}'. Safe to call from a
     background task: it raises nothing.
     """
     message = render(item)

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import TopStrip from '@/components/TopStrip';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -57,12 +58,15 @@ export default function LiveBlog() {
           <LoadState error={loadError} emptyText={t('No live updates right now. Check back during the next festival or event.', 'ప్రస్తుతం లైవ్ అప్‌డేట్‌లు లేవు. తదుపరి పండుగ లేదా కార్యక్రమంలో మళ్ళీ చూడండి.')} />
         ) : (
           <div className="relative space-y-6 before:absolute before:left-[15px] before:top-2 before:bottom-2 before:w-px before:bg-[#E6DCCA]">
+            {/* Each post is its own route (/live-blog/:id) rather than only
+                living inline here, so it gets its own indexable URL, title
+                and meta description - see LiveBlogDetail.jsx. */}
             {posts.map(p => (
               <div key={p.id} className="relative pl-10" data-testid={`live-blog-post-${p.id}`}>
                 <span className={`absolute left-0 top-1 w-8 h-8 rounded-full flex items-center justify-center border-2 ${p.is_pinned ? 'bg-[#D4AF37]/15 border-[#D4AF37]' : 'bg-white border-[#E6DCCA]'}`}>
                   {p.is_pinned ? <Pin className="h-3.5 w-3.5 text-[#D4AF37]" /> : <span className="w-2 h-2 rounded-full bg-[#C43E00]" />}
                 </span>
-                <div className="bg-white border border-[#E6DCCA] rounded-xl p-5">
+                <Link to={`/live-blog/${p.id}`} className="block bg-white border border-[#E6DCCA] rounded-xl p-5 hover:border-[#C43E00]/40 transition-colors">
                   <div className="flex items-center justify-between mb-1 gap-2 flex-wrap">
                     <span className="text-xs font-medium text-[#C43E00] uppercase tracking-wide">{t(p.event_name, p.event_name_telugu)}</span>
                     <span className="text-xs text-[#8D6E63]">{timeAgo(p.posted_at, t)}</span>
@@ -74,7 +78,7 @@ export default function LiveBlog() {
                       <img src={p.image_url} alt={p.title} className="w-full h-auto object-cover" loading="lazy" />
                     </div>
                   )}
-                </div>
+                </Link>
               </div>
             ))}
           </div>

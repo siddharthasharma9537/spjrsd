@@ -26,11 +26,13 @@ import Temples from "@/pages/Temples";
 import Gallery from "@/pages/Gallery";
 import TicketLookup from "@/pages/TicketLookup";
 import NewsPage from "@/pages/NewsPage";
+import NewsDetail from "@/pages/NewsDetail";
 import Stotrams from "@/pages/Stotrams";
 import StotramDetail from "@/pages/StotramDetail";
 import LiveTV from "@/pages/LiveTV";
 import Panchangam from "@/pages/Panchangam";
 import LiveBlog from "@/pages/LiveBlog";
+import LiveBlogDetail from "@/pages/LiveBlogDetail";
 import VideoGallery from "@/pages/VideoGallery";
 import ContactUs from "@/pages/ContactUs";
 import FAQ from "@/pages/FAQ";
@@ -175,11 +177,13 @@ function App() {
           <Route path="/media/live-tv" element={<LiveTV />} />
           <Route path="/news" element={<NewsPage />} />
           <Route path="/media/news" element={<NewsPage />} />
+          <Route path="/news/:id" element={<NewsDetail />} />
           <Route path="/stotrams" element={<Stotrams />} />
           <Route path="/stotrams/:slug" element={<StotramDetail />} />
           <Route path="/panchangam" element={<Panchangam />} />
           <Route path="/live-blog" element={<LiveBlog />} />
           <Route path="/media/live-blog" element={<LiveBlog />} />
+          <Route path="/live-blog/:id" element={<LiveBlogDetail />} />
           <Route path="/print-ticket" element={<TicketLookup />} />
           <Route path="/support/contact" element={<ContactUs />} />
           <Route path="/support/faq" element={<FAQ />} />

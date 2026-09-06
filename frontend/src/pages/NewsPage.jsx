@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import TopStrip from '@/components/TopStrip';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -29,8 +30,16 @@ export default function NewsPage() {
           <LoadState error={loadError} emptyText={t('No news or announcements yet.', 'ఇంకా వార్తలు లేదా ప్రకటనలు లేవు.')} />
         ) : (
           <div className="space-y-4">
+            {/* Each item is its own route (/news/:id) rather than only living
+                inline here, so it gets its own indexable URL, title and meta
+                description - see NewsDetail.jsx. */}
             {news.map(n => (
-              <div key={n.id} className={`bg-white border rounded-xl p-6 ${n.is_important ? 'border-[#C43E00]/30 bg-[#C43E00]/5' : 'border-[#E6DCCA]'}`} data-testid={`news-item-${n.id}`}>
+              <Link
+                key={n.id}
+                to={`/news/${n.id}`}
+                className={`block bg-white border rounded-xl p-6 hover:border-[#C43E00]/40 transition-colors ${n.is_important ? 'border-[#C43E00]/30 bg-[#C43E00]/5' : 'border-[#E6DCCA]'}`}
+                data-testid={`news-item-${n.id}`}
+              >
                 <div className="flex items-start gap-3">
                   {n.is_important ? <AlertCircle className="h-5 w-5 text-[#C43E00] shrink-0 mt-0.5" /> : <Newspaper className="h-5 w-5 text-[#8D6E63] shrink-0 mt-0.5" />}
                   <div className="flex-1">
@@ -42,7 +51,7 @@ export default function NewsPage() {
                     <p className="text-xs text-[#8D6E63] mt-3">{new Date(n.created_at).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}
