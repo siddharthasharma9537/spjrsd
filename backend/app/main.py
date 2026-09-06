@@ -1429,8 +1429,13 @@ async def create_live_blog_post(data: LiveBlogPostCreate, background_tasks: Back
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         await db.news.insert_one(news_item)
-        background_tasks.add_task(syndication.publish, {k: v for k, v in news_item.items() if k != "_id"})
-    return {k: v for k, v in item.items() if k != "_id"}
+    result = {k: v for k, v in item.items() if k != "_id"}
+    # Every Live Blog post mirrors to Facebook/Google Business Profile once,
+    # regardless of also_show_in_ticker - that flag only controls whether it
+    # also appears in the on-site News ticker, not whether it's syndicated.
+    if result.get("active_flag"):
+        background_tasks.add_task(syndication.publish, result, "/live-blog")
+    return result
 
 @api_router.put("/admin/live-blog/{post_id}")
 async def update_live_blog_post(post_id: str, data: LiveBlogPostUpdate, user=Depends(get_current_admin)):

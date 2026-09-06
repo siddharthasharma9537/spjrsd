@@ -1,16 +1,21 @@
-"""Mirror published news to the temple's other channels.
+"""Mirror published content to the temple's other channels.
 
-The website is the source of truth: news published here is echoed to the
-Facebook Page so devotees who follow the Page see it without a second person
-having to retype it.
+The website is the source of truth: news and live blog posts published here
+are echoed to the Facebook Page and Google Business Profile so devotees who
+follow those instead see it without a second person having to retype it.
 
 Every channel is off unless its credentials are set, so this is inert until
-they are. Nothing here is allowed to affect publishing on the website itself -
-publish() swallows its own failures and logs them.
+they are. Each channel is independent and swallows its own failures - one
+channel being down or unconfigured never affects another, or the website
+itself. Add a new channel by adding a _post_to_<channel>() function and a
+call to it in publish(), following the same try/except-and-log shape.
 
-Google Business Profile is deliberately not implemented yet: its API needs
-OAuth with a refresh token and access has to be requested from Google, unlike
-the Page token this uses. Add it here once that access is granted.
+Instagram isn't implemented yet, but rides the same Meta Graph API and Page
+token as Facebook - much less setup than Google Business Profile needed.
+
+Google Business Profile posting needs its API access explicitly granted by
+Google (a Cloud project, OAuth consent, and an access request Google reviews)
+before GBP_* below will do anything.
 """
 
 import logging
@@ -26,11 +31,17 @@ FB_PAGE_ID = os.environ.get('FB_PAGE_ID')
 FB_PAGE_TOKEN = os.environ.get('FB_PAGE_TOKEN')
 FB_GRAPH_VERSION = os.environ.get('FB_GRAPH_VERSION', 'v21.0')
 
+GBP_ACCOUNT_ID = os.environ.get('GBP_ACCOUNT_ID')
+GBP_LOCATION_ID = os.environ.get('GBP_LOCATION_ID')
+GBP_CLIENT_ID = os.environ.get('GBP_CLIENT_ID')
+GBP_CLIENT_SECRET = os.environ.get('GBP_CLIENT_SECRET')
+GBP_REFRESH_TOKEN = os.environ.get('GBP_REFRESH_TOKEN')
+
 TIMEOUT_SECONDS = 10
 
 
 def render(item):
-    """Build the post text for a news item.
+    """Build the post text for a news or live blog item.
 
     Telugu leads when it exists - the Page audience is largely Telugu-speaking -
     with the English underneath so both readerships get it in one post.
@@ -60,24 +71,66 @@ def _post_to_facebook(message, link):
     return response.json().get('id')
 
 
-def publish(item):
-    """Mirror one news item to every configured channel.
+def _gbp_access_token():
+    response = requests.post(
+        'https://oauth2.googleapis.com/token',
+        data={
+            'client_id': GBP_CLIENT_ID,
+            'client_secret': GBP_CLIENT_SECRET,
+            'refresh_token': GBP_REFRESH_TOKEN,
+            'grant_type': 'refresh_token',
+        },
+        timeout=TIMEOUT_SECONDS,
+    )
+    response.raise_for_status()
+    return response.json()['access_token']
 
-    Safe to call from a background task: it raises nothing.
+
+def _post_to_google_business_profile(message, link):
+    access_token = _gbp_access_token()
+    response = requests.post(
+        f'https://mybusiness.googleapis.com/v4/accounts/{GBP_ACCOUNT_ID}/locations/{GBP_LOCATION_ID}/localPosts',
+        headers={'Authorization': f'Bearer {access_token}'},
+        json={
+            'languageCode': 'en',
+            'summary': message,
+            'topicType': 'STANDARD',
+            'callToAction': {'actionType': 'LEARN_MORE', 'url': link},
+        },
+        timeout=TIMEOUT_SECONDS,
+    )
+    response.raise_for_status()
+    return response.json().get('name')
+
+
+def publish(item, path='/news'):
+    """Mirror one news or live blog item to every configured channel.
+
+    `path` is the site path the mirrored post links back to - '/news' for a
+    News item, '/live-blog' for a Live Blog post. Safe to call from a
+    background task: it raises nothing.
     """
     message = render(item)
     if not message:
-        logger.warning('Syndication skipped: news item %s has no text', item.get('id'))
+        logger.warning('Syndication skipped: item %s has no text', item.get('id'))
         return
 
-    link = f'{SITE_URL}/news'
+    link = f'{SITE_URL}{path}'
 
-    if not (FB_PAGE_ID and FB_PAGE_TOKEN):
-        logger.info('Facebook syndication is not configured; skipping news %s', item.get('id'))
-        return
+    if FB_PAGE_ID and FB_PAGE_TOKEN:
+        try:
+            post_id = _post_to_facebook(message, link)
+            logger.info('Mirrored %s to Facebook post %s', item.get('id'), post_id)
+        except requests.RequestException as exc:
+            logger.error('Facebook syndication failed for %s: %s', item.get('id'), exc)
+    else:
+        logger.info('Facebook syndication is not configured; skipping %s', item.get('id'))
 
-    try:
-        post_id = _post_to_facebook(message, link)
-        logger.info('Mirrored news %s to Facebook post %s', item.get('id'), post_id)
-    except requests.RequestException as exc:
-        logger.error('Facebook syndication failed for news %s: %s', item.get('id'), exc)
+    if GBP_ACCOUNT_ID and GBP_LOCATION_ID and GBP_CLIENT_ID and GBP_CLIENT_SECRET and GBP_REFRESH_TOKEN:
+        try:
+            post_name = _post_to_google_business_profile(message, link)
+            logger.info('Mirrored %s to Google Business Profile post %s', item.get('id'), post_name)
+        except requests.RequestException as exc:
+            logger.error('Google Business Profile syndication failed for %s: %s', item.get('id'), exc)
+    else:
+        logger.info('Google Business Profile syndication is not configured; skipping %s', item.get('id'))
