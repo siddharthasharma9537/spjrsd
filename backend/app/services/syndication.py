@@ -71,6 +71,24 @@ def _post_to_facebook(message, link):
     return response.json().get('id')
 
 
+def _post_photo_to_facebook(image_url, message, link):
+    """Post with the item's own photo instead of a bare /feed link.
+
+    The /photos endpoint has no separate link field like /feed does, so the
+    link is appended into the caption text - Facebook auto-links plain URLs
+    in captions, it just won't render the big link-preview card /feed gives.
+    """
+    caption = f'{message}\n\n{link}' if message else link
+    response = requests.post(
+        f'https://graph.facebook.com/{FB_GRAPH_VERSION}/{FB_PAGE_ID}/photos',
+        data={'url': image_url, 'caption': caption, 'access_token': FB_PAGE_TOKEN},
+        timeout=TIMEOUT_SECONDS,
+    )
+    response.raise_for_status()
+    data = response.json()
+    return data.get('post_id') or data.get('id')
+
+
 def _gbp_access_token():
     response = requests.post(
         'https://oauth2.googleapis.com/token',
@@ -116,10 +134,14 @@ def publish(item, path='/news'):
         return
 
     link = f'{SITE_URL}{path}'
+    image_url = (item.get('image_url') or '').strip()
 
     if FB_PAGE_ID and FB_PAGE_TOKEN:
         try:
-            post_id = _post_to_facebook(message, link)
+            if image_url:
+                post_id = _post_photo_to_facebook(image_url, message, link)
+            else:
+                post_id = _post_to_facebook(message, link)
             logger.info('Mirrored %s to Facebook post %s', item.get('id'), post_id)
         except requests.RequestException as exc:
             logger.error('Facebook syndication failed for %s: %s', item.get('id'), exc)
