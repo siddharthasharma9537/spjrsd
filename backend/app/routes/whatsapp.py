@@ -288,9 +288,10 @@ REPLIES_TE = {
 # in this order, before falling back to an exact match on the menu number.
 MENU_KEYWORDS = {
     # Checked before "seva"/"book" below so "kalyana katta timings" doesn't
-    # get swallowed by the generic Sevas & Booking match.
-    "kalyana katta": "kalyana_katta",
-    "kalyanakatta": "kalyana_katta",
+    # get swallowed by the generic Sevas & Booking match. Spelling varies a
+    # lot in practice ("kalayan kattu", "kalyan katta", ...); the "kaly"/
+    # "kalay" + "katt" combo check in _reply_for below covers those, so only
+    # the unambiguous keywords are listed here.
     "thalanelalu": "kalyana_katta",
     "thala neelalu": "kalyana_katta",
     "talaneelalu": "kalyana_katta",
@@ -346,6 +347,8 @@ def _reply_for(stripped: str, replies: dict) -> str | list[str] | None:
     if stripped in replies:
         return replies[stripped]
     lowered = stripped.lower()
+    if ("kaly" in lowered or "kalay" in lowered) and "katt" in lowered:
+        return replies["kalyana_katta"]
     for keyword, option in MENU_KEYWORDS.items():
         if keyword in lowered:
             return replies[option]
