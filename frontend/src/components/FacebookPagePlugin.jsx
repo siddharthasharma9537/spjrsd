@@ -50,7 +50,7 @@ export default function FacebookPagePlugin({ width = 300, height = 70 }) {
         data-tabs=""
         data-width={width}
         data-height={height}
-        data-small-header="true"
+        data-small-header="false"
         data-adapt-container-width="true"
         data-hide-cover="true"
         data-show-facepile="false"
