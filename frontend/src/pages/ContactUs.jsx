@@ -2,9 +2,10 @@ import { useState, useId } from 'react';
 import Navbar from '@/components/Navbar';
 import TopStrip from '@/components/TopStrip';
 import Footer from '@/components/Footer';
+import FacebookPagePlugin from '@/components/FacebookPagePlugin';
 import api from '@/lib/api';
 import { useT } from "@/contexts/LanguageContext";
-import { MapPin, Phone, Mail, Clock, Send, CheckCircle, Facebook } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Send, CheckCircle } from 'lucide-react';
 
 export default function ContactUs() {
   const { t, heading } = useT();
@@ -83,15 +84,8 @@ export default function ContactUs() {
               </div>
             </div>
             <div className="bg-white border border-[#E6DCCA] rounded-xl p-5">
-              <div className="flex items-start gap-3">
-                <Facebook className="h-5 w-5 text-[#C43E00] shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="text-sm font-medium text-[#2D1B0E] mb-1">{t('Facebook', 'ఫేస్‌బుక్')}</h3>
-                  <a href="https://www.facebook.com/CheruvugattuTemple/" target="_blank" rel="noopener noreferrer" className="text-xs text-[#C43E00] hover:underline" data-testid="contact-facebook-link">
-                    {t('facebook.com/CheruvugattuTemple', 'facebook.com/CheruvugattuTemple')}
-                  </a>
-                </div>
-              </div>
+              <h3 className="text-sm font-medium text-[#2D1B0E] mb-3">{t('Facebook', 'ఫేస్‌బుక్')}</h3>
+              <FacebookPagePlugin width={260} height={130} />
             </div>
           </div>
           {/* Contact Form */}
