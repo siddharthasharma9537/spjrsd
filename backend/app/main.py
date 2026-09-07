@@ -699,6 +699,11 @@ async def devotee_register(data: DevoteeRegister):
 
 @api_router.get("/auth/devotee/verify-email")
 async def devotee_verify_email(token: str):
+    # Deliberately idempotent - not deleted on success, only ever replaced by
+    # a fresh resend. A duplicate request for the same still-valid link (a
+    # browser retry, a double-fired effect, opening the link twice) must
+    # succeed again rather than 400 just because the first request already
+    # consumed it.
     record = await db.email_verifications.find_one({"token_hash": hash_password(token)})
     if not record:
         raise HTTPException(status_code=400, detail="This verification link is invalid. Request a new one.")
@@ -707,7 +712,6 @@ async def devotee_verify_email(token: str):
         raise HTTPException(status_code=400, detail="This verification link has expired. Request a new one.")
 
     await db.devotees.update_one({"email": record["email"]}, {"$set": {"email_verified": True}})
-    await db.email_verifications.delete_one({"email": record["email"]})
     return {"message": "Email verified"}
 
 @api_router.post("/auth/devotee/resend-verification")

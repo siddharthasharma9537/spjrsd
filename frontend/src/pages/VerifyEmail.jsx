@@ -28,7 +28,8 @@ export default function VerifyEmail() {
         setStatus('error');
         setErrorMsg(err.response?.data?.detail || t('Something went wrong', 'ఏదో పొరపాటు జరిగింది'));
       });
-  }, [token, t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   const handleResend = async (e) => {
     e.preventDefault();
