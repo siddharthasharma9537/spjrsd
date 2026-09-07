@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import logging
 import os
+import re
 import uuid
 from datetime import datetime, timezone
 
@@ -348,31 +349,45 @@ MENU_KEYWORDS = {
 # category needs Meta business verification + a payment method, neither of
 # which is set up), so a free-form conversational form within this
 # customer-initiated session collects the same fields the website's sign-up
-# form does, then creates the devotee record directly - no separate OTP step.
+# form does, then hands off to main.py's shared _register_devotee (same
+# email-verification-link flow as the website - no separate OTP step here).
 # State lives in db.whatsapp_sessions alongside "language": reg_state is one
-# of "name"/"email"/"gotram"/"password" while a registration is in progress,
-# and reg_data accumulates the answers. Both are unset again once finished
-# (or cancelled), so a plain "11" always starts a fresh attempt.
+# of "name"/"email"/"gotram"/"password"/"confirm_password"/"newsletter" while
+# a registration is in progress, and reg_data accumulates the answers. Both
+# are unset again once finished (or cancelled), so a plain "11" always starts
+# a fresh attempt.
 REG_PROMPTS = {
     "en": {
         "already_registered": "You're already registered! Sign in at {site}/login with your mobile number and password.\n\nForgot your password? {site}/forgot-password",
         "ask_name": "📝 Let's create your devotee account.\n\nWhat's your full name?",
-        "ask_email": "Email address? (optional - reply 'skip' to leave blank)",
+        "ask_email": "Email address? (this is required - we'll send a verification link here, and it's needed to book sevas/accommodation)",
+        "invalid_email": "That doesn't look like a valid email address. Please try again.",
+        "email_taken": "That email is already registered to another account. Sign in at {site}/login instead, or use a different email.",
         "ask_gotram": "Gotram? (optional - reply 'skip' to leave blank)",
         "ask_password": "Set a password (at least 4 characters) - you'll use this together with your mobile number to sign in on the website.\n\nReply 'cancel' any time to stop.",
         "password_too_short": "Password must be at least 4 characters. Please try again.",
+        "ask_confirm_password": "Please retype your password to confirm.",
+        "password_mismatch": "Those passwords didn't match. Let's try again - set a password (at least 4 characters).",
+        "ask_newsletter": "Would you like to receive temple updates by email (festival announcements, news)? Reply 'yes' or 'no'.",
+        "invalid_yes_no": "Please reply 'yes' or 'no'.",
         "cancelled": "Registration cancelled. Type 'register' any time to start again.",
-        "done": "🎉 Registration complete!\n\nSign in at {site}/login with your mobile number ({mobile}) and the password you just set, to book sevas, accommodation and more.",
+        "done": "🎉 Registration complete!\n\nWe've sent a verification link to {email} - please open it to confirm your email (needed before you can book sevas or accommodation).\n\nSign in any time at {site}/login with your mobile number ({mobile}) and the password you just set.",
     },
     "te": {
         "already_registered": "మీరు ఇప్పటికే నమోదు అయ్యారు! మీ మొబైల్ నంబర్ మరియు పాస్‌వర్డ్‌తో {site}/login లో సైన్ ఇన్ చేయండి.\n\nపాస్‌వర్డ్ మర్చిపోయారా? {site}/forgot-password",
         "ask_name": "📝 మీ భక్తుల ఖాతాను సృష్టిద్దాం.\n\nమీ పూర్తి పేరు ఏమిటి?",
-        "ask_email": "ఇమెయిల్ చిరునామా? (ఐచ్ఛికం - ఖాళీగా ఉంచడానికి 'skip' అని పంపండి)",
+        "ask_email": "ఇమెయిల్ చిరునామా? (ఇది తప్పనిసరి - ధృవీకరణ లింక్ ఇక్కడికి పంపుతాము, సేవలు/వసతి బుక్ చేసుకోవడానికి కూడా ఇది అవసరం)",
+        "invalid_email": "అది సరైన ఇమెయిల్ చిరునామాలా లేదు. దయచేసి మళ్ళీ ప్రయత్నించండి.",
+        "email_taken": "ఆ ఇమెయిల్ ఇప్పటికే మరొక ఖాతాకు నమోదు చేయబడింది. బదులుగా {site}/login లో సైన్ ఇన్ చేయండి, లేదా వేరే ఇమెయిల్ ఉపయోగించండి.",
         "ask_gotram": "గోత్రం? (ఐచ్ఛికం - ఖాళీగా ఉంచడానికి 'skip' అని పంపండి)",
         "ask_password": "పాస్‌వర్డ్ సెట్ చేయండి (కనీసం 4 అక్షరాలు) - వెబ్‌సైట్‌లో సైన్ ఇన్ చేయడానికి దీన్ని మీ మొబైల్ నంబర్‌తో పాటు ఉపయోగిస్తారు.\n\nఆపివేయడానికి ఎప్పుడైనా 'cancel' అని పంపండి.",
         "password_too_short": "పాస్‌వర్డ్ కనీసం 4 అక్షరాలు ఉండాలి. దయచేసి మళ్ళీ ప్రయత్నించండి.",
+        "ask_confirm_password": "నిర్ధారించడానికి దయచేసి మీ పాస్‌వర్డ్‌ను మళ్ళీ టైప్ చేయండి.",
+        "password_mismatch": "ఆ పాస్‌వర్డ్‌లు సరిపోలలేదు. మళ్ళీ ప్రయత్నిద్దాం - పాస్‌వర్డ్ సెట్ చేయండి (కనీసం 4 అక్షరాలు).",
+        "ask_newsletter": "ఆలయ నవీకరణలు (పండుగ ప్రకటనలు, వార్తలు) ఇమెయిల్ ద్వారా పొందాలనుకుంటున్నారా? 'yes' లేదా 'no' అని పంపండి.",
+        "invalid_yes_no": "దయచేసి 'yes' లేదా 'no' అని పంపండి.",
         "cancelled": "నమోదు రద్దు చేయబడింది. మళ్ళీ మొదలుపెట్టడానికి ఎప్పుడైనా 'register' అని పంపండి.",
-        "done": "🎉 నమోదు పూర్తయింది!\n\nసేవలు, వసతి మొదలైనవి బుక్ చేసుకోవడానికి మీ మొబైల్ నంబర్ ({mobile}) మరియు మీరు సెట్ చేసిన పాస్‌వర్డ్‌తో {site}/login లో సైన్ ఇన్ చేయండి.",
+        "done": "🎉 నమోదు పూర్తయింది!\n\nమీ ఇమెయిల్ ({email})కు ధృవీకరణ లింక్ పంపాము - సేవలు లేదా వసతి బుక్ చేసుకోవడానికి ముందు దాన్ని తెరిచి ధృవీకరించండి.\n\nమీ మొబైల్ నంబర్ ({mobile}) మరియు మీరు సెట్ చేసిన పాస్‌వర్డ్‌తో {site}/login లో ఎప్పుడైనా సైన్ ఇన్ చేయండి.",
     },
 }
 
@@ -391,10 +406,16 @@ def _normalize_mobile(from_number: str) -> str:
 def _hash_password(pw: str) -> str:
     # Deliberately duplicated from main.py's hash_password (also plain sha256
     # hexdigest) rather than imported - main.py imports this router at module
-    # load time, so importing back from here would be circular. Must stay
-    # byte-for-byte identical or devotee_login's verify_password won't match
-    # records created through this chat flow.
+    # load time, so importing back from here would be circular. Only used to
+    # compare the password/confirm-password pair here without persisting
+    # either in plaintext in db.whatsapp_sessions between messages; the final
+    # plaintext (once confirmed equal) is handed to main.py's _register_devotee,
+    # which does the real, byte-for-byte-identical hash of the stored record.
     return hashlib.sha256(pw.encode()).hexdigest()
+
+
+def _is_valid_email(value: str) -> bool:
+    return bool(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", value))
 
 
 async def _start_registration(to: str, language: str):
@@ -413,13 +434,14 @@ async def _start_registration(to: str, language: str):
 
 async def _handle_registration_reply(to: str, language: str, state: str, reg_data: dict, stripped: str):
     prompts = REG_PROMPTS[language]
+    lowered = stripped.lower()
 
-    if stripped.lower() in ("cancel", "రద్దు"):
+    if lowered in ("cancel", "రద్దు"):
         await db.whatsapp_sessions.update_one({"phone": to}, {"$unset": {"reg_state": "", "reg_data": ""}})
         _send_whatsapp_text(to, prompts["cancelled"])
         return
 
-    skip = stripped.lower() == "skip"
+    skip = lowered == "skip"
 
     if state == "name":
         if not stripped:
@@ -430,7 +452,13 @@ async def _handle_registration_reply(to: str, language: str, state: str, reg_dat
         _send_whatsapp_text(to, prompts["ask_email"])
 
     elif state == "email":
-        reg_data["email"] = "" if skip else stripped
+        if not _is_valid_email(stripped):
+            _send_whatsapp_text(to, prompts["invalid_email"])
+            return
+        if await db.devotees.find_one({"email": stripped}, {"_id": 0}):
+            _send_whatsapp_text(to, prompts["email_taken"].format(site=SITE))
+            return
+        reg_data["email"] = stripped
         await db.whatsapp_sessions.update_one({"phone": to}, {"$set": {"reg_state": "gotram", "reg_data": reg_data}})
         _send_whatsapp_text(to, prompts["ask_gotram"])
 
@@ -443,20 +471,54 @@ async def _handle_registration_reply(to: str, language: str, state: str, reg_dat
         if len(stripped) < 4:
             _send_whatsapp_text(to, prompts["password_too_short"])
             return
+        # Stores only the hash of this first entry, never the plaintext, so
+        # a devotee's password never sits at rest in db.whatsapp_sessions -
+        # confirm_password below re-hashes its own input and compares hashes.
+        reg_data["password_hash_pending"] = _hash_password(stripped)
+        await db.whatsapp_sessions.update_one({"phone": to}, {"$set": {"reg_state": "confirm_password", "reg_data": reg_data}})
+        _send_whatsapp_text(to, prompts["ask_confirm_password"])
+
+    elif state == "confirm_password":
+        if _hash_password(stripped) != reg_data.get("password_hash_pending"):
+            reg_data.pop("password_hash_pending", None)
+            await db.whatsapp_sessions.update_one({"phone": to}, {"$set": {"reg_state": "password", "reg_data": reg_data}})
+            _send_whatsapp_text(to, prompts["password_mismatch"])
+            return
+        # The confirmed plaintext (not the hash) is what gets handed to
+        # main.py's _register_devotee below, which does its own hashing.
+        reg_data["password_plain"] = stripped
+        await db.whatsapp_sessions.update_one({"phone": to}, {"$set": {"reg_state": "newsletter", "reg_data": reg_data}})
+        _send_whatsapp_text(to, prompts["ask_newsletter"])
+
+    elif state == "newsletter":
+        yes_words = ("yes", "y", "అవును")
+        no_words = ("no", "n", "వద్దు", "కాదు")
+        if lowered not in yes_words and lowered not in no_words:
+            _send_whatsapp_text(to, prompts["invalid_yes_no"])
+            return
+        subscribe = lowered in yes_words
         mobile = _normalize_mobile(to)
-        devotee = {
-            "id": str(uuid.uuid4()),
-            "name": reg_data.get("name", ""),
-            "mobile": mobile,
-            "email": reg_data.get("email", ""),
-            "gotram": reg_data.get("gotram", ""),
-            "password_hash": _hash_password(stripped),
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "last_login_at": datetime.now(timezone.utc).isoformat(),
-        }
-        await db.devotees.insert_one(devotee)
+
+        # Lazy import - main.py imports this router at module load time, so
+        # importing back from here at import time would be circular; safe
+        # here since this only runs after main.py has fully loaded.
+        from app.main import DevoteeRegister, _register_devotee
+
+        try:
+            devotee = await _register_devotee(DevoteeRegister(
+                name=reg_data.get("name", ""), email=reg_data["email"], mobile=mobile,
+                gotram=reg_data.get("gotram", ""), password=reg_data["password_plain"],
+                subscribe_newsletter=subscribe,
+            ))
+        except ValueError:
+            # Email got taken by someone else between the email step above and
+            # now (rare race) - same message as the earlier, more common check.
+            await db.whatsapp_sessions.update_one({"phone": to}, {"$unset": {"reg_state": "", "reg_data": ""}})
+            _send_whatsapp_text(to, prompts["email_taken"].format(site=SITE))
+            return
+
         await db.whatsapp_sessions.update_one({"phone": to}, {"$unset": {"reg_state": "", "reg_data": ""}})
-        _send_whatsapp_text(to, prompts["done"].format(site=SITE, mobile=mobile))
+        _send_whatsapp_text(to, prompts["done"].format(site=SITE, mobile=devotee["mobile"], email=devotee["email"]))
 
 
 def _resolve_option(stripped: str) -> str | None:

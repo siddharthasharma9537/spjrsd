@@ -39,6 +39,11 @@ export default function QuickBooking() {
             <p className="text-sm text-[#621B00]">{t('Please', 'దయచేసి')} <Link to="/login" className="text-[#C43E00] font-medium underline">{t('sign in', 'సైన్ ఇన్ చేయండి')}</Link> {t('first to book a seva.', 'ముందుగా చేసి సేవ బుక్ చేయండి.')}</p>
           </div>
         )}
+        {user && userType === 'devotee' && !user.email_verified && (
+          <div className="bg-[#D4AF37]/10 border border-[#D4AF37]/20 rounded-xl p-4 mb-6 text-center" data-testid="email-verification-banner">
+            <p className="text-sm text-[#621B00]">{t('Please verify your email before booking - check your inbox for the verification link, or', 'బుక్ చేసుకోవడానికి ముందు మీ ఇమెయిల్‌ను ధృవీకరించండి - ధృవీకరణ లింక్ కోసం మీ ఇన్‌బాక్స్ చూడండి, లేదా')} <Link to="/verify-email" className="text-[#C43E00] font-medium underline">{t('request a new link', 'కొత్త లింక్ కోరండి')}</Link>.</p>
+          </div>
+        )}
         {loading ? <p className="text-center text-[#8D6E63]">{t('Loading sevas...', 'సేవలు లోడ్ అవుతున్నాయి...')}</p> : sevas.length === 0 ? (
           <LoadState error={loadError} emptyText={t('No sevas are available for booking right now.', 'ప్రస్తుతం బుకింగ్ కోసం సేవలు అందుబాటులో లేవు.')} />
         ) : (

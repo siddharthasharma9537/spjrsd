@@ -11,6 +11,7 @@ import Home from "@/pages/Home";
 import SignIn from "@/pages/SignIn";
 import SignUp from "@/pages/SignUp";
 import ForgotPassword from "@/pages/ForgotPassword";
+import VerifyEmail from "@/pages/VerifyEmail";
 import SevaList from "@/pages/SevaList";
 import SevaBooking from "@/pages/SevaBooking";
 import SevaSamagriChecklist from "@/pages/SevaSamagriChecklist";
@@ -100,6 +101,7 @@ const ROUTE_META = [
   ['/aashirvachanam', { title: 'Personalized Aashirvachanam', description: 'Sign up for a personalized blessing email from the temple on your birthday or wedding anniversary, every year.' }],
   ['/login', { title: 'Devotee Login', noIndex: true }],
   ['/register', { title: 'Devotee Registration', noIndex: true }],
+  ['/verify-email', { title: 'Verify Email', noIndex: true }],
   ['/auth', { title: 'Devotee Login', noIndex: true }],
   ['/ticket', { title: 'Booking Ticket', noIndex: true }],
   ['/donation-receipt', { title: '80G Donation Receipt', noIndex: true }],
@@ -160,6 +162,7 @@ function App() {
           <Route path="/auth/sign-in" element={<SignIn />} />
           <Route path="/auth/sign-up" element={<SignUp />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/about" element={<AboutTemple />} />
           <Route path="/temples" element={<Temples />} />
           <Route path="/sevas" element={<SevaList />} />

@@ -242,18 +242,23 @@ class DevoteePasswordResetVerify(BaseModel):
     code: str
     new_password: str
 
-class DevoteeOTPSend(BaseModel):
-    mobile: str
-    channel: str  # "sms" | "whatsapp" | "email"
-    # Only required when this mobile has no existing devotee account yet.
-    name: Optional[str] = None
-    email: Optional[str] = None
+class DevoteeRegister(BaseModel):
+    # Account is created immediately (not gated behind an OTP) - the devotee
+    # is logged in right away and a verification link is emailed separately;
+    # create_booking/create_accommodation_booking are what actually require
+    # email_verified. SMS is skipped here (needs DLT sender/template
+    # registration, not done) and so is WhatsApp's Authentication template
+    # (needs Meta business verification, also not done) - email, via MSG91's
+    # already-working generic transactional template, is what actually sends.
+    name: str
+    email: str
+    mobile: Optional[str] = ""
     gotram: Optional[str] = ""
-    password: Optional[str] = None
+    password: str
+    subscribe_newsletter: bool = False
 
-class DevoteeOTPVerify(BaseModel):
-    mobile: str
-    code: str
+class EmailVerificationResend(BaseModel):
+    email: str
 
 class DevoteeGoogleAuth(BaseModel):
     credential: str  # Google Identity Services ID token (JWT)
@@ -628,83 +633,92 @@ async def devotee_password_reset_verify(data: DevoteePasswordResetVerify):
     await db.devotees.update_one({"id": devotee["id"]}, {"$set": {"password_hash": hash_password(data.new_password)}})
     return {"message": "Password reset successful"}
 
-@api_router.post("/auth/devotee/send-otp")
-async def devotee_send_otp(data: DevoteeOTPSend):
-    if data.channel not in ("sms", "whatsapp", "email"):
-        raise HTTPException(status_code=400, detail="channel must be one of: sms, whatsapp, email")
+EMAIL_VERIFICATION_TTL_HOURS = 24
 
-    existing = await db.devotees.find_one({"mobile": data.mobile}, {"_id": 0})
-    if not existing:
-        if not data.name:
-            raise HTTPException(status_code=400, detail="name is required to register a new devotee")
-        if not data.password or len(data.password) < 4:
-            raise HTTPException(status_code=400, detail="password (at least 4 characters) is required to register")
-
-    email_for_otp = (existing or {}).get("email") or data.email
-    if data.channel == "email" and not email_for_otp:
-        raise HTTPException(status_code=400, detail="email is required to receive an OTP by email")
-
-    code = generate_otp_code()
-    await db.otp_codes.update_one(
-        {"mobile": data.mobile},
+async def _send_verification_email(email: str, name: str):
+    token = secrets.token_urlsafe(32)
+    await db.email_verifications.update_one(
+        {"email": email},
         {"$set": {
-            "mobile": data.mobile,
-            "code_hash": hash_password(code),
-            "channel": data.channel,
-            "purpose": "signup",
-            "pending_registration": None if existing else {
-                "name": data.name, "email": data.email or "", "gotram": data.gotram or "",
-                "password_hash": hash_password(data.password),
-            },
-            "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=OTP_TTL_MINUTES)).isoformat(),
-            "attempts": 0,
+            "email": email,
+            "token_hash": hash_password(token),
+            "expires_at": (datetime.now(timezone.utc) + timedelta(hours=EMAIL_VERIFICATION_TTL_HOURS)).isoformat(),
             "created_at": datetime.now(timezone.utc).isoformat(),
         }},
         upsert=True,
     )
+    link = f"https://cheruvugattu.online/verify-email?token={token}"
+    send_email_via_msg91(
+        [{"email": email}],
+        subject="Verify your email - Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam",
+        message=(
+            f"Namaste {name},\n\n"
+            "Please confirm your email address to finish setting up your devotee account "
+            f"and unlock seva/accommodation booking:\n{link}\n\n"
+            f"This link expires in {EMAIL_VERIFICATION_TTL_HOURS} hours."
+        ),
+    )
 
-    if data.channel == "sms":
-        send_sms_otp(data.mobile, code)
-    elif data.channel == "whatsapp":
-        send_whatsapp_otp(data.mobile, code)
-    elif data.channel == "email":
-        send_email_otp(email_for_otp, code)
+async def _register_devotee(data: DevoteeRegister) -> dict:
+    """Shared by the web /auth/devotee/register route and the WhatsApp
+    registration chat flow (see routes/whatsapp.py), so both create the same
+    shape of record and go through the same email-verification step. Raises
+    ValueError (translated by each caller into its own error format) if the
+    email is already registered."""
+    if await db.devotees.find_one({"email": data.email}, {"_id": 0}):
+        raise ValueError("An account with this email already exists. Sign in instead.")
+    if len(data.password) < 4:
+        raise ValueError("Password must be at least 4 characters")
 
-    return {"message": "OTP sent", "channel": data.channel}
+    devotee = {
+        "id": str(uuid.uuid4()), "name": data.name, "mobile": data.mobile or "",
+        "email": data.email, "gotram": data.gotram or "",
+        "password_hash": hash_password(data.password),
+        "email_verified": False,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "last_login_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.devotees.insert_one(devotee)
 
-@api_router.post("/auth/devotee/verify-otp")
-async def devotee_verify_otp(data: DevoteeOTPVerify):
-    record = await db.otp_codes.find_one({"mobile": data.mobile})
-    if not record or record.get("purpose", "signup") != "signup":
-        raise HTTPException(status_code=400, detail="No OTP was requested for this number")
-    if datetime.now(timezone.utc) > datetime.fromisoformat(record["expires_at"]):
-        await db.otp_codes.delete_one({"mobile": data.mobile})
-        raise HTTPException(status_code=400, detail="OTP expired, please request a new one")
-    if record.get("attempts", 0) >= 5:
-        await db.otp_codes.delete_one({"mobile": data.mobile})
-        raise HTTPException(status_code=400, detail="Too many attempts, please request a new OTP")
-    if hash_password(data.code) != record["code_hash"]:
-        await db.otp_codes.update_one({"mobile": data.mobile}, {"$inc": {"attempts": 1}})
-        raise HTTPException(status_code=400, detail="Incorrect OTP")
+    if data.subscribe_newsletter and not await db.newsletter.find_one({"email": data.email}):
+        await db.newsletter.insert_one({"id": str(uuid.uuid4()), "email": data.email, "subscribed_at": datetime.now(timezone.utc).isoformat()})
 
-    await db.otp_codes.delete_one({"mobile": data.mobile})
+    await _send_verification_email(data.email, data.name)
 
-    devotee = await db.devotees.find_one({"mobile": data.mobile}, {"_id": 0})
-    if not devotee:
-        pending = record.get("pending_registration") or {}
-        devotee = {
-            "id": str(uuid.uuid4()), "name": pending.get("name", ""), "mobile": data.mobile,
-            "email": pending.get("email", ""), "gotram": pending.get("gotram", ""),
-            "password_hash": pending.get("password_hash", ""),
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "last_login_at": datetime.now(timezone.utc).isoformat(),
-        }
-        await db.devotees.insert_one(devotee)
-    else:
-        await db.devotees.update_one({"id": devotee["id"]}, {"$set": {"last_login_at": datetime.now(timezone.utc).isoformat()}})
+    return devotee
+
+@api_router.post("/auth/devotee/register")
+async def devotee_register(data: DevoteeRegister):
+    try:
+        devotee = await _register_devotee(data)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     token = create_token({"sub": devotee["id"], "name": devotee["name"], "mobile": devotee["mobile"], "role": "devotee"})
     return {"token": token, "devotee": {k: v for k, v in devotee.items() if k not in ["_id", "password_hash"]}}
+
+@api_router.get("/auth/devotee/verify-email")
+async def devotee_verify_email(token: str):
+    record = await db.email_verifications.find_one({"token_hash": hash_password(token)})
+    if not record:
+        raise HTTPException(status_code=400, detail="This verification link is invalid. Request a new one.")
+    if datetime.now(timezone.utc) > datetime.fromisoformat(record["expires_at"]):
+        await db.email_verifications.delete_one({"email": record["email"]})
+        raise HTTPException(status_code=400, detail="This verification link has expired. Request a new one.")
+
+    await db.devotees.update_one({"email": record["email"]}, {"$set": {"email_verified": True}})
+    await db.email_verifications.delete_one({"email": record["email"]})
+    return {"message": "Email verified"}
+
+@api_router.post("/auth/devotee/resend-verification")
+async def devotee_resend_verification(data: EmailVerificationResend):
+    devotee = await db.devotees.find_one({"email": data.email}, {"_id": 0})
+    if not devotee:
+        raise HTTPException(status_code=404, detail="No account found with this email")
+    if devotee.get("email_verified"):
+        return {"message": "This email is already verified"}
+    await _send_verification_email(data.email, devotee.get("name", ""))
+    return {"message": "Verification email sent"}
 
 @api_router.post("/auth/devotee/google")
 async def devotee_google_auth(data: DevoteeGoogleAuth):
@@ -921,6 +935,9 @@ async def delete_schedule_slot(slot_id: str, user=Depends(get_current_admin)):
 # ==================== BOOKING ROUTES ====================
 @api_router.post("/bookings")
 async def create_booking(data: BookingCreate, user=Depends(get_current_devotee)):
+    devotee = await db.devotees.find_one({"id": user["sub"]}, {"_id": 0, "password_hash": 0})
+    if not devotee or not devotee.get("email_verified"):
+        raise HTTPException(status_code=403, detail="Please verify your email before booking a seva. Check your inbox, or request a new verification link.")
     seva = await db.sevas.find_one({"id": data.seva_id}, {"_id": 0})
     if not seva:
         raise HTTPException(status_code=404, detail="Seva not found")
@@ -932,7 +949,6 @@ async def create_booking(data: BookingCreate, user=Depends(get_current_devotee))
     booked = await db.bookings.count_documents({"slot_id": data.slot_id, "for_date": data.for_date, "status": {"$nin": ["Cancelled"]}})
     if booked >= slot.get("online_quota", 10):
         raise HTTPException(status_code=400, detail="No slots available")
-    devotee = await db.devotees.find_one({"id": user["sub"]}, {"_id": 0, "password_hash": 0})
     booking = {
         "id": str(uuid.uuid4()),
         "booking_number": f"SPJRS-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:6].upper()}",
@@ -1117,6 +1133,8 @@ async def create_accommodation_booking(data: AccommodationBookingCreate, user=De
     if not acc:
         raise HTTPException(status_code=404, detail="Accommodation not found")
     devotee = await db.devotees.find_one({"id": user["sub"]}, {"_id": 0, "password_hash": 0})
+    if not devotee or not devotee.get("email_verified"):
+        raise HTTPException(status_code=403, detail="Please verify your email before booking accommodation. Check your inbox, or request a new verification link.")
     from datetime import date as dt_date
     check_in = datetime.strptime(data.check_in_date, "%Y-%m-%d").date()
     check_out = datetime.strptime(data.check_out_date, "%Y-%m-%d").date()
