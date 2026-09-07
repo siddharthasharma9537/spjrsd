@@ -227,6 +227,12 @@ class DevoteeLogin(BaseModel):
     identifier: str  # mobile or email
     password: str
 
+class DevoteeUpdate(BaseModel):
+    name: Optional[str] = None
+    mobile: Optional[str] = None
+    email: Optional[str] = None
+    gotram: Optional[str] = None
+
 class DevoteePasswordResetSend(BaseModel):
     identifier: str  # mobile or email of an existing devotee
     channel: str  # "sms" | "whatsapp" | "email"
@@ -1586,6 +1592,28 @@ async def delete_stotram(stotram_id: str, user=Depends(get_current_admin)):
 @api_router.get("/admin/devotees")
 async def admin_list_devotees(user=Depends(get_current_admin)):
     return await db.devotees.find({}, {"_id": 0, "password_hash": 0}).sort("created_at", -1).to_list(500)
+
+@api_router.put("/admin/devotees/{devotee_id}")
+async def admin_update_devotee(devotee_id: str, data: DevoteeUpdate, user=Depends(get_current_admin)):
+    devotee = await db.devotees.find_one({"id": devotee_id}, {"_id": 0})
+    if not devotee:
+        raise HTTPException(status_code=404, detail="Devotee not found")
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    if "mobile" in update_data:
+        clash = await db.devotees.find_one({"mobile": update_data["mobile"], "id": {"$ne": devotee_id}}, {"_id": 0})
+        if clash:
+            raise HTTPException(status_code=400, detail="Another devotee already uses this mobile number")
+    await db.devotees.update_one({"id": devotee_id}, {"$set": update_data})
+    return await db.devotees.find_one({"id": devotee_id}, {"_id": 0, "password_hash": 0})
+
+@api_router.delete("/admin/devotees/{devotee_id}")
+async def admin_delete_devotee(devotee_id: str, user=Depends(get_current_admin)):
+    result = await db.devotees.delete_one({"id": devotee_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Devotee not found")
+    return {"message": "Devotee deleted"}
 
 @api_router.get("/admin/devotees/{devotee_id}/activity")
 async def admin_devotee_activity(devotee_id: str, user=Depends(get_current_admin)):

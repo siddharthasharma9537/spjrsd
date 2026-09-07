@@ -44,7 +44,7 @@ export default function AdminDevotees() {
 
   return (
     <AdminLayout title="Devotee List">
-      <p className="text-sm text-[#8D6E63] mb-4">{visible.length} of {devotees.length} registered devotees (read-only)</p>
+      <p className="text-sm text-[#8D6E63] mb-4">{visible.length} of {devotees.length} registered devotees — click a row to view, edit or delete</p>
 
       <div className="flex flex-wrap items-end gap-3 mb-4">
         <div className="relative flex-1 min-w-[220px]">
