@@ -230,6 +230,7 @@ export default function Navbar() {
               )}
               {!user && (
                 <>
+                  <Link to="/register" className="px-3 py-2.5 hover:bg-white/10 transition-colors" data-testid="nav-register">{t('Create Account', 'ఖాతా సృష్టించండి')}</Link>
                   <Link to="/login" className="px-3 py-2.5 bg-[#D4AF37] text-[#2A1800] font-medium hover:bg-[#e6c44a] transition-colors" data-testid="nav-login">{t('Sign In', 'సైన్ ఇన్')}</Link>
                   <Link to="/admin/login" className="px-3 py-2.5 text-[#FFE0B2]/60 hover:text-white text-xs" data-testid="nav-staff">{t('Staff', 'సిబ్బంది')}</Link>
                 </>
@@ -270,6 +271,7 @@ export default function Navbar() {
           )}
           {!user && (
             <>
+              <Link to="/register" onClick={() => setMobileOpen(false)} className="block px-3 py-2 border border-[#D4AF37] text-[#D4AF37] rounded text-center font-medium" data-testid="nav-register-mobile">{t('Create Account', 'ఖాతా సృష్టించండి')}</Link>
               <Link to="/login" onClick={() => setMobileOpen(false)} className="block px-3 py-2 bg-[#D4AF37] text-[#2A1800] rounded text-center font-medium" data-testid="nav-login-mobile">{t('Sign In', 'సైన్ ఇన్')}</Link>
               <Link to="/admin/login" onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-[#FFE0B2]/60 text-xs text-center" data-testid="nav-staff-mobile">{t('Staff', 'సిబ్బంది')}</Link>
             </>
