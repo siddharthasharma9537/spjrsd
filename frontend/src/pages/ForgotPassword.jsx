@@ -2,12 +2,15 @@ import { useState, useId } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '@/lib/api';
 import { useT } from "@/contexts/LanguageContext";
-import { Flame, ArrowLeft, MessageCircle, Phone, Mail } from 'lucide-react';
+import { Flame, ArrowLeft, Phone, Mail } from 'lucide-react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 
+// WhatsApp is deliberately left out here: send_whatsapp_otp() in the backend
+// calls Meta's Graph API with a template named otp_verification that was
+// never actually created/approved in WhatsApp Manager, so picking it fails
+// every time with error 132001. Re-add once that template is approved.
 const CHANNELS = [
   { id: 'sms', icon: Phone, label: 'SMS', labelTe: 'SMS' },
-  { id: 'whatsapp', icon: MessageCircle, label: 'WhatsApp', labelTe: 'వాట్సాప్' },
   { id: 'email', icon: Mail, label: 'Email', labelTe: 'ఇమెయిల్' },
 ];
 

@@ -35,7 +35,7 @@ LANGUAGE_PROMPT = (
 # instead of the devotee having to type a number) - one list per message
 # because WhatsApp caps a single list message at 10 rows total. Typing a
 # number or keyword still works exactly as before; list rows just send the
-# same "1".."12" ids that _reply_for already understands.
+# same "1".."12" ids that _resolve_option already understands.
 MENU_LISTS_EN = [
     {
         "header": "Temple Info",
@@ -290,7 +290,7 @@ MENU_KEYWORDS = {
     # Checked before "seva"/"book" below so "kalyana katta timings" doesn't
     # get swallowed by the generic Sevas & Booking match. Spelling varies a
     # lot in practice ("kalayan kattu", "kalyan katta", ...); the "kaly"/
-    # "kalay" + "katt" combo check in _reply_for below covers those, so only
+    # "kalay" + "katt" combo check in _resolve_option below covers those, so only
     # the unambiguous keywords are listed here.
     "thalanelalu": "kalyana_katta",
     "thala neelalu": "kalyana_katta",
@@ -342,16 +342,136 @@ MENU_KEYWORDS = {
     "నమోదు": "11",
 }
 
+# Devotee Registration (menu option 11) happens right here in chat instead of
+# just linking to /register - the devotee has already proven ownership of
+# this number by messaging us from it (WhatsApp's OTP-template Authentication
+# category needs Meta business verification + a payment method, neither of
+# which is set up), so a free-form conversational form within this
+# customer-initiated session collects the same fields the website's sign-up
+# form does, then creates the devotee record directly - no separate OTP step.
+# State lives in db.whatsapp_sessions alongside "language": reg_state is one
+# of "name"/"email"/"gotram"/"password" while a registration is in progress,
+# and reg_data accumulates the answers. Both are unset again once finished
+# (or cancelled), so a plain "11" always starts a fresh attempt.
+REG_PROMPTS = {
+    "en": {
+        "already_registered": "You're already registered! Sign in at {site}/login with your mobile number and password.\n\nForgot your password? {site}/forgot-password",
+        "ask_name": "📝 Let's create your devotee account.\n\nWhat's your full name?",
+        "ask_email": "Email address? (optional - reply 'skip' to leave blank)",
+        "ask_gotram": "Gotram? (optional - reply 'skip' to leave blank)",
+        "ask_password": "Set a password (at least 4 characters) - you'll use this together with your mobile number to sign in on the website.\n\nReply 'cancel' any time to stop.",
+        "password_too_short": "Password must be at least 4 characters. Please try again.",
+        "cancelled": "Registration cancelled. Type 'register' any time to start again.",
+        "done": "🎉 Registration complete!\n\nSign in at {site}/login with your mobile number ({mobile}) and the password you just set, to book sevas, accommodation and more.",
+    },
+    "te": {
+        "already_registered": "మీరు ఇప్పటికే నమోదు అయ్యారు! మీ మొబైల్ నంబర్ మరియు పాస్‌వర్డ్‌తో {site}/login లో సైన్ ఇన్ చేయండి.\n\nపాస్‌వర్డ్ మర్చిపోయారా? {site}/forgot-password",
+        "ask_name": "📝 మీ భక్తుల ఖాతాను సృష్టిద్దాం.\n\nమీ పూర్తి పేరు ఏమిటి?",
+        "ask_email": "ఇమెయిల్ చిరునామా? (ఐచ్ఛికం - ఖాళీగా ఉంచడానికి 'skip' అని పంపండి)",
+        "ask_gotram": "గోత్రం? (ఐచ్ఛికం - ఖాళీగా ఉంచడానికి 'skip' అని పంపండి)",
+        "ask_password": "పాస్‌వర్డ్ సెట్ చేయండి (కనీసం 4 అక్షరాలు) - వెబ్‌సైట్‌లో సైన్ ఇన్ చేయడానికి దీన్ని మీ మొబైల్ నంబర్‌తో పాటు ఉపయోగిస్తారు.\n\nఆపివేయడానికి ఎప్పుడైనా 'cancel' అని పంపండి.",
+        "password_too_short": "పాస్‌వర్డ్ కనీసం 4 అక్షరాలు ఉండాలి. దయచేసి మళ్ళీ ప్రయత్నించండి.",
+        "cancelled": "నమోదు రద్దు చేయబడింది. మళ్ళీ మొదలుపెట్టడానికి ఎప్పుడైనా 'register' అని పంపండి.",
+        "done": "🎉 నమోదు పూర్తయింది!\n\nసేవలు, వసతి మొదలైనవి బుక్ చేసుకోవడానికి మీ మొబైల్ నంబర్ ({mobile}) మరియు మీరు సెట్ చేసిన పాస్‌వర్డ్‌తో {site}/login లో సైన్ ఇన్ చేయండి.",
+    },
+}
 
-def _reply_for(stripped: str, replies: dict) -> str | list[str] | None:
-    if stripped in replies:
-        return replies[stripped]
+
+def _normalize_mobile(from_number: str) -> str:
+    """WhatsApp reports the sender in E.164-ish form (e.g. "919390353848" -
+    country code, no "+"), but the website's devotee records and login form
+    both use a plain 10-digit Indian mobile number. Without this, a devotee
+    registered here could never match by number when logging in on the site."""
+    digits = "".join(c for c in from_number if c.isdigit())
+    if len(digits) == 12 and digits.startswith("91"):
+        return digits[2:]
+    return digits[-10:] if len(digits) > 10 else digits
+
+
+def _hash_password(pw: str) -> str:
+    # Deliberately duplicated from main.py's hash_password (also plain sha256
+    # hexdigest) rather than imported - main.py imports this router at module
+    # load time, so importing back from here would be circular. Must stay
+    # byte-for-byte identical or devotee_login's verify_password won't match
+    # records created through this chat flow.
+    return hashlib.sha256(pw.encode()).hexdigest()
+
+
+async def _start_registration(to: str, language: str):
+    mobile = _normalize_mobile(to)
+    prompts = REG_PROMPTS[language]
+    existing = await db.devotees.find_one({"mobile": mobile}, {"_id": 0})
+    if existing:
+        _send_whatsapp_text(to, prompts["already_registered"].format(site=SITE))
+        return
+    await db.whatsapp_sessions.update_one(
+        {"phone": to},
+        {"$set": {"reg_state": "name", "reg_data": {}}},
+    )
+    _send_whatsapp_text(to, prompts["ask_name"])
+
+
+async def _handle_registration_reply(to: str, language: str, state: str, reg_data: dict, stripped: str):
+    prompts = REG_PROMPTS[language]
+
+    if stripped.lower() in ("cancel", "రద్దు"):
+        await db.whatsapp_sessions.update_one({"phone": to}, {"$unset": {"reg_state": "", "reg_data": ""}})
+        _send_whatsapp_text(to, prompts["cancelled"])
+        return
+
+    skip = stripped.lower() == "skip"
+
+    if state == "name":
+        if not stripped:
+            _send_whatsapp_text(to, prompts["ask_name"])
+            return
+        reg_data["name"] = stripped
+        await db.whatsapp_sessions.update_one({"phone": to}, {"$set": {"reg_state": "email", "reg_data": reg_data}})
+        _send_whatsapp_text(to, prompts["ask_email"])
+
+    elif state == "email":
+        reg_data["email"] = "" if skip else stripped
+        await db.whatsapp_sessions.update_one({"phone": to}, {"$set": {"reg_state": "gotram", "reg_data": reg_data}})
+        _send_whatsapp_text(to, prompts["ask_gotram"])
+
+    elif state == "gotram":
+        reg_data["gotram"] = "" if skip else stripped
+        await db.whatsapp_sessions.update_one({"phone": to}, {"$set": {"reg_state": "password", "reg_data": reg_data}})
+        _send_whatsapp_text(to, prompts["ask_password"])
+
+    elif state == "password":
+        if len(stripped) < 4:
+            _send_whatsapp_text(to, prompts["password_too_short"])
+            return
+        mobile = _normalize_mobile(to)
+        devotee = {
+            "id": str(uuid.uuid4()),
+            "name": reg_data.get("name", ""),
+            "mobile": mobile,
+            "email": reg_data.get("email", ""),
+            "gotram": reg_data.get("gotram", ""),
+            "password_hash": _hash_password(stripped),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "last_login_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.devotees.insert_one(devotee)
+        await db.whatsapp_sessions.update_one({"phone": to}, {"$unset": {"reg_state": "", "reg_data": ""}})
+        _send_whatsapp_text(to, prompts["done"].format(site=SITE, mobile=mobile))
+
+
+def _resolve_option(stripped: str) -> str | None:
+    """Resolves a message to the menu option it matches (e.g. "11"), returning the key itself
+    (e.g. "11") rather than its reply text - so the webhook handler can special-
+    case option 11 (Devotee Registration) into the chat flow below instead of
+    just sending back a link."""
+    if stripped in REPLIES_EN:  # REPLIES_EN/REPLIES_TE share the same key set
+        return stripped
     lowered = stripped.lower()
     if ("kaly" in lowered or "kalay" in lowered) and "katt" in lowered:
-        return replies["kalyana_katta"]
+        return "kalyana_katta"
     for keyword, option in MENU_KEYWORDS.items():
         if keyword in lowered:
-            return replies[option]
+            return option
     return None
 
 
@@ -490,6 +610,18 @@ async def _handle_inbound_message(message: dict, value: dict):
     stripped = (text_body or "").strip()
     lowered = stripped.lower()
 
+    session = await db.whatsapp_sessions.find_one({"phone": from_number}, {"_id": 0})
+    language = session.get("language") if session else None
+    reg_state = session.get("reg_state") if session else None
+
+    # Mid-registration, every reply is an answer to the current question (name,
+    # email, ...) rather than a command - so this is handled before the
+    # language-switch shortcuts below, which would otherwise misfire on a
+    # devotee whose actual name happens to be "English" or similar.
+    if reg_state:
+        await _handle_registration_reply(from_number, language or "en", reg_state, session.get("reg_data") or {}, stripped)
+        return
+
     # Explicit language switch works at any time, regardless of prior state.
     if lowered == "english":
         await db.whatsapp_sessions.update_one({"phone": from_number}, {"$set": {"language": "en"}}, upsert=True)
@@ -502,9 +634,6 @@ async def _handle_inbound_message(message: dict, value: dict):
     if lowered == "language" or stripped == "భాష":
         _send_language_prompt(from_number)
         return
-
-    session = await db.whatsapp_sessions.find_one({"phone": from_number}, {"_id": 0})
-    language = session.get("language") if session else None
 
     if language is None:
         # First contact (or language never picked): "1"/"2" pick a language
@@ -520,8 +649,13 @@ async def _handle_inbound_message(message: dict, value: dict):
             _send_language_prompt(from_number)
         return
 
+    option = _resolve_option(stripped)
+    if option == "11":
+        await _start_registration(from_number, language)
+        return
+
     replies = REPLIES_EN if language == "en" else REPLIES_TE
-    reply = _reply_for(stripped, replies)
+    reply = replies.get(option) if option else None
     if reply is None:
         _send_menu(from_number, language)
         return

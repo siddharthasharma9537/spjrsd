@@ -3,13 +3,16 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api';
 import { useT } from "@/contexts/LanguageContext";
-import { Flame, ArrowLeft, MessageCircle, Phone, Mail } from 'lucide-react';
+import { Flame, ArrowLeft, Phone, Mail, MessageCircle } from 'lucide-react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { GoogleAuthSection } from '@/components/GoogleAuthButton';
 
+// WhatsApp is deliberately left out here: send_whatsapp_otp() in the backend
+// calls Meta's Graph API with a template named otp_verification that was
+// never actually created/approved in WhatsApp Manager, so picking it fails
+// every time with error 132001. Re-add once that template is approved.
 const CHANNELS = [
   { id: 'sms', icon: Phone, label: 'SMS', labelTe: 'SMS' },
-  { id: 'whatsapp', icon: MessageCircle, label: 'WhatsApp', labelTe: 'వాట్సాప్' },
   { id: 'email', icon: Mail, label: 'Email', labelTe: 'ఇమెయిల్' },
 ];
 
@@ -100,6 +103,18 @@ export default function SignUp() {
             </h1>
 
             {error && <div className="bg-red-50 text-red-700 text-sm p-3 rounded-lg mb-4" data-testid="signup-error">{error}</div>}
+
+            {step === 'details' && (
+              <a
+                href="https://wa.me/919390353848?text=register"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full h-12 mb-4 bg-[#25D366] text-white font-medium rounded-full hover:bg-[#25D366]/90 transition-all"
+                data-testid="signup-whatsapp"
+              >
+                <MessageCircle className="h-4 w-4" /> {t('Register via WhatsApp instead', 'వాట్సాప్ ద్వారా నమోదు చేసుకోండి')}
+              </a>
+            )}
 
             {step === 'details' ? (
               <>
