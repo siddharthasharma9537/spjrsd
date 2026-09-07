@@ -126,7 +126,7 @@ export default function Footer() {
                 <p className="text-lg font-bold">{stats.total_visitors?.toLocaleString()}</p>
                 <p className="text-xs text-[#FFE0B2]/40">{t('Total Visitors', 'మొత్తం సందర్శకులు')}</p>
               </div>
-              <div className="bg-[#3D1F0A] rounded-lg p-1">
+              <div className="bg-white rounded-lg p-2 border border-[#D4AF37]/40 shadow-sm">
                 <FacebookPagePlugin width={260} height={130} />
               </div>
             </div>
