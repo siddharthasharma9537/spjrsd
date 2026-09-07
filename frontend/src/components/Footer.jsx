@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import Newsletter from '@/components/Newsletter';
 import { useT } from '@/contexts/LanguageContext';
-import { MapPin, Phone, Mail, ExternalLink, Users } from 'lucide-react';
+import { MapPin, Phone, Mail, ExternalLink, Users, Facebook } from 'lucide-react';
 
 export default function Footer() {
   const { t } = useT();
@@ -115,6 +115,9 @@ export default function Footer() {
               <p className="flex items-start gap-1.5"><MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" /> Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanams, Cheruvugattu, Narketpally Mandal, Nalgonda District, Telangana - 508254, India</p>
               <p className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> +91 94910 00701 (EO)</p>
               <p className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" /> admin@cheruvugattu.online</p>
+              <a href="https://www.facebook.com/CheruvugattuTemple/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-[#D4AF37] transition-colors" data-testid="footer-facebook-link">
+                <Facebook className="h-3.5 w-3.5" /> {t('Follow us on Facebook', 'ఫేస్‌బుక్‌లో మమ్మల్ని ఫాలో అవ్వండి')}
+              </a>
             </div>
           </div>
           <div>

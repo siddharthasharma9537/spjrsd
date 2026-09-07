@@ -4,7 +4,7 @@ import TopStrip from '@/components/TopStrip';
 import Footer from '@/components/Footer';
 import api from '@/lib/api';
 import { useT } from "@/contexts/LanguageContext";
-import { MapPin, Phone, Mail, Clock, Send, CheckCircle } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Send, CheckCircle, Facebook } from 'lucide-react';
 
 export default function ContactUs() {
   const { t, heading } = useT();
@@ -79,6 +79,17 @@ export default function ContactUs() {
                   <h3 className="text-sm font-medium text-[#2D1B0E] mb-1">{t('Office Hours', 'కార్యాలయ సమయాలు')}</h3>
                   <p className="text-xs text-[#5D4037]">{t('Mon - Sat: 9:00 AM - 5:00 PM', 'సోమ - శని: 9:00 AM - 5:00 PM')}</p>
                   <p className="text-xs text-[#5D4037]">{t('Sunday: 10:00 AM - 2:00 PM', 'ఆదివారం: 10:00 AM - 2:00 PM')}</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white border border-[#E6DCCA] rounded-xl p-5">
+              <div className="flex items-start gap-3">
+                <Facebook className="h-5 w-5 text-[#C43E00] shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-sm font-medium text-[#2D1B0E] mb-1">{t('Facebook', 'ఫేస్‌బుక్')}</h3>
+                  <a href="https://www.facebook.com/CheruvugattuTemple/" target="_blank" rel="noopener noreferrer" className="text-xs text-[#C43E00] hover:underline" data-testid="contact-facebook-link">
+                    {t('facebook.com/CheruvugattuTemple', 'facebook.com/CheruvugattuTemple')}
+                  </a>
                 </div>
               </div>
             </div>
