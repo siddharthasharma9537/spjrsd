@@ -13,10 +13,11 @@ function formatFollowerCount(count) {
 
 /* Real name, follower count and profile picture come from our own
    /facebook-stats endpoint (cached backend-side against the Graph API).
-   The facepile row below is decorative only - the Graph API has no way to
-   list a Page's actual followers to anyone, even the Page admin, so this
-   replaces the boxy, unstyleable Facebook Page Plugin iframe with a badge
-   that matches the site's own design instead of Facebook's fixed white one. */
+   No facepile here - the Graph API has no way to list a Page's actual
+   followers to anyone, even the Page admin, and generic placeholder faces
+   read as broken rather than as a deliberate design choice. This replaces
+   the boxy, unstyleable Facebook Page Plugin iframe with a badge that
+   matches the site's own design instead of Facebook's fixed white one. */
 export default function FacebookPagePlugin() {
   const [stats, setStats] = useState(null);
 
@@ -27,36 +28,26 @@ export default function FacebookPagePlugin() {
   const followerText = formatFollowerCount(stats?.followers_count);
 
   return (
-    <div className="bg-white border border-[#E6DCCA] rounded-lg p-2.5 flex flex-col gap-2 w-[230px]" data-testid="facebook-page-plugin">
-      <div className="flex items-center gap-2.5">
-        {stats?.picture_url ? (
-          <img src={stats.picture_url} alt="" className="w-8 h-8 rounded-full shrink-0" />
-        ) : (
-          <div className="w-8 h-8 rounded-full bg-[#D4AF37] shrink-0" />
-        )}
-        <div className="min-w-0">
-          <p className="text-xs text-[#2D1B0E] truncate">{stats?.name || 'Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanams'}</p>
-          <p className="text-[10px] text-[#5D4037]">{followerText ? `${followerText} followers` : ' '}</p>
-        </div>
+    <div className="bg-white border border-[#E6DCCA] rounded-lg p-2.5 flex items-center gap-2.5 w-[230px]" data-testid="facebook-page-plugin">
+      {stats?.picture_url ? (
+        <img src={stats.picture_url} alt="" className="w-8 h-8 rounded-full shrink-0" />
+      ) : (
+        <div className="w-8 h-8 rounded-full bg-[#D4AF37] shrink-0" />
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="text-xs text-[#2D1B0E] truncate">{stats?.name || 'Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanams'}</p>
+        <p className="text-[10px] text-[#5D4037]">{followerText ? `${followerText} followers` : ' '}</p>
       </div>
-      <div className="flex items-center justify-between">
-        <div className="flex" aria-hidden="true">
-          <div className="w-5 h-5 rounded-full bg-[#B4B2A9] border-2 border-white" />
-          <div className="w-5 h-5 rounded-full bg-[#888780] border-2 border-white -ml-1.5" />
-          <div className="w-5 h-5 rounded-full bg-[#B4B2A9] border-2 border-white -ml-1.5" />
-          <div className="w-5 h-5 rounded-full bg-[#D4AF37] border-2 border-white -ml-1.5 flex items-center justify-center text-[8px] text-white font-medium">+</div>
-        </div>
-        <a
-          href={PAGE_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[11px] font-medium text-white bg-[#1877F2] hover:bg-[#1877F2]/90 px-2.5 py-1.5 rounded-full flex items-center gap-1.5 shrink-0"
-          data-testid="facebook-follow-button"
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d={FACEBOOK_LOGO_PATH} /></svg>
-          Follow
-        </a>
-      </div>
+      <a
+        href={PAGE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[11px] font-medium text-white bg-[#1877F2] hover:bg-[#1877F2]/90 px-2.5 py-1.5 rounded-full flex items-center gap-1.5 shrink-0"
+        data-testid="facebook-follow-button"
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d={FACEBOOK_LOGO_PATH} /></svg>
+        Follow
+      </a>
     </div>
   );
 }
