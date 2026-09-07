@@ -4,17 +4,15 @@ Project names for Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam's (SPJRS
 
 ## Sannidhi — Digital Presence
 
-**Sannidhi** ("divine presence") is the umbrella project covering the temple's unified digital presence across:
+**Sannidhi** ("divine presence") is the umbrella project covering the temple's unified digital presence across the website, Google Business Profile, and Facebook Page.
 
-- Website (this repository — `frontend` + `backend`)
-- Google Business Profile
-- Facebook Page
-
-The goal is a consistent identity, information, and branding across all three platforms.
+See [`docs/PROJECT_SANNIDHI.md`](docs/PROJECT_SANNIDHI.md) for a detailed record of what has been built so far.
 
 ## Setu — Ticketing System
 
-**Setu** ("bridge") is the darshan/pooja ticketing and booking system that connects devotees from the Sannidhi digital presence to an actual temple visit or service booking. It integrates with the website, and is linked from the Google Business Profile and Facebook Page.
+**Setu** ("bridge") is the next phase of work on the booking/ticketing system already built into this codebase — taking it from a mocked-payment state to a live, paid, confirmed booking flow reachable from Google Business Profile and Facebook.
+
+See [`docs/PROJECT_SETU.md`](docs/PROJECT_SETU.md) for the detailed plan and open questions.
 
 ## Repository Structure
 
