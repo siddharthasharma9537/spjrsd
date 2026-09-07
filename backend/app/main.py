@@ -2045,6 +2045,10 @@ async def track_visitor():
         await db.visitor_stats.update_one({"key": "main"}, update)
     return {"message": "tracked"}
 
+@api_router.get("/facebook-stats")
+async def get_facebook_stats():
+    return syndication.get_facebook_page_stats() or {}
+
 # ==================== LIVE STREAM ROUTES ====================
 @api_router.get("/live-streams")
 async def get_live_streams():

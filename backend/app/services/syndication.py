@@ -20,6 +20,7 @@ before GBP_* below will do anything.
 
 import logging
 import os
+import time
 
 import requests
 
@@ -38,6 +39,9 @@ GBP_CLIENT_SECRET = os.environ.get('GBP_CLIENT_SECRET')
 GBP_REFRESH_TOKEN = os.environ.get('GBP_REFRESH_TOKEN')
 
 TIMEOUT_SECONDS = 10
+
+FACEBOOK_STATS_CACHE_SECONDS = 12 * 60 * 60
+_facebook_stats_cache = {'fetched_at': 0, 'data': None}
 
 
 def render(item):
@@ -69,6 +73,41 @@ def _post_to_facebook(message, link):
     )
     response.raise_for_status()
     return response.json().get('id')
+
+
+def get_facebook_page_stats():
+    """Real follower count + profile picture for the footer's Facebook badge.
+
+    Cached in-process for FACEBOOK_STATS_CACHE_SECONDS so a page full of
+    visitors doesn't turn into a Graph API call per visitor - a stale-by-a-
+    few-hours count is fine for this, unlike the token / publish calls above.
+    """
+    if not (FB_PAGE_ID and FB_PAGE_TOKEN):
+        return None
+
+    if time.time() - _facebook_stats_cache['fetched_at'] < FACEBOOK_STATS_CACHE_SECONDS:
+        return _facebook_stats_cache['data']
+
+    try:
+        response = requests.get(
+            f'https://graph.facebook.com/{FB_GRAPH_VERSION}/{FB_PAGE_ID}',
+            params={'fields': 'name,followers_count,picture.type(large)', 'access_token': FB_PAGE_TOKEN},
+            timeout=TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        data = {
+            'name': payload.get('name'),
+            'followers_count': payload.get('followers_count'),
+            'picture_url': (payload.get('picture') or {}).get('data', {}).get('url'),
+        }
+    except Exception:
+        logger.exception('Failed to fetch Facebook page stats')
+        return _facebook_stats_cache['data']
+
+    _facebook_stats_cache['fetched_at'] = time.time()
+    _facebook_stats_cache['data'] = data
+    return data
 
 
 def _post_photo_to_facebook(image_url, message, link):

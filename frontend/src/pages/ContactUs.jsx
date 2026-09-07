@@ -85,7 +85,7 @@ export default function ContactUs() {
             </div>
             <div className="bg-white border border-[#E6DCCA] rounded-xl p-5">
               <h3 className="text-sm font-medium text-[#2D1B0E] mb-3">{t('Facebook', 'ఫేస్‌బుక్')}</h3>
-              <FacebookPagePlugin width={260} height={130} />
+              <FacebookPagePlugin />
             </div>
           </div>
           {/* Contact Form */}
