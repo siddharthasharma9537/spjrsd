@@ -1,0 +1,15 @@
+name: Review Reply Agent
+
+on:
+  schedule:
+    - cron: '15 * * * *'  # Every hour, 15 minutes past
+  workflow_dispatch: {}   # allows manually running this from the Actions tab
+
+jobs:
+  process-reviews:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger GBP review reply agent
+        run: |
+          curl -sf -X POST "https://spjrsd-backend.onrender.com/api/cron/review-agent" \
+            -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}"
