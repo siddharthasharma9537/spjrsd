@@ -53,6 +53,7 @@ import AdminPanchangam from "@/pages/admin/Panchangam";
 import AdminLiveBlog from "@/pages/admin/LiveBlog";
 import AdminAccommodations from "@/pages/admin/Accommodations";
 import AdminGallery from "@/pages/admin/GalleryAdmin";
+import ReviewsAdmin from "@/pages/admin/ReviewsAdmin";
 import AdminStotrams from "@/pages/admin/Stotrams";
 import AdminDonations from "@/pages/admin/Donations";
 import AdminNewsletter from "@/pages/admin/Newsletter";
@@ -221,6 +222,7 @@ function App() {
           <Route path="/admin/live-blog" element={<ProtectedAdmin><AdminLiveBlog /></ProtectedAdmin>} />
           <Route path="/admin/accommodations" element={<ProtectedAdmin><AdminAccommodations /></ProtectedAdmin>} />
           <Route path="/admin/gallery" element={<ProtectedAdmin><AdminGallery /></ProtectedAdmin>} />
+          <Route path="/admin/reviews" element={<ProtectedAdmin><ReviewsAdmin /></ProtectedAdmin>} />
           <Route path="/admin/stotrams" element={<ProtectedAdmin><AdminStotrams /></ProtectedAdmin>} />
           <Route path="/admin/donations" element={<ProtectedAdmin><AdminDonations /></ProtectedAdmin>} />
           <Route path="/admin/newsletter" element={<ProtectedAdmin><AdminNewsletter /></ProtectedAdmin>} />
