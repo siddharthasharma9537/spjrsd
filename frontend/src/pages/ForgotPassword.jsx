@@ -2,24 +2,20 @@ import { useState, useId } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '@/lib/api';
 import { useT } from "@/contexts/LanguageContext";
-import { Flame, ArrowLeft, Phone, Mail } from 'lucide-react';
+import { Flame, ArrowLeft } from 'lucide-react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 
-// WhatsApp is deliberately left out here: send_whatsapp_otp() in the backend
-// calls Meta's Graph API with a template named otp_verification that was
-// never actually created/approved in WhatsApp Manager, so picking it fails
-// every time with error 132001. Re-add once that template is approved.
-const CHANNELS = [
-  { id: 'sms', icon: Phone, label: 'SMS', labelTe: 'SMS' },
-  { id: 'email', icon: Mail, label: 'Email', labelTe: 'ఇమెయిల్' },
-];
+// Only email OTP is reliably delivered right now (SMS needs a DLT-registered
+// sender, WhatsApp needs an approved Meta template). Always sends to the
+// account's own on-file email regardless of whether the identifier entered
+// was a mobile number or an email.
+const CHANNEL = 'email';
 
 export default function ForgotPassword() {
   const { t, heading } = useT();
   const uid = useId();
   const [step, setStep] = useState('identify'); // 'identify' | 'reset' | 'done'
   const [identifier, setIdentifier] = useState('');
-  const [channel, setChannel] = useState('sms');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -34,7 +30,7 @@ export default function ForgotPassword() {
     setError('');
     setLoading(true);
     try {
-      await api.post('/auth/devotee/password-reset/send-otp', { identifier, channel });
+      await api.post('/auth/devotee/password-reset/send-otp', { identifier, channel: CHANNEL });
       setStep('reset');
     } catch (err) {
       setError(err.response?.data?.detail || t('Something went wrong', 'ఏదో పొరపాటు జరిగింది'));
@@ -90,27 +86,10 @@ export default function ForgotPassword() {
 
             {step === 'identify' && (
               <form onSubmit={handleSendOtp} className="space-y-4">
-                <p className="text-xs text-[#8D6E63]">{t("Enter your registered mobile number or email — we'll send a verification code to it.", 'మీ నమోదిత మొబైల్ నంబర్ లేదా ఇమెయిల్ నమోదు చేయండి — మేము దానికి ధృవీకరణ కోడ్ పంపుతాము.')}</p>
+                <p className="text-xs text-[#8D6E63]">{t("Enter your registered mobile number or email — we'll send a verification code to your registered email.", 'మీ నమోదిత మొబైల్ నంబర్ లేదా ఇమెయిల్ నమోదు చేయండి — మేము మీ నమోదిత ఇమెయిల్‌కు ధృవీకరణ కోడ్ పంపుతాము.')}</p>
                 <div>
                   <label htmlFor={`${uid}-identifier`} className="block text-sm font-medium text-[#5D4037] mb-1">{t('Mobile or Email', 'మొబైల్ లేదా ఇమెయిల్')}</label>
                   <input id={`${uid}-identifier`} className={inputCls} value={identifier} onChange={e => setIdentifier(e.target.value)} required data-testid="input-identifier" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[#5D4037] mb-2">{t('Send code via', 'కోడ్ పంపండి')}</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {CHANNELS.map(c => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => setChannel(c.id)}
-                        className={`flex flex-col items-center gap-1 py-3 rounded-lg border text-xs font-medium transition-all ${channel === c.id ? 'border-[#C43E00] bg-[#C43E00]/5 text-[#C43E00]' : 'border-[#E6DCCA] text-[#8D6E63]'}`}
-                        data-testid={`channel-${c.id}`}
-                      >
-                        <c.icon className="h-4 w-4" />
-                        {t(c.label, c.labelTe)}
-                      </button>
-                    ))}
-                  </div>
                 </div>
                 <button type="submit" disabled={loading} className="w-full h-12 bg-[#C43E00] text-white font-english-heading tracking-wide uppercase rounded-full hover:bg-[#C43E00]/90 transition-all shadow-lg disabled:opacity-50" data-testid="send-reset-otp-btn">
                   {loading ? t('Please wait...', 'దయచేసి వేచి ఉండండి...') : t('Send Code', 'కోడ్ పంపండి')}
@@ -120,7 +99,7 @@ export default function ForgotPassword() {
 
             {step === 'reset' && (
               <form onSubmit={handleReset} className="space-y-4">
-                <p className="text-sm text-[#5D4037] text-center">{t('Enter the 6-digit code sent to your account', 'మీ ఖాతాకు పంపిన 6-అంకెల కోడ్ నమోదు చేయండి')}</p>
+                <p className="text-sm text-[#5D4037] text-center">{t('Enter the 6-digit code sent to your registered email', 'మీ నమోదిత ఇమెయిల్‌కు పంపిన 6-అంకెల కోడ్ నమోదు చేయండి')}</p>
                 <div className="flex justify-center">
                   <InputOTP maxLength={6} value={otp} onChange={setOtp} data-testid="input-otp">
                     <InputOTPGroup>
