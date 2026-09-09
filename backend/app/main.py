@@ -178,28 +178,21 @@ async def send_email_via_msg91(recipients: list, subject: str, message: str):
         raise HTTPException(status_code=502, detail=f"MSG91 Email error ({resp.status_code}): {resp.text}")
 
 async def send_email_otp(email: str, code: str):
-    # Uses MSG91's pre-approved "global_otp" template directly (not the custom
-    # generic one, which needs manual MSG91 review before it's usable) so OTP
-    # email works immediately without waiting on that approval.
-    if not MSG91_AUTH_KEY or not MSG91_EMAIL_DOMAIN or not MSG91_EMAIL_FROM:
-        raise HTTPException(status_code=500, detail="Email is not configured (missing MSG91_AUTH_KEY/MSG91_EMAIL_DOMAIN/MSG91_EMAIL_FROM)")
-    resp = await asyncio.to_thread(
-        requests.post,
-        "https://control.msg91.com/api/v5/email/send",
-        headers={"authkey": MSG91_AUTH_KEY, "Content-Type": "application/json"},
-        json={
-            "recipients": [{
-                "to": [{"email": email}],
-                "variables": {"company_name": "Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam", "otp": code},
-            }],
-            "from": {"email": MSG91_EMAIL_FROM, "name": "Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam"},
-            "domain": MSG91_EMAIL_DOMAIN,
-            "template_id": "global_otp",
-        },
-        timeout=15,
+    # Used to call MSG91's "global_otp" template directly, on the assumption
+    # it was pre-approved and needed no setup - live testing (2026-09-09)
+    # showed that's not true for this account: MSG91's API returns 200 but
+    # nothing is ever delivered. Switched to send_email_via_msg91's own
+    # generic template instead, which IS confirmed working (it's what
+    # delivers the email-verification link on registration).
+    await send_email_via_msg91(
+        [{"email": email}],
+        subject="Your password reset code",
+        message=(
+            f"Namaste,\n\nYour password reset code is: {code}\n\n"
+            f"This code expires in {OTP_TTL_MINUTES} minutes. If you didn't request this, "
+            "you can safely ignore this email."
+        ),
     )
-    if resp.status_code >= 300:
-        raise HTTPException(status_code=502, detail=f"MSG91 Email error ({resp.status_code}): {resp.text}")
 
 async def send_whatsapp_otp(mobile: str, code: str):
     if not WHATSAPP_TOKEN or not WHATSAPP_PHONE_NUMBER_ID:
