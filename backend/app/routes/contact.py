@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 from fastapi import APIRouter, Depends
@@ -34,9 +35,14 @@ KALYANA_KATTA_REPLY = (
 
 # ==================== CONTACT ROUTES ====================
 
-def _send_msg91_email(to_email: str, subject: str, message: str) -> bool:
+async def _send_msg91_email(to_email: str, subject: str, message: str) -> bool:
     """Best-effort email send via MSG91; returns False (after logging) on any
-    failure so callers can treat it as non-blocking."""
+    failure so callers can treat it as non-blocking.
+
+    requests is a blocking call, run off-thread so it doesn't freeze the
+    single async worker (and every other in-flight request) for the round
+    trip to MSG91.
+    """
     auth_key = os.environ.get("MSG91_AUTH_KEY")
     domain = os.environ.get("MSG91_EMAIL_DOMAIN")
     from_email = os.environ.get("MSG91_EMAIL_FROM")
@@ -45,7 +51,8 @@ def _send_msg91_email(to_email: str, subject: str, message: str) -> bool:
         logger.warning("Skipping email to %s: MSG91 email is not configured", to_email)
         return False
     try:
-        resp = requests.post(
+        resp = await asyncio.to_thread(
+            requests.post,
             "https://control.msg91.com/api/v5/email/send",
             headers={"authkey": auth_key, "Content-Type": "application/json"},
             json={
@@ -65,10 +72,10 @@ def _send_msg91_email(to_email: str, subject: str, message: str) -> bool:
         return False
 
 
-def _notify_admin_of_contact_message(data: ContactMessageCreate):
+async def _notify_admin_of_contact_message(data: ContactMessageCreate):
     subject = f"New contact form message: {data.subject or 'General Inquiry'}"
     message = f"From: {data.name} <{data.email}>\n\n{data.message}"
-    _send_msg91_email(ADMIN_ALERT_EMAIL, subject, message)
+    await _send_msg91_email(ADMIN_ALERT_EMAIL, subject, message)
 
 
 def _mentions_kalyana_katta(text: str) -> bool:
@@ -78,10 +85,10 @@ def _mentions_kalyana_katta(text: str) -> bool:
     return ("kaly" in lowered or "kalay" in lowered) and "katt" in lowered
 
 
-def _maybe_auto_reply_kalyana_katta(data: ContactMessageCreate):
+async def _maybe_auto_reply_kalyana_katta(data: ContactMessageCreate):
     if _mentions_kalyana_katta(f"{data.subject or ''} {data.message}"):
         subject = f"Re: {data.subject or 'Kalyana Katta (Thalanelalu) Timings'}"
-        _send_msg91_email(data.email, subject, KALYANA_KATTA_REPLY)
+        await _send_msg91_email(data.email, subject, KALYANA_KATTA_REPLY)
 
 
 @router.post("/contact")
@@ -94,8 +101,8 @@ async def submit_contact(data: ContactMessageCreate):
     }
 
     await db.contact_messages.insert_one(msg)
-    _notify_admin_of_contact_message(data)
-    _maybe_auto_reply_kalyana_katta(data)
+    await _notify_admin_of_contact_message(data)
+    await _maybe_auto_reply_kalyana_katta(data)
     return {"message": "Contact message submitted successfully"}
 
 

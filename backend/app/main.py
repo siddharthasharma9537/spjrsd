@@ -5,6 +5,7 @@ from starlette.middleware.cors import CORSMiddleware
 import os
 import io
 import re
+import asyncio
 import logging
 from urllib.parse import urlencode
 from pathlib import Path
@@ -102,10 +103,17 @@ def verify_password(pw: str, hashed: str) -> bool:
 def generate_otp_code() -> str:
     return f"{secrets.randbelow(1000000):06d}"
 
-def send_sms_otp(mobile: str, code: str):
+# These four all call out to a third-party API via the blocking `requests`
+# library. Wrapped in asyncio.to_thread so that blocking call runs off the
+# event loop's thread - otherwise, on this single-worker backend, one
+# devotee's OTP/email request would freeze every other in-flight request
+# (bookings, page loads, everything) for the full round trip.
+
+async def send_sms_otp(mobile: str, code: str):
     if not MSG91_AUTH_KEY:
         raise HTTPException(status_code=500, detail="SMS OTP is not configured (missing MSG91_AUTH_KEY)")
-    resp = requests.post(
+    resp = await asyncio.to_thread(
+        requests.post,
         "https://api.msg91.com/api/v5/otp",
         params={"otp": code, "mobile": f"91{mobile}", "authkey": MSG91_AUTH_KEY},
         timeout=15,
@@ -113,12 +121,13 @@ def send_sms_otp(mobile: str, code: str):
     if resp.status_code >= 300:
         raise HTTPException(status_code=502, detail=f"MSG91 SMS error ({resp.status_code}): {resp.text}")
 
-def send_email_via_msg91(recipients: list, subject: str, message: str):
+async def send_email_via_msg91(recipients: list, subject: str, message: str):
     """recipients: list of {"email": ...} dicts. Uses the shared generic template
     (subject/message as {{variables}}), so no per-use-case template is needed."""
     if not MSG91_AUTH_KEY or not MSG91_EMAIL_DOMAIN or not MSG91_EMAIL_FROM:
         raise HTTPException(status_code=500, detail="Email is not configured (missing MSG91_AUTH_KEY/MSG91_EMAIL_DOMAIN/MSG91_EMAIL_FROM)")
-    resp = requests.post(
+    resp = await asyncio.to_thread(
+        requests.post,
         "https://control.msg91.com/api/v5/email/send",
         headers={"authkey": MSG91_AUTH_KEY, "Content-Type": "application/json"},
         json={
@@ -135,13 +144,14 @@ def send_email_via_msg91(recipients: list, subject: str, message: str):
     if resp.status_code >= 300:
         raise HTTPException(status_code=502, detail=f"MSG91 Email error ({resp.status_code}): {resp.text}")
 
-def send_email_otp(email: str, code: str):
+async def send_email_otp(email: str, code: str):
     # Uses MSG91's pre-approved "global_otp" template directly (not the custom
     # generic one, which needs manual MSG91 review before it's usable) so OTP
     # email works immediately without waiting on that approval.
     if not MSG91_AUTH_KEY or not MSG91_EMAIL_DOMAIN or not MSG91_EMAIL_FROM:
         raise HTTPException(status_code=500, detail="Email is not configured (missing MSG91_AUTH_KEY/MSG91_EMAIL_DOMAIN/MSG91_EMAIL_FROM)")
-    resp = requests.post(
+    resp = await asyncio.to_thread(
+        requests.post,
         "https://control.msg91.com/api/v5/email/send",
         headers={"authkey": MSG91_AUTH_KEY, "Content-Type": "application/json"},
         json={
@@ -158,10 +168,11 @@ def send_email_otp(email: str, code: str):
     if resp.status_code >= 300:
         raise HTTPException(status_code=502, detail=f"MSG91 Email error ({resp.status_code}): {resp.text}")
 
-def send_whatsapp_otp(mobile: str, code: str):
+async def send_whatsapp_otp(mobile: str, code: str):
     if not WHATSAPP_TOKEN or not WHATSAPP_PHONE_NUMBER_ID:
         raise HTTPException(status_code=500, detail="WhatsApp OTP is not configured (missing WHATSAPP_TOKEN/WHATSAPP_PHONE_NUMBER_ID)")
-    resp = requests.post(
+    resp = await asyncio.to_thread(
+        requests.post,
         f"https://graph.facebook.com/v18.0/{WHATSAPP_PHONE_NUMBER_ID}/messages",
         headers={"Authorization": f"Bearer {WHATSAPP_TOKEN}", "Content-Type": "application/json"},
         json={
@@ -600,11 +611,11 @@ async def devotee_password_reset_send_otp(data: DevoteePasswordResetSend):
     )
 
     if data.channel == "sms":
-        send_sms_otp(devotee["mobile"], code)
+        await send_sms_otp(devotee["mobile"], code)
     elif data.channel == "whatsapp":
-        send_whatsapp_otp(devotee["mobile"], code)
+        await send_whatsapp_otp(devotee["mobile"], code)
     elif data.channel == "email":
-        send_email_otp(devotee["email"], code)
+        await send_email_otp(devotee["email"], code)
 
     return {"message": "OTP sent", "channel": data.channel}
 
@@ -649,7 +660,7 @@ async def _send_verification_email(email: str, name: str):
         upsert=True,
     )
     link = f"https://cheruvugattu.online/verify-email?token={token}"
-    send_email_via_msg91(
+    await send_email_via_msg91(
         [{"email": email}],
         subject="Verify your email - Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam",
         message=(
@@ -729,7 +740,9 @@ async def devotee_resend_verification(data: EmailVerificationResend):
 async def devotee_google_auth(data: DevoteeGoogleAuth):
     if not GOOGLE_CLIENT_ID:
         raise HTTPException(status_code=503, detail="Google Sign-In is not configured")
-    resp = requests.get("https://oauth2.googleapis.com/tokeninfo", params={"id_token": data.credential}, timeout=15)
+    resp = await asyncio.to_thread(
+        requests.get, "https://oauth2.googleapis.com/tokeninfo", params={"id_token": data.credential}, timeout=15
+    )
     if resp.status_code >= 300:
         raise HTTPException(status_code=401, detail="Invalid Google credential")
     info = resp.json()
@@ -1733,7 +1746,7 @@ async def send_newsletter_alert(data: NewsletterAlert, user=Depends(get_current_
     # never see each other's addresses; batched conservatively per request.
     for i in range(0, len(subscribers), 500):
         batch = subscribers[i:i + 500]
-        send_email_via_msg91(batch, subject=data.subject, message=data.message)
+        await send_email_via_msg91(batch, subject=data.subject, message=data.message)
         sent += len(batch)
 
     return {"message": "Alert sent", "sent": sent}
@@ -1827,7 +1840,7 @@ async def cron_send_aashirvachanam_blessings(request: Request):
     for m in matches:
         message = _build_aashirvachanam_message(m["name"], m["occasion_type"])
         subject = f"Aashirvachanam on your {m['occasion_type']} \U0001F64F"
-        send_email_via_msg91([{"email": m["email"]}], subject=subject, message=message)
+        await send_email_via_msg91([{"email": m["email"]}], subject=subject, message=message)
         sent += 1
 
     # Family members have no account/email of their own - the blessing goes to
@@ -1844,14 +1857,14 @@ async def cron_send_aashirvachanam_blessings(request: Request):
             for_family_member={"name": fm["name"], "relation": fm["relation"]},
         )
         subject = f"Aashirvachanam on your {fm['relation']}'s {fm['occasion_type']} \U0001F64F"
-        send_email_via_msg91([{"email": devotee["email"]}], subject=subject, message=message)
+        await send_email_via_msg91([{"email": devotee["email"]}], subject=subject, message=message)
         sent += 1
 
     return {"message": "Blessings sent", "sent": sent, "date": today.isoformat()}
 
 @api_router.post("/admin/send-email")
 async def admin_send_email(data: AdminSendEmail, user=Depends(get_current_admin)):
-    send_email_via_msg91([{"email": data.to}], subject=data.subject, message=data.message)
+    await send_email_via_msg91([{"email": data.to}], subject=data.subject, message=data.message)
     return {"message": "Email sent"}
 
 def _fmt_ist_date(date_str: str) -> str:
@@ -2016,7 +2029,7 @@ async def cron_send_panchangam_digest(request: Request):
     sent = 0
     for i in range(0, len(subscribers), 500):
         batch = subscribers[i:i + 500]
-        send_email_via_msg91(batch, subject=subject, message=message)
+        await send_email_via_msg91(batch, subject=subject, message=message)
         sent += len(batch)
 
     return {"message": "Digest sent", "sent": sent, "subject": subject}
@@ -2257,7 +2270,7 @@ async def health_check():
         overall_ok = False
 
     try:
-        resp = requests.get("https://cheruvugattu.online", timeout=5)
+        resp = await asyncio.to_thread(requests.get, "https://cheruvugattu.online", timeout=5)
         if resp.status_code < 400:
             services["frontend"] = "ok"
         else:

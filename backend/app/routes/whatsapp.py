@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import hmac
 import logging
@@ -431,13 +432,13 @@ async def _start_registration(to: str, language: str):
     prompts = REG_PROMPTS[language]
     existing = await db.devotees.find_one({"mobile": mobile}, {"_id": 0})
     if existing:
-        _send_whatsapp_text(to, prompts["already_registered"].format(site=SITE))
+        await _send_whatsapp_text(to, prompts["already_registered"].format(site=SITE))
         return
     await db.whatsapp_sessions.update_one(
         {"phone": to},
         {"$set": {"reg_state": "name", "reg_data": {}}},
     )
-    _send_whatsapp_text(to, prompts["ask_name"])
+    await _send_whatsapp_text(to, prompts["ask_name"])
 
 
 async def _handle_registration_reply(to: str, language: str, state: str, reg_data: dict, stripped: str):
@@ -446,63 +447,63 @@ async def _handle_registration_reply(to: str, language: str, state: str, reg_dat
 
     if lowered in ("cancel", "రద్దు"):
         await db.whatsapp_sessions.update_one({"phone": to}, {"$unset": {"reg_state": "", "reg_data": ""}})
-        _send_whatsapp_text(to, prompts["cancelled"])
+        await _send_whatsapp_text(to, prompts["cancelled"])
         return
 
     skip = lowered == "skip"
 
     if state == "name":
         if not stripped:
-            _send_whatsapp_text(to, prompts["ask_name"])
+            await _send_whatsapp_text(to, prompts["ask_name"])
             return
         reg_data["name"] = stripped
         await db.whatsapp_sessions.update_one({"phone": to}, {"$set": {"reg_state": "email", "reg_data": reg_data}})
-        _send_whatsapp_text(to, prompts["ask_email"])
+        await _send_whatsapp_text(to, prompts["ask_email"])
 
     elif state == "email":
         if not _is_valid_email(stripped):
-            _send_whatsapp_text(to, prompts["invalid_email"])
+            await _send_whatsapp_text(to, prompts["invalid_email"])
             return
         if await db.devotees.find_one({"email": stripped}, {"_id": 0}):
-            _send_whatsapp_text(to, prompts["email_taken"].format(site=SITE))
+            await _send_whatsapp_text(to, prompts["email_taken"].format(site=SITE))
             return
         reg_data["email"] = stripped
         await db.whatsapp_sessions.update_one({"phone": to}, {"$set": {"reg_state": "gotram", "reg_data": reg_data}})
-        _send_whatsapp_text(to, prompts["ask_gotram"])
+        await _send_whatsapp_text(to, prompts["ask_gotram"])
 
     elif state == "gotram":
         reg_data["gotram"] = "" if skip else stripped
         await db.whatsapp_sessions.update_one({"phone": to}, {"$set": {"reg_state": "password", "reg_data": reg_data}})
-        _send_whatsapp_text(to, prompts["ask_password"])
+        await _send_whatsapp_text(to, prompts["ask_password"])
 
     elif state == "password":
         if len(stripped) < 4:
-            _send_whatsapp_text(to, prompts["password_too_short"])
+            await _send_whatsapp_text(to, prompts["password_too_short"])
             return
         # Stores only the hash of this first entry, never the plaintext, so
         # a devotee's password never sits at rest in db.whatsapp_sessions -
         # confirm_password below re-hashes its own input and compares hashes.
         reg_data["password_hash_pending"] = _hash_password(stripped)
         await db.whatsapp_sessions.update_one({"phone": to}, {"$set": {"reg_state": "confirm_password", "reg_data": reg_data}})
-        _send_whatsapp_text(to, prompts["ask_confirm_password"])
+        await _send_whatsapp_text(to, prompts["ask_confirm_password"])
 
     elif state == "confirm_password":
         if _hash_password(stripped) != reg_data.get("password_hash_pending"):
             reg_data.pop("password_hash_pending", None)
             await db.whatsapp_sessions.update_one({"phone": to}, {"$set": {"reg_state": "password", "reg_data": reg_data}})
-            _send_whatsapp_text(to, prompts["password_mismatch"])
+            await _send_whatsapp_text(to, prompts["password_mismatch"])
             return
         # The confirmed plaintext (not the hash) is what gets handed to
         # main.py's _register_devotee below, which does its own hashing.
         reg_data["password_plain"] = stripped
         await db.whatsapp_sessions.update_one({"phone": to}, {"$set": {"reg_state": "newsletter", "reg_data": reg_data}})
-        _send_whatsapp_text(to, prompts["ask_newsletter"])
+        await _send_whatsapp_text(to, prompts["ask_newsletter"])
 
     elif state == "newsletter":
         yes_words = ("yes", "y", "అవును")
         no_words = ("no", "n", "వద్దు", "కాదు")
         if lowered not in yes_words and lowered not in no_words:
-            _send_whatsapp_text(to, prompts["invalid_yes_no"])
+            await _send_whatsapp_text(to, prompts["invalid_yes_no"])
             return
         subscribe = lowered in yes_words
         mobile = _normalize_mobile(to)
@@ -522,11 +523,11 @@ async def _handle_registration_reply(to: str, language: str, state: str, reg_dat
             # Email got taken by someone else between the email step above and
             # now (rare race) - same message as the earlier, more common check.
             await db.whatsapp_sessions.update_one({"phone": to}, {"$unset": {"reg_state": "", "reg_data": ""}})
-            _send_whatsapp_text(to, prompts["email_taken"].format(site=SITE))
+            await _send_whatsapp_text(to, prompts["email_taken"].format(site=SITE))
             return
 
         await db.whatsapp_sessions.update_one({"phone": to}, {"$unset": {"reg_state": "", "reg_data": ""}})
-        _send_whatsapp_text(to, prompts["done"].format(site=SITE, mobile=devotee["mobile"], email=devotee["email"]))
+        await _send_whatsapp_text(to, prompts["done"].format(site=SITE, mobile=devotee["mobile"], email=devotee["email"]))
 
 
 def _resolve_option(stripped: str) -> str | None:
@@ -557,11 +558,11 @@ async def _handle_free_text(to: str, language: str, message: str):
     history = (session or {}).get("chat_history") or []
 
     if await intent_router.classify(message, history) == "transact":
-        _send_menu(to, language)
+        await _send_menu(to, language)
         return
 
     reply = await chat_agent.ask(message, history)
-    _send_whatsapp_text(to, reply)
+    await _send_whatsapp_text(to, reply)
 
     updated_history = (history + [
         {"role": "user", "content": message},
@@ -572,11 +573,17 @@ async def _handle_free_text(to: str, language: str, message: str):
     )
 
 
-def _send_whatsapp_payload(to: str, message_type: str, payload: dict):
+async def _send_whatsapp_payload(to: str, message_type: str, payload: dict):
     if not WHATSAPP_TOKEN or not WHATSAPP_PHONE_NUMBER_ID:
         logger.warning("Skipping WhatsApp reply to %s: WHATSAPP_TOKEN/WHATSAPP_PHONE_NUMBER_ID not configured", to)
         return
-    resp = requests.post(
+    # requests is a blocking call; run it off-thread so it doesn't freeze the
+    # single async worker (and every other in-flight request) for the round
+    # trip to Meta's API. See the fix for the same issue in chat_agent.py/
+    # intent_router.py - this is the same problem, just via `requests`
+    # instead of a sync SDK client.
+    resp = await asyncio.to_thread(
+        requests.post,
         f"https://graph.facebook.com/v18.0/{WHATSAPP_PHONE_NUMBER_ID}/messages",
         headers={"Authorization": f"Bearer {WHATSAPP_TOKEN}", "Content-Type": "application/json"},
         json={"messaging_product": "whatsapp", "to": to, "type": message_type, **payload},
@@ -586,15 +593,15 @@ def _send_whatsapp_payload(to: str, message_type: str, payload: dict):
         logger.error("WhatsApp send to %s failed (%s): %s", to, resp.status_code, resp.text)
 
 
-def _send_whatsapp_text(to: str, body: str):
-    _send_whatsapp_payload(to, "text", {"text": {"body": body}})
+async def _send_whatsapp_text(to: str, body: str):
+    await _send_whatsapp_payload(to, "text", {"text": {"body": body}})
 
 
-def _send_menu(to: str, language: str):
+async def _send_menu(to: str, language: str):
     """Sends the menu as native tap-to-select WhatsApp list messages (one
     message per list, since a single list message is capped at 10 rows)."""
     for menu_list in (MENU_LISTS_EN if language == "en" else MENU_LISTS_TE):
-        _send_whatsapp_payload(to, "interactive", {
+        await _send_whatsapp_payload(to, "interactive", {
             "interactive": {
                 "type": "list",
                 "header": {"type": "text", "text": menu_list["header"]},
@@ -605,10 +612,10 @@ def _send_menu(to: str, language: str):
         })
 
 
-def _send_language_prompt(to: str):
+async def _send_language_prompt(to: str):
     """Sends the language choice as native quick-reply buttons instead of
     asking the devotee to type 1 or 2."""
-    _send_whatsapp_payload(to, "interactive", {
+    await _send_whatsapp_payload(to, "interactive", {
         "interactive": {
             "type": "button",
             "body": {"text": LANGUAGE_PROMPT},
@@ -722,14 +729,14 @@ async def _handle_inbound_message(message: dict, value: dict):
     # Explicit language switch works at any time, regardless of prior state.
     if lowered == "english":
         await db.whatsapp_sessions.update_one({"phone": from_number}, {"$set": {"language": "en"}}, upsert=True)
-        _send_menu(from_number, "en")
+        await _send_menu(from_number, "en")
         return
     if lowered == "telugu" or stripped == "తెలుగు":
         await db.whatsapp_sessions.update_one({"phone": from_number}, {"$set": {"language": "te"}}, upsert=True)
-        _send_menu(from_number, "te")
+        await _send_menu(from_number, "te")
         return
     if lowered == "language" or stripped == "భాష":
-        _send_language_prompt(from_number)
+        await _send_language_prompt(from_number)
         return
 
     if language is None:
@@ -738,12 +745,12 @@ async def _handle_inbound_message(message: dict, value: dict):
         # (kept for devotees who type instead of tapping the button).
         if stripped == "1":
             await db.whatsapp_sessions.update_one({"phone": from_number}, {"$set": {"language": "en"}}, upsert=True)
-            _send_menu(from_number, "en")
+            await _send_menu(from_number, "en")
         elif stripped == "2":
             await db.whatsapp_sessions.update_one({"phone": from_number}, {"$set": {"language": "te"}}, upsert=True)
-            _send_menu(from_number, "te")
+            await _send_menu(from_number, "te")
         else:
-            _send_language_prompt(from_number)
+            await _send_language_prompt(from_number)
         return
 
     option = _resolve_option(stripped)
@@ -762,4 +769,4 @@ async def _handle_inbound_message(message: dict, value: dict):
         return
     parts = reply if isinstance(reply, list) else [reply]
     for part in parts:
-        _send_whatsapp_text(from_number, part)
+        await _send_whatsapp_text(from_number, part)
