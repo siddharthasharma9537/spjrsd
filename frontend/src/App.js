@@ -58,6 +58,7 @@ import AdminDonations from "@/pages/admin/Donations";
 import AdminNewsletter from "@/pages/admin/Newsletter";
 import AdminContactMessages from "@/pages/admin/ContactMessages";
 import AdminAashirvachanam from "@/pages/admin/Aashirvachanam";
+import AdminSettings from "@/pages/admin/Settings";
 import "@/App.css";
 
 function ProtectedDevotee({ children }) {
@@ -226,6 +227,7 @@ function App() {
           <Route path="/admin/newsletter" element={<ProtectedAdmin><AdminNewsletter /></ProtectedAdmin>} />
           <Route path="/admin/contact-messages" element={<ProtectedAdmin><AdminContactMessages /></ProtectedAdmin>} />
           <Route path="/admin/aashirvachanam" element={<ProtectedAdmin><AdminAashirvachanam /></ProtectedAdmin>} />
+          <Route path="/admin/settings" element={<ProtectedAdmin><AdminSettings /></ProtectedAdmin>} />
 
           {/* Catch-all: anything unmatched gets a real page, not a blank screen */}
           <Route path="*" element={<NotFound />} />

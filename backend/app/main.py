@@ -305,6 +305,10 @@ class AdminLogin(BaseModel):
     username: str
     password: str
 
+class AdminChangePassword(BaseModel):
+    current_password: str
+    new_password: str
+
 class SevaCreate(BaseModel):
     name_english: str
     name_telugu: str
@@ -845,6 +849,16 @@ async def admin_login(data: AdminLogin):
         await db.user_accounts.update_one({"id": user["id"]}, {"$set": {"password_hash": hash_pw(data.password)}})
     token = create_token({"sub": user["id"], "name": user["name"], "role": user["role"], "username": user["username"]})
     return {"token": token, "user": {k: v for k, v in user.items() if k not in ["_id", "password_hash"]}}
+
+@api_router.post("/auth/admin/change-password")
+async def admin_change_password(data: AdminChangePassword, admin=Depends(get_current_admin)):
+    if len(data.new_password) < 4:
+        raise HTTPException(status_code=400, detail="Password must be at least 4 characters")
+    user = await db.user_accounts.find_one({"id": admin["sub"]}, {"_id": 0})
+    if not user or not verify_pw(data.current_password, user.get("password_hash", "")):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+    await db.user_accounts.update_one({"id": admin["sub"]}, {"$set": {"password_hash": hash_pw(data.new_password)}})
+    return {"message": "Password changed successfully"}
 
 @api_router.get("/devotee/profile")
 async def get_devotee_profile(user=Depends(get_current_devotee)):
