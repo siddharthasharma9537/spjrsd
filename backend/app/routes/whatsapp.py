@@ -293,11 +293,17 @@ REPLIES_TE = {
     ),
 }
 
-# An exact-match request to see the menu again - checked before intent_router/
-# chat_agent, so it always works regardless of whether the AI chat feature is
-# configured. Deliberately exact match, not substring: "help me choose a
-# seva" shouldn't short-circuit to the menu instead of being answered.
-MENU_REQUEST_WORDS = {"menu", "help", "options", "మెనూ", "సహాయం", "ఎంపికలు"}
+# An exact-match request to see the menu - either explicitly ("menu", "help")
+# or a bare greeting, which is what most devotees actually type to restart/
+# reorient ("hi", "hai", "hello"). Checked before intent_router/chat_agent, so
+# it always works regardless of whether the AI chat feature is configured.
+# Deliberately exact match, not substring: "help me choose a seva" shouldn't
+# short-circuit to the menu instead of being answered.
+MENU_REQUEST_WORDS = {
+    "menu", "help", "options",
+    "hi", "hai", "hii", "hiii", "hello", "helo", "hlo", "hey", "namaste",
+    "మెనూ", "సహాయం", "ఎంపికలు", "నమస్తే",
+}
 
 # Lets devotees type a keyword instead of memorizing the menu number. Checked
 # as a substring against the lowercased (English) or exact (Telugu) message,
