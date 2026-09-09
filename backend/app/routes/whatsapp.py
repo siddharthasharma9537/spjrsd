@@ -293,6 +293,12 @@ REPLIES_TE = {
     ),
 }
 
+# An exact-match request to see the menu again - checked before intent_router/
+# chat_agent, so it always works regardless of whether the AI chat feature is
+# configured. Deliberately exact match, not substring: "help me choose a
+# seva" shouldn't short-circuit to the menu instead of being answered.
+MENU_REQUEST_WORDS = {"menu", "help", "options", "మెనూ", "సహాయం", "ఎంపికలు"}
+
 # Lets devotees type a keyword instead of memorizing the menu number. Checked
 # as a substring against the lowercased (English) or exact (Telugu) message,
 # in this order, before falling back to an exact match on the menu number.
@@ -751,6 +757,17 @@ async def _handle_inbound_message(message: dict, value: dict):
             await _send_menu(from_number, "te")
         else:
             await _send_language_prompt(from_number)
+        return
+
+    # A devotee explicitly asking to see the menu again always gets it,
+    # checked before intent_router/chat_agent even run. Without this, "menu"
+    # or "help" would get intent-classified as CHAT and answered (or, with no
+    # ANTHROPIC_API_KEY, met with a generic "please use the menu options"
+    # reply that never actually shows the menu) - a dead end for anyone who
+    # forgot it or just wants it back. This has to work with zero dependency
+    # on the AI chat feature being configured at all.
+    if lowered in MENU_REQUEST_WORDS:
+        await _send_menu(from_number, language)
         return
 
     option = _resolve_option(stripped)
