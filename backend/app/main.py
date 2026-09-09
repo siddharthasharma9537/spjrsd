@@ -701,6 +701,36 @@ async def _send_verification_email(email: str, name: str):
         ),
     )
 
+async def _send_welcome_email(email: str, name: str):
+    # Best-effort only - a failure here must not block registration, unlike
+    # _send_verification_email which is load-bearing (no verify link means
+    # the account can never unlock booking).
+    try:
+        await send_email_via_msg91(
+            [{"email": email}],
+            subject="Welcome to the Sri Parvathi Jadala Ramalingeshwara Swamy Devotee Family",
+            message=(
+                f"Namaste {name},\n\n"
+                "Welcome to the devotee family of Sri Parvathi Jadala Ramalingeshwara Swamy "
+                "Devasthanam, Cheruvugattu. Your account is now set up.\n\n"
+                "With your devotee account, you can:\n"
+                "- Book sevas and poojas online in advance\n"
+                "- Reserve accommodation for your temple visit\n"
+                "- Track all your bookings and pull up digital tickets anytime from My Bookings\n"
+                "- Get instant digital receipts for your donations\n"
+                "- Save your family members' birthdays and anniversaries under My Family for timely reminders\n"
+                "- Chat with our WhatsApp assistant (Telugu/English) for seva info, timings, and quick bookings\n"
+                "- Ask our website chat assistant any question about the temple\n"
+                "- Read the temple's Sthala Puranam and history, check the Panchangam, and browse our Stotrams library\n"
+                "- Stay updated with temple news, festival announcements, and Live Blog updates\n"
+                "- Watch Live TV darshan and browse our photo and video gallery\n\n"
+                "Om Namo Bhagavate Ramalingaya\n\n"
+                "Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam"
+            ),
+        )
+    except HTTPException:
+        pass
+
 async def _register_devotee(data: DevoteeRegister) -> dict:
     """Shared by the web /auth/devotee/register route and the WhatsApp
     registration chat flow (see routes/whatsapp.py), so both create the same
@@ -726,6 +756,7 @@ async def _register_devotee(data: DevoteeRegister) -> dict:
         await db.newsletter.insert_one({"id": str(uuid.uuid4()), "email": data.email, "subscribed_at": datetime.now(timezone.utc).isoformat()})
 
     await _send_verification_email(data.email, data.name)
+    await _send_welcome_email(data.email, data.name)
 
     return devotee
 
@@ -793,6 +824,7 @@ async def devotee_google_auth(data: DevoteeGoogleAuth):
             "last_login_at": datetime.now(timezone.utc).isoformat(),
         }
         await db.devotees.insert_one(devotee)
+        await _send_welcome_email(email, name)
     else:
         await db.devotees.update_one({"id": devotee["id"]}, {"$set": {
             "last_login_at": datetime.now(timezone.utc).isoformat(), "google_sub": google_sub,
