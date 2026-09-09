@@ -1012,12 +1012,26 @@ async def get_booking(booking_id: str):
 
 @api_router.get("/bookings/lookup/ticket")
 async def lookup_ticket(booking_number: Optional[str] = None, mobile: Optional[str] = None):
+    # booking_number is a full match on an auto-generated, high-entropy
+    # reference (effectively a capability token, like an airline PNR) - safe
+    # to return the full record, same as the id-keyed GET /bookings/{id} a
+    # devotee's own ticket link points to.
     if booking_number:
         booking = await db.bookings.find_one({"booking_number": booking_number}, {"_id": 0})
         if booking:
             return [booking]
+    # A mobile number is NOT a secret - nothing here proves the caller owns
+    # it. So unlike the booking_number branch above, this can't return
+    # gotram/nakshatra/rashi/amount/mobile etc. to an unverified caller who
+    # merely knows (or guesses, or was given) someone's phone number. Just
+    # enough to recognize "yes, this is my ticket" and find the
+    # booking_number to look it up properly.
     if mobile:
-        bookings = await db.bookings.find({"devotee_mobile": mobile}, {"_id": 0}).sort("booking_date_time", -1).to_list(20)
+        bookings = await db.bookings.find(
+            {"devotee_mobile": mobile},
+            {"_id": 0, "id": 1, "booking_number": 1, "seva_name_english": 1, "seva_name_telugu": 1,
+             "for_date": 1, "slot_start_time": 1, "slot_end_time": 1, "devotee_name": 1, "status": 1},
+        ).sort("booking_date_time", -1).to_list(20)
         return bookings
     raise HTTPException(status_code=400, detail="Provide booking_number or mobile")
 
@@ -1086,14 +1100,20 @@ async def get_donation_receipt(donation_id: str):
         raise HTTPException(status_code=404, detail="Donation not found")
     if donation.get("payment_status") != "Paid":
         raise HTTPException(status_code=400, detail="Receipt only for paid donations")
+    # donor_name is already stored as "Anonymous" at creation time when
+    # is_anonymous is set, but donor_mobile/email/gotram are stored as
+    # submitted regardless - mask those here too, or anonymity only hides
+    # the name while still handing out the donor's phone, email, and gotram
+    # to anyone with the receipt link.
+    is_anonymous = donation.get("is_anonymous", False)
     receipt = {
         "receipt_number": f"80G-{donation.get('donation_number', '')[4:]}",
         "donation_number": donation.get("donation_number", ""),
         "donation_type": donation.get("donation_type", ""),
         "donor_name": donation.get("donor_name", ""),
-        "donor_mobile": donation.get("donor_mobile", ""),
-        "donor_email": donation.get("donor_email", ""),
-        "donor_gotram": donation.get("donor_gotram", ""),
+        "donor_mobile": "" if is_anonymous else donation.get("donor_mobile", ""),
+        "donor_email": "" if is_anonymous else donation.get("donor_email", ""),
+        "donor_gotram": "" if is_anonymous else donation.get("donor_gotram", ""),
         "amount": donation.get("amount", 0),
         "amount_words": _amount_to_words(int(donation.get("amount", 0))),
         "payment_status": donation.get("payment_status", ""),
@@ -2108,7 +2128,7 @@ async def get_live_streams():
 
 # ==================== SEED DATA ====================
 @api_router.post("/seed")
-async def seed_data():
+async def seed_data(user=Depends(get_current_admin)):
     admin_exists = await db.user_accounts.find_one({"username": "admin"})
     if admin_exists:
         return {"message": "Data already seeded"}
@@ -2242,7 +2262,7 @@ async def seed_data():
     return {"message": "Seed data created successfully", "sevas": len(sevas), "profiles": len(profiles), "slots": len(slots), "accommodations": len(accommodations), "news": len(news_items), "gallery": len(gallery_items), "panchangam": 1, "live_blog": len(live_blog_posts)}
 
 @api_router.post("/seed/stotrams")
-async def seed_stotrams():
+async def seed_stotrams(user=Depends(get_current_admin)):
     """Create the stotram entries the temple chants, with their text left blank.
 
     Titles and seva links only - the text itself is entered by the Devasthanam

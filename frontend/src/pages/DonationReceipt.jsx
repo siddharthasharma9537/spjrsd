@@ -83,10 +83,12 @@ export default function DonationReceipt() {
                   <p className="text-xs text-[#8D6E63]">Name / పేరు</p>
                   <p className="font-medium text-[#2D1B0E]" data-testid="receipt-donor-name">{receipt.is_anonymous ? 'Anonymous Donor' : receipt.donor_name}</p>
                 </div>
-                <div>
-                  <p className="text-xs text-[#8D6E63]">Mobile / మొబైల్</p>
-                  <p className="text-[#2D1B0E]">{receipt.donor_mobile}</p>
-                </div>
+                {receipt.donor_mobile && (
+                  <div>
+                    <p className="text-xs text-[#8D6E63]">Mobile / మొబైల్</p>
+                    <p className="text-[#2D1B0E]">{receipt.donor_mobile}</p>
+                  </div>
+                )}
                 {receipt.donor_email && (
                   <div>
                     <p className="text-xs text-[#8D6E63]">Email</p>
