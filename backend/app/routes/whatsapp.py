@@ -10,6 +10,7 @@ import requests
 from fastapi import APIRouter, HTTPException, Query, Request
 
 from app.database.db import db
+from app.services import chat_agent, intent_router
 
 router = APIRouter(prefix="/api")
 logger = logging.getLogger(__name__)
@@ -18,6 +19,13 @@ WHATSAPP_TOKEN = os.environ.get("WHATSAPP_TOKEN")
 WHATSAPP_PHONE_NUMBER_ID = os.environ.get("WHATSAPP_PHONE_NUMBER_ID")
 WHATSAPP_VERIFY_TOKEN = os.environ.get("WHATSAPP_VERIFY_TOKEN")
 META_APP_SECRET = os.environ.get("META_APP_SECRET")
+
+# Turns (user + assistant messages) of free-text chat kept per phone number in
+# db.whatsapp_sessions.chat_history, for chat_agent conversational context and
+# for intent_router to read a short reply ("book it") against what was just
+# discussed. 6 turns = 3 exchanges - enough for that, not so much it bloats
+# every classify()/ask() call.
+CHAT_HISTORY_TURNS = 6
 
 # All devotee-facing copy lives here, one language per menu item (chosen once
 # per phone number and remembered in db.whatsapp_sessions), so it can be
@@ -537,6 +545,33 @@ def _resolve_option(stripped: str) -> str | None:
     return None
 
 
+async def _handle_free_text(to: str, language: str, message: str):
+    """A message that matched no menu number/keyword. intent_router decides
+    whether it's trying to *do* something (book/pay/donate/cancel) or *ask*
+    something. Transactional intent is sent back to the menu rather than
+    handled here - chat_agent can only talk, it can never actually create a
+    booking or take a payment, so keeping those on the deterministic flow is
+    what makes it safe to let the conversational side use an LLM at all.
+    """
+    session = await db.whatsapp_sessions.find_one({"phone": to}, {"_id": 0, "chat_history": 1})
+    history = (session or {}).get("chat_history") or []
+
+    if await intent_router.classify(message, history) == "transact":
+        _send_menu(to, language)
+        return
+
+    reply = await chat_agent.ask(message, history)
+    _send_whatsapp_text(to, reply)
+
+    updated_history = (history + [
+        {"role": "user", "content": message},
+        {"role": "assistant", "content": reply},
+    ])[-CHAT_HISTORY_TURNS:]
+    await db.whatsapp_sessions.update_one(
+        {"phone": to}, {"$set": {"chat_history": updated_history}}, upsert=True
+    )
+
+
 def _send_whatsapp_payload(to: str, message_type: str, payload: dict):
     if not WHATSAPP_TOKEN or not WHATSAPP_PHONE_NUMBER_ID:
         logger.warning("Skipping WhatsApp reply to %s: WHATSAPP_TOKEN/WHATSAPP_PHONE_NUMBER_ID not configured", to)
@@ -719,7 +754,11 @@ async def _handle_inbound_message(message: dict, value: dict):
     replies = REPLIES_EN if language == "en" else REPLIES_TE
     reply = replies.get(option) if option else None
     if reply is None:
-        _send_menu(from_number, language)
+        # Didn't match a menu number or keyword - could still be a devotee
+        # typing instead of tapping ("book abhishekam for sunday") or asking
+        # a genuine question ("what does abhishekam cost"). _handle_free_text
+        # decides which.
+        await _handle_free_text(from_number, language, stripped)
         return
     parts = reply if isinstance(reply, list) else [reply]
     for part in parts:
