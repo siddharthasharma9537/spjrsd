@@ -14,6 +14,7 @@ from typing import List, Optional
 import uuid
 import secrets
 import hashlib
+import bcrypt
 import jwt
 import requests
 import pandas as pd
@@ -94,11 +95,43 @@ security = HTTPBearer(auto_error=False)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# hash_password/verify_password below are plain sha256 - fine for their
+# actual uses here (a short-TTL, attempt-limited OTP code, and a 32-byte
+# random URL-safe token that's already unguessable on its own), but NOT
+# appropriate for real login passwords: no salt, and sha256 is fast, so a
+# leaked password_hash column would be crackable at scale. hash_pw/verify_pw
+# below use bcrypt (salted, deliberately slow) for actual password storage -
+# devotee and admin login only. Kept as separate functions rather than
+# changing these, since bcrypt truncates at 72 bytes and its random salting
+# would break the whatsapp.py registration flow's confirm-password equality
+# check, neither of which apply to those two other use cases.
+
 def hash_password(pw: str) -> str:
     return hashlib.sha256(pw.encode()).hexdigest()
 
 def verify_password(pw: str, hashed: str) -> bool:
     return hash_password(pw) == hashed
+
+def hash_pw(pw: str) -> str:
+    return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
+
+def verify_pw(pw: str, hashed: str) -> bool:
+    """Verifies a login password against its stored hash. Accepts both a
+    bcrypt hash (current) and a legacy plain-sha256 hexdigest (every
+    password_hash created before this migration) - callers that get a
+    successful legacy-format verify are expected to re-hash and save the
+    password with hash_pw() immediately after, so each account upgrades the
+    moment its owner next logs in rather than needing a bulk migration
+    (impossible anyway - the plaintext isn't available to rehash offline)."""
+    if hashed.startswith(("$2a$", "$2b$", "$2y$")):
+        try:
+            return bcrypt.checkpw(pw.encode(), hashed.encode())
+        except ValueError:
+            return False
+    return hash_password(pw) == hashed
+
+def is_legacy_hash(hashed: str) -> bool:
+    return not hashed.startswith(("$2a$", "$2b$", "$2y$"))
 
 def generate_otp_code() -> str:
     return f"{secrets.randbelow(1000000):06d}"
@@ -573,9 +606,13 @@ async def _find_devotee_by_identifier(identifier: str):
 @api_router.post("/auth/devotee/login")
 async def devotee_login(data: DevoteeLogin):
     devotee = await _find_devotee_by_identifier(data.identifier)
-    if not devotee or not verify_password(data.password, devotee.get("password_hash", "")):
+    stored_hash = devotee.get("password_hash", "") if devotee else ""
+    if not devotee or not verify_pw(data.password, stored_hash):
         raise HTTPException(status_code=401, detail="Invalid mobile/email or password")
-    await db.devotees.update_one({"id": devotee["id"]}, {"$set": {"last_login_at": datetime.now(timezone.utc).isoformat()}})
+    update = {"last_login_at": datetime.now(timezone.utc).isoformat()}
+    if is_legacy_hash(stored_hash):
+        update["password_hash"] = hash_pw(data.password)
+    await db.devotees.update_one({"id": devotee["id"]}, {"$set": update})
     token = create_token({"sub": devotee["id"], "name": devotee["name"], "mobile": devotee["mobile"], "role": "devotee"})
     return {"token": token, "devotee": {k: v for k, v in devotee.items() if k not in ["_id", "password_hash"]}}
 
@@ -642,7 +679,7 @@ async def devotee_password_reset_verify(data: DevoteePasswordResetVerify):
         raise HTTPException(status_code=400, detail="Incorrect OTP")
 
     await db.otp_codes.delete_one({"mobile": otp_key})
-    await db.devotees.update_one({"id": devotee["id"]}, {"$set": {"password_hash": hash_password(data.new_password)}})
+    await db.devotees.update_one({"id": devotee["id"]}, {"$set": {"password_hash": hash_pw(data.new_password)}})
     return {"message": "Password reset successful"}
 
 EMAIL_VERIFICATION_TTL_HOURS = 24
@@ -685,7 +722,7 @@ async def _register_devotee(data: DevoteeRegister) -> dict:
     devotee = {
         "id": str(uuid.uuid4()), "name": data.name, "mobile": data.mobile or "",
         "email": data.email, "gotram": data.gotram or "",
-        "password_hash": hash_password(data.password),
+        "password_hash": hash_pw(data.password),
         "email_verified": False,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "last_login_at": datetime.now(timezone.utc).isoformat(),
@@ -774,10 +811,13 @@ async def devotee_google_auth(data: DevoteeGoogleAuth):
 @api_router.post("/auth/admin/login")
 async def admin_login(data: AdminLogin):
     user = await db.user_accounts.find_one({"username": data.username}, {"_id": 0})
-    if not user or not verify_password(data.password, user.get("password_hash", "")):
+    stored_hash = user.get("password_hash", "") if user else ""
+    if not user or not verify_pw(data.password, stored_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if not user.get("active_flag", False):
         raise HTTPException(status_code=403, detail="Account disabled")
+    if is_legacy_hash(stored_hash):
+        await db.user_accounts.update_one({"id": user["id"]}, {"$set": {"password_hash": hash_pw(data.password)}})
     token = create_token({"sub": user["id"], "name": user["name"], "role": user["role"], "username": user["username"]})
     return {"token": token, "user": {k: v for k, v in user.items() if k not in ["_id", "password_hash"]}}
 
@@ -2132,7 +2172,7 @@ async def seed_data(user=Depends(get_current_admin)):
     admin_exists = await db.user_accounts.find_one({"username": "admin"})
     if admin_exists:
         return {"message": "Data already seeded"}
-    admin = {"id": str(uuid.uuid4()), "name": "Temple EO", "mobile": "9000000001", "role": "EO", "username": "admin", "password_hash": hash_password("admin123"), "active_flag": True}
+    admin = {"id": str(uuid.uuid4()), "name": "Temple EO", "mobile": "9000000001", "role": "EO", "username": "admin", "password_hash": hash_pw("admin123"), "active_flag": True}
     await db.user_accounts.insert_one(admin)
     sevas = [
         {"id": str(uuid.uuid4()), "name_english": "Abhishekam", "name_telugu": "అభిషేకం", "description": "Sacred bathing ritual of Sri Ramalingeshwara Swamy", "base_price": 200, "duration_minutes": 45, "is_online_bookable": True, "is_paroksha_available": True, "max_per_slot_default": 10, "max_persons_per_ticket": 4, "special_instructions": "Please arrive 30 minutes before the scheduled time. Wear traditional attire.", "active_flag": True, "created_at": datetime.now(timezone.utc).isoformat()},
