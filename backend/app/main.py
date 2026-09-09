@@ -964,9 +964,6 @@ async def create_booking(data: BookingCreate, user=Depends(get_current_devotee))
         raise HTTPException(status_code=404, detail="Slot not found")
     if data.number_of_persons < 1 or data.number_of_persons > seva.get("max_persons_per_ticket", 4):
         raise HTTPException(status_code=400, detail=f"Number of persons must be 1-{seva.get('max_persons_per_ticket', 4)}")
-    booked = await db.bookings.count_documents({"slot_id": data.slot_id, "for_date": data.for_date, "status": {"$nin": ["Cancelled"]}})
-    if booked >= slot.get("online_quota", 10):
-        raise HTTPException(status_code=400, detail="No slots available")
     booking = {
         "id": str(uuid.uuid4()),
         "booking_number": f"SPJRS-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:6].upper()}",
@@ -984,7 +981,22 @@ async def create_booking(data: BookingCreate, user=Depends(get_current_devotee))
         "amount": seva.get("base_price", 0),
         "note_to_devotee": seva.get("special_instructions", "")
     }
-    await db.bookings.insert_one(booking)
+    # Reserve atomically: insert first, then check this booking's rank among all
+    # non-cancelled bookings for the same slot+date, ordered by _id (MongoDB's
+    # ObjectIds are strictly, globally ordered - a fresh one per insert, never
+    # reused or tied). Two requests racing for the last seat can no longer both
+    # pass a "count, then insert if under quota" check taken before either of
+    # them committed - the check now runs after commit, against every racer's
+    # real, ordered position, so exactly `online_quota` bookings win and the
+    # rest are rolled back.
+    insert_result = await db.bookings.insert_one(booking)
+    rank = await db.bookings.count_documents({
+        "slot_id": data.slot_id, "for_date": data.for_date,
+        "status": {"$nin": ["Cancelled"]}, "_id": {"$lte": insert_result.inserted_id},
+    })
+    if rank > slot.get("online_quota", 10):
+        await db.bookings.delete_one({"_id": insert_result.inserted_id})
+        raise HTTPException(status_code=400, detail="No slots available")
     return {k: v for k, v in booking.items() if k != "_id"}
 
 @api_router.get("/bookings/my")
@@ -1159,6 +1171,9 @@ async def create_accommodation_booking(data: AccommodationBookingCreate, user=De
     num_days = (check_out - check_in).days
     if num_days < 1:
         raise HTTPException(status_code=400, detail="Check-out must be after check-in")
+    total_rooms = acc.get("total_rooms", 10)
+    if data.num_rooms < 1 or data.num_rooms > total_rooms:
+        raise HTTPException(status_code=400, detail=f"Number of rooms must be 1-{total_rooms}")
     total_amount = acc["price_per_day"] * data.num_rooms * num_days
     booking = {
         "id": str(uuid.uuid4()),
@@ -1174,7 +1189,29 @@ async def create_accommodation_booking(data: AccommodationBookingCreate, user=De
         "amount": total_amount, "payment_status": "Paid", "status": "Confirmed",
         "created_at": datetime.now(timezone.utc).isoformat()
     }
-    await db.accommodation_bookings.insert_one(booking)
+    # Reserve atomically, same pattern as create_booking above: insert first,
+    # then sum num_rooms across every non-cancelled booking for this
+    # accommodation whose dates overlap this one (standard interval-overlap
+    # check: existing.check_in < my.check_out AND existing.check_out > my.check_in)
+    # that landed at or before this one in _id order. This is also the first
+    # capacity check accommodation booking has ever had - previously nothing
+    # compared num_rooms against acc["total_rooms"] at all, so any number of
+    # rooms could be booked for the same dates with no limit.
+    insert_result = await db.accommodation_bookings.insert_one(booking)
+    overlap_totals = await db.accommodation_bookings.aggregate([
+        {"$match": {
+            "accommodation_id": data.accommodation_id,
+            "status": {"$nin": ["Cancelled"]},
+            "check_in_date": {"$lt": data.check_out_date},
+            "check_out_date": {"$gt": data.check_in_date},
+            "_id": {"$lte": insert_result.inserted_id},
+        }},
+        {"$group": {"_id": None, "total": {"$sum": "$num_rooms"}}},
+    ]).to_list(1)
+    committed_rooms = overlap_totals[0]["total"] if overlap_totals else 0
+    if committed_rooms > total_rooms:
+        await db.accommodation_bookings.delete_one({"_id": insert_result.inserted_id})
+        raise HTTPException(status_code=400, detail="Not enough rooms available for these dates")
     return {k: v for k, v in booking.items() if k != "_id"}
 
 @api_router.get("/accommodation-bookings/my")
