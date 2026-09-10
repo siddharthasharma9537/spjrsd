@@ -25,17 +25,19 @@ import logging
 import os
 from datetime import datetime, timezone
 
-import anthropic
+from google import genai
+from google.genai import types
+from google.genai.errors import APIError
 
 from app.database.db import db
 
 logger = logging.getLogger(__name__)
 
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
-CHAT_AGENT_MODEL = os.environ.get("CHAT_AGENT_MODEL", "claude-sonnet-5")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+CHAT_AGENT_MODEL = os.environ.get("CHAT_AGENT_MODEL", "gemini-2.5-flash")
 MAX_TOKENS = 600
 
-_client = anthropic.AsyncAnthropic(api_key=ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None
+_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 SITE = "https://cheruvugattu.online"
 
@@ -166,24 +168,33 @@ async def ask(message: str, history: list[dict] | None = None) -> str:
     shouldn't assume either). Pass None or [] for a fresh conversation.
     """
     if _client is None:
-        logger.warning("chat_agent.ask called without ANTHROPIC_API_KEY configured")
+        logger.warning("chat_agent.ask called without GEMINI_API_KEY configured")
         return (
             "I'm not able to chat right now - please use the menu options, "
             f"or reach the temple office directly via {SITE}/contact."
         )
 
     context = await _fetch_context()
-    messages = [*(history or []), {"role": "user", "content": message}]
+    # Gemini's roles are "user"/"model", not Anthropic's "user"/"assistant",
+    # and each turn's text goes in a "parts" list rather than a bare string.
+    contents = [
+        types.Content(role="model" if turn["role"] == "assistant" else "user",
+                      parts=[types.Part(text=turn["content"])])
+        for turn in (history or [])
+    ]
+    contents.append(types.Content(role="user", parts=[types.Part(text=message)]))
 
     try:
-        response = await _client.messages.create(
+        response = await _client.aio.models.generate_content(
             model=CHAT_AGENT_MODEL,
-            max_tokens=MAX_TOKENS,
-            system=f"{SYSTEM_PROMPT}\n\nCONTEXT:\n{context}",
-            messages=messages,
+            contents=contents,
+            config=types.GenerateContentConfig(
+                system_instruction=f"{SYSTEM_PROMPT}\n\nCONTEXT:\n{context}",
+                max_output_tokens=MAX_TOKENS,
+            ),
         )
-    except anthropic.APIError as exc:
-        logger.error("chat_agent.ask: Claude API error: %s", exc)
+    except APIError as exc:
+        logger.error("chat_agent.ask: Gemini API error: %s", exc)
         return "Sorry, I'm having trouble answering right now - please try again in a moment."
 
-    return "".join(block.text for block in response.content if block.type == "text").strip()
+    return (response.text or "").strip()
