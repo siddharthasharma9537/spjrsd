@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 CHAT_AGENT_MODEL = os.environ.get("CHAT_AGENT_MODEL", "gemini-3.6-flash")
-MAX_TOKENS = 600
+MAX_TOKENS = 1024
 
 _client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
@@ -191,6 +191,11 @@ async def ask(message: str, history: list[dict] | None = None) -> str:
             config=types.GenerateContentConfig(
                 system_instruction=f"{SYSTEM_PROMPT}\n\nCONTEXT:\n{context}",
                 max_output_tokens=MAX_TOKENS,
+                # Without this, Gemini's internal "thinking" tokens eat into
+                # max_output_tokens, silently truncating the visible reply
+                # (seen live: a seva-price answer cut off after one header
+                # line). This isn't a reasoning task, so thinking buys nothing.
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
             ),
         )
     except APIError as exc:
