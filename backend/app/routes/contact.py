@@ -13,7 +13,7 @@ from app.schemas.contact import ContactMessageCreate
 router = APIRouter(prefix="/api")
 logger = logging.getLogger(__name__)
 
-ADMIN_ALERT_EMAIL = "admin@cheruvugattu.online"
+ADMIN_ALERT_EMAIL = "info@cheruvugattu.online"
 
 # Matched against the contact form's subject+message (case-insensitive) to
 # auto-reply directly to the visitor instead of waiting for the admin to

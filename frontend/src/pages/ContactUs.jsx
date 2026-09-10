@@ -68,8 +68,8 @@ export default function ContactUs() {
                 <Mail className="h-5 w-5 text-[#C43E00] shrink-0 mt-0.5" />
                 <div>
                   <h3 className="text-sm font-medium text-[#2D1B0E] mb-1">{t('Email', 'ఇమెయిల్')}</h3>
-                  <p className="text-xs text-[#5D4037]">admin@cheruvugattu.online</p>
-                  <p className="text-xs text-[#5D4037]">aceocheruvugattu@yahoo.in</p>
+                  <p className="text-xs text-[#5D4037]">aceocheruvugattu@yahoo.in <span className="text-[#8D6E63]">({t('Temple Office / Executive Officer, for official administrative matters', 'ఆలయ కార్యాలయం / కార్యనిర్వహణాధికారి, అధికారిక పరిపాలనా విషయాలకు')})</span></p>
+                  <p className="text-xs text-[#5D4037] mt-1">info@cheruvugattu.online <span className="text-[#8D6E63]">({t('website management, for general information', 'వెబ్‌సైట్ నిర్వహణ, సాధారణ సమాచారం కోసం')})</span></p>
                 </div>
               </div>
             </div>

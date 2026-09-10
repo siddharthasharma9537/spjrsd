@@ -143,7 +143,8 @@ REPLIES_EN = {
         "☎️ Temple Office\n\n"
         "Sri S. Mohan Babu, Executive Officer\n"
         "Phone: +91 94910 00701\n"
-        "Email: admin@cheruvugattu.online\n\n"
+        "Email: aceocheruvugattu@yahoo.in\n"
+        "Website: info@cheruvugattu.online\n\n"
         f"Or write to us here: {SITE}/support/contact"
     ),
     # Sent as 2 messages - the combined shloka+Introduction+Main Legend text
@@ -238,7 +239,8 @@ REPLIES_TE = {
         "☎️ కార్యాలయం\n\n"
         "శ్రీ ఎస్. మోహన్ బాబు, కార్యనిర్వహణాధికారి\n"
         "ఫోన్: +91 94910 00701\n"
-        "ఇమెయిల్: admin@cheruvugattu.online\n\n"
+        "ఇమెయిల్: aceocheruvugattu@yahoo.in\n"
+        "వెబ్‌సైట్: info@cheruvugattu.online\n\n"
         f"లేదా ఇక్కడ రాయండి: {SITE}/support/contact"
     ),
     # Sent as 2 messages, same reasoning as REPLIES_EN["7"].
