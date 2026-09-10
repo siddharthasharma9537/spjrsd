@@ -34,7 +34,7 @@ from app.database.db import db
 logger = logging.getLogger(__name__)
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-CHAT_AGENT_MODEL = os.environ.get("CHAT_AGENT_MODEL", "gemini-2.5-flash")
+CHAT_AGENT_MODEL = os.environ.get("CHAT_AGENT_MODEL", "gemini-3.6-flash")
 MAX_TOKENS = 600
 
 _client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
