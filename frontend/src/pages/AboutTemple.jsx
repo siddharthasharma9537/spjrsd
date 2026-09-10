@@ -223,13 +223,17 @@ export default function AboutTemple() {
               <div className="max-w-4xl mx-auto bg-white border border-[#E6DCCA] rounded-[2rem] p-8 md:p-14 shadow-sm">
                 <div className="text-[#5D4037] text-base md:text-lg leading-relaxed md:leading-loose space-y-6">
                   
-                  {/* English translation of the same verbatim Sthala Puranam text used in
-                      the Telugu tab - shloka plus two labeled segments, kept in lockstep
-                      with that tab rather than the old three-beat paraphrase. */}
+                  {/* Same verbatim Sthala Puranam text as the Telugu tab - shloka plus
+                      two labeled segments. The shloka itself stays in Sanskrit/Telugu
+                      script even here rather than being translated/paraphrased into
+                      English prose - a shloka is recited, not read as a description. */}
                   <div className="text-center bg-[#FDFBF7] border border-[#E6DCCA]/50 rounded-2xl p-6 md:p-8">
                     <p className="font-english-heading text-sm tracking-wide text-[#C43E00] uppercase mb-3">The Shloka</p>
                     <p className="italic text-[#621B00] leading-loose">
-                      I worship Sri Ramalingam, who resides in the great, divine temple built by the illustrious Bhargava Rama (Parashurama), who bears half His form as the daughter of the snow-capped mountain (Parvati) and wears the crescent moon, whose lotus feet are served by Brahma, Indra and Achyuta (Vishnu), who is the wish-fulfilling tree for true devotees, and who dwells beautifully upon the Ikshu hill (Ikshwadri).
+                      శ్లో॥ శ్రీమద్భార్గవరామనిర్మితమహాదివ్యాలయేసంస్థితం<br />
+                      నీహారాచలకన్యకార్థవపుషంబాలేందురేఖాధరం |<br />
+                      బ్రహ్మేంద్రాచ్యుతసేవ్యపాదజలజంసద్భక్తకల్పధృమం<br />
+                      సేవేసుందరఇక్షుశైలనిలయం శ్రీరామలింగంభజే ॥
                     </p>
                   </div>
 
