@@ -54,7 +54,7 @@ export default function AccommodationBooking() {
         </Link>
         <div className="bg-white border border-[#E6DCCA] rounded-xl p-6 md:p-8 shadow-sm">
           <div className="border-b border-[#E6DCCA] pb-4 mb-6">
-            <h1 className="font-english-heading text-xl text-[#621B00]" data-testid="acc-booking-name">{acc.name}</h1>
+            <h1 className="font-english-heading text-xl text-[#621B00]" data-testid="acc-booking-name">{t(acc.name, acc.name_telugu)}</h1>
             <div className="flex items-center gap-1 text-[#C43E00] font-medium mt-2">
               <IndianRupee className="h-4 w-4" /> {t(`${acc.price_per_day} / day`, `${acc.price_per_day} / రోజుకు`)}
             </div>
@@ -100,7 +100,7 @@ export default function AccommodationBooking() {
         ) : (
           <div className="bg-white border border-[#E6DCCA] rounded-xl p-6 md:p-8 shadow-sm" data-testid="acc-booking-form">
             <div className="border-b border-[#E6DCCA] pb-4 mb-6">
-              <h1 className="font-english-heading text-xl text-[#621B00]" data-testid="acc-booking-name">{acc.name}</h1>
+              <h1 className="font-english-heading text-xl text-[#621B00]" data-testid="acc-booking-name">{t(acc.name, acc.name_telugu)}</h1>
 
               <p className="text-sm text-[#5D4037] mt-1">{acc.room_type} | {t('Capacity', 'సామర్థ్యం')}: {acc.capacity} | Rs. {acc.price_per_day}{t('/day', '/రోజుకు')}</p>
             </div>

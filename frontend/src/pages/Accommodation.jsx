@@ -42,7 +42,7 @@ export default function Accommodation() {
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <h3 className="font-english-heading text-base text-[#2D1B0E]">{acc.name}</h3>
+                      <h3 className="font-english-heading text-base text-[#2D1B0E]">{t(acc.name, acc.name_telugu)}</h3>
                       
                     </div>
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${typeColors[acc.room_type] || 'bg-gray-100 text-gray-800'}`}>{acc.room_type}</span>
