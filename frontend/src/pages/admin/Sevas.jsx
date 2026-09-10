@@ -8,21 +8,25 @@ export default function AdminSevas() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name_english: '', name_telugu: '', description: '', description_telugu: '', base_price: 0, duration_minutes: 30, is_online_bookable: true, max_per_slot_default: 20, max_persons_per_ticket: 4, special_instructions: '', active_flag: true });
+  const [form, setForm] = useState({ name_english: '', name_telugu: '', description: '', description_telugu: '', base_price: 0, duration_minutes: 30, is_online_bookable: true, max_per_slot_default: 20, max_persons_per_ticket: 4, special_instructions: '', location_categories: [], active_flag: true });
 
   const load = () => api.get('/sevas?active_only=false').then(r => { setSevas(r.data); setLoading(false); });
   useEffect(() => { load(); }, []);
 
   const resetForm = () => {
-    setForm({ name_english: '', name_telugu: '', description: '', description_telugu: '', base_price: 0, duration_minutes: 30, is_online_bookable: true, max_per_slot_default: 20, max_persons_per_ticket: 4, special_instructions: '', active_flag: true });
+    setForm({ name_english: '', name_telugu: '', description: '', description_telugu: '', base_price: 0, duration_minutes: 30, is_online_bookable: true, max_per_slot_default: 20, max_persons_per_ticket: 4, special_instructions: '', location_categories: [], active_flag: true });
     setEditing(null);
     setShowForm(false);
   };
 
   const handleEdit = (s) => {
-    setForm({ name_english: s.name_english, name_telugu: s.name_telugu, description: s.description || '', description_telugu: s.description_telugu || '', base_price: s.base_price, duration_minutes: s.duration_minutes, is_online_bookable: s.is_online_bookable, max_per_slot_default: s.max_per_slot_default, max_persons_per_ticket: s.max_persons_per_ticket, special_instructions: s.special_instructions || '', active_flag: s.active_flag });
+    setForm({ name_english: s.name_english, name_telugu: s.name_telugu, description: s.description || '', description_telugu: s.description_telugu || '', base_price: s.base_price, duration_minutes: s.duration_minutes, is_online_bookable: s.is_online_bookable, max_per_slot_default: s.max_per_slot_default, max_persons_per_ticket: s.max_persons_per_ticket, special_instructions: s.special_instructions || '', location_categories: s.location_categories || [], active_flag: s.active_flag });
     setEditing(s.id);
     setShowForm(true);
+  };
+
+  const toggleLocationCategory = (cat) => {
+    setForm(f => ({ ...f, location_categories: f.location_categories.includes(cat) ? f.location_categories.filter(c => c !== cat) : [...f.location_categories, cat] }));
   };
 
   const handleSubmit = async (e) => {
@@ -98,6 +102,17 @@ export default function AdminSevas() {
             <div className="md:col-span-2">
               <label className="block text-xs font-medium text-[#5D4037] mb-1">Special Instructions</label>
               <textarea className={`${inputCls} h-16 py-2`} value={form.special_instructions} onChange={e => setForm({...form, special_instructions: e.target.value})} data-testid="seva-instructions" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-[#5D4037] mb-1">Shrine (for grouping seva ticket prices in chat/WhatsApp)</label>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 text-sm text-[#5D4037]">
+                  <input type="checkbox" checked={form.location_categories.includes('gattupaina')} onChange={() => toggleLocationCategory('gattupaina')} className="rounded" data-testid="seva-cat-gattupaina" /> Gattupaina
+                </label>
+                <label className="flex items-center gap-2 text-sm text-[#5D4037]">
+                  <input type="checkbox" checked={form.location_categories.includes('ammavari')} onChange={() => toggleLocationCategory('ammavari')} className="rounded" data-testid="seva-cat-ammavari" /> Sri Ammavari Devalayam
+                </label>
+              </div>
             </div>
             <div className="flex items-center gap-4">
               <label className="flex items-center gap-2 text-sm text-[#5D4037]">

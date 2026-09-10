@@ -321,6 +321,7 @@ class SevaCreate(BaseModel):
     max_per_slot_default: int = 20
     max_persons_per_ticket: int = 4
     special_instructions: Optional[str] = ""
+    location_categories: Optional[List[str]] = []  # "gattupaina", "ammavari" - can be both, or neither ("Other Sevas")
     active_flag: bool = True
 
 class SevaUpdate(BaseModel):
@@ -335,6 +336,7 @@ class SevaUpdate(BaseModel):
     max_per_slot_default: Optional[int] = None
     max_persons_per_ticket: Optional[int] = None
     special_instructions: Optional[str] = None
+    location_categories: Optional[List[str]] = None
     active_flag: Optional[bool] = None
 
 class DayProfileCreate(BaseModel):

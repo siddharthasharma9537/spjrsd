@@ -71,7 +71,8 @@ async def _fetch_context() -> str:
     sevas = await db.sevas.find(
         {"active_flag": True},
         {"_id": 0, "name_english": 1, "name_telugu": 1, "base_price": 1,
-         "duration_minutes": 1, "is_online_bookable": 1, "special_instructions": 1},
+         "duration_minutes": 1, "is_online_bookable": 1, "special_instructions": 1,
+         "location_categories": 1},
     ).to_list(200)
 
     stotrams = await db.stotrams.find(
@@ -93,14 +94,36 @@ async def _fetch_context() -> str:
 
     lines = [f"Today's date: {today}", ""]
 
-    lines.append("SEVAS (name / price / duration):")
-    for s in sevas:
+    def _format_seva(s: dict) -> str:
         bookable = "online bookable" if s.get("is_online_bookable") else "counter only"
-        lines.append(
+        return (
             f"- {s.get('name_english')} ({s.get('name_telugu')}): "
             f"Rs. {s.get('base_price')}, {s.get('duration_minutes')} min, {bookable}"
             + (f" - {s['special_instructions']}" if s.get("special_instructions") else "")
         )
+
+    # Sevas are grouped by which shrine they're performed at (a seva can belong
+    # to both, e.g. Ashtottaram/Gotra Namarchana), so seva ticket prices are
+    # presented the way the temple office itself categorizes them rather than
+    # as one flat list. Anything with no location_categories set falls under
+    # "Other Sevas".
+    gattupaina = [s for s in sevas if "gattupaina" in (s.get("location_categories") or [])]
+    ammavari = [s for s in sevas if "ammavari" in (s.get("location_categories") or [])]
+    other = [s for s in sevas if not s.get("location_categories")]
+
+    lines.append("SEVAS AND TICKET PRICES, grouped by shrine:")
+    lines.append("")
+    lines.append("Gattupaina Aarjitha Seva Tickets:")
+    for s in gattupaina:
+        lines.append(_format_seva(s))
+    lines.append("")
+    lines.append("Sri Ammavari Devalayamlo Aarjitha Seva Tickets:")
+    for s in ammavari:
+        lines.append(_format_seva(s))
+    lines.append("")
+    lines.append("Other Sevas:")
+    for s in other:
+        lines.append(_format_seva(s))
 
     lines.append("")
     lines.append("STOTRAMS available (title - deity):")
