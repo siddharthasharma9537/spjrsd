@@ -67,7 +67,7 @@ export default function SevaList({ paroksha = false }) {
                       <IndianRupee className="h-3.5 w-3.5" />{seva.base_price}
                     </div>
                   </div>
-                  <p className="text-sm text-[#5D4037] mb-4 line-clamp-2">{seva.description}</p>
+                  <p className="text-sm text-[#5D4037] mb-4 line-clamp-2">{t(seva.description, seva.description_telugu)}</p>
                   <div className="flex items-center gap-4 text-xs text-[#8D6E63] mb-4">
                     <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {seva.duration_minutes} min</span>
                     <span>{t(`Max ${seva.max_persons_per_ticket} persons/ticket`, `గరిష్టంగా ${seva.max_persons_per_ticket} మంది/టికెట్`)}</span>

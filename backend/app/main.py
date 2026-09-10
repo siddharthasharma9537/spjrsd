@@ -313,6 +313,7 @@ class SevaCreate(BaseModel):
     name_english: str
     name_telugu: str
     description: Optional[str] = ""
+    description_telugu: Optional[str] = ""
     base_price: float
     duration_minutes: int = 30
     is_online_bookable: bool = True
@@ -326,6 +327,7 @@ class SevaUpdate(BaseModel):
     name_english: Optional[str] = None
     name_telugu: Optional[str] = None
     description: Optional[str] = None
+    description_telugu: Optional[str] = None
     base_price: Optional[float] = None
     duration_minutes: Optional[int] = None
     is_online_bookable: Optional[bool] = None

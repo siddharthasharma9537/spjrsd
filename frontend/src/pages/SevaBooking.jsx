@@ -274,7 +274,7 @@ export default function SevaBooking() {
             </div>
           </div>
           {isParoksha && <ParokshaSevaNote t={t} />}
-          {seva.description && <p className="text-sm text-[#5D4037] leading-relaxed mb-4">{seva.description}</p>}
+          {seva.description && <p className="text-sm text-[#5D4037] leading-relaxed mb-4">{t(seva.description, seva.description_telugu)}</p>}
           <div className="flex items-center gap-4 text-xs text-[#8D6E63] mb-6">
             <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {seva.duration_minutes} min</span>
             <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {t(`Max ${seva.max_persons_per_ticket} persons/ticket`, `గరిష్టంగా ${seva.max_persons_per_ticket} మంది/టికెట్`)}</span>

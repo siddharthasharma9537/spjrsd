@@ -8,19 +8,19 @@ export default function AdminSevas() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name_english: '', name_telugu: '', description: '', base_price: 0, duration_minutes: 30, is_online_bookable: true, max_per_slot_default: 20, max_persons_per_ticket: 4, special_instructions: '', active_flag: true });
+  const [form, setForm] = useState({ name_english: '', name_telugu: '', description: '', description_telugu: '', base_price: 0, duration_minutes: 30, is_online_bookable: true, max_per_slot_default: 20, max_persons_per_ticket: 4, special_instructions: '', active_flag: true });
 
   const load = () => api.get('/sevas?active_only=false').then(r => { setSevas(r.data); setLoading(false); });
   useEffect(() => { load(); }, []);
 
   const resetForm = () => {
-    setForm({ name_english: '', name_telugu: '', description: '', base_price: 0, duration_minutes: 30, is_online_bookable: true, max_per_slot_default: 20, max_persons_per_ticket: 4, special_instructions: '', active_flag: true });
+    setForm({ name_english: '', name_telugu: '', description: '', description_telugu: '', base_price: 0, duration_minutes: 30, is_online_bookable: true, max_per_slot_default: 20, max_persons_per_ticket: 4, special_instructions: '', active_flag: true });
     setEditing(null);
     setShowForm(false);
   };
 
   const handleEdit = (s) => {
-    setForm({ name_english: s.name_english, name_telugu: s.name_telugu, description: s.description || '', base_price: s.base_price, duration_minutes: s.duration_minutes, is_online_bookable: s.is_online_bookable, max_per_slot_default: s.max_per_slot_default, max_persons_per_ticket: s.max_persons_per_ticket, special_instructions: s.special_instructions || '', active_flag: s.active_flag });
+    setForm({ name_english: s.name_english, name_telugu: s.name_telugu, description: s.description || '', description_telugu: s.description_telugu || '', base_price: s.base_price, duration_minutes: s.duration_minutes, is_online_bookable: s.is_online_bookable, max_per_slot_default: s.max_per_slot_default, max_persons_per_ticket: s.max_persons_per_ticket, special_instructions: s.special_instructions || '', active_flag: s.active_flag });
     setEditing(s.id);
     setShowForm(true);
   };
@@ -66,9 +66,13 @@ export default function AdminSevas() {
               <label className="block text-xs font-medium text-[#5D4037] mb-1">Name (Telugu)</label>
               <input className={inputCls} value={form.name_telugu} onChange={e => setForm({...form, name_telugu: e.target.value})} required data-testid="seva-name-telugu" />
             </div>
-            <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-[#5D4037] mb-1">Description</label>
+            <div>
+              <label className="block text-xs font-medium text-[#5D4037] mb-1">Description (English)</label>
               <textarea className={`${inputCls} h-20 py-2`} value={form.description} onChange={e => setForm({...form, description: e.target.value})} data-testid="seva-description" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-[#5D4037] mb-1">Description (Telugu)</label>
+              <textarea className={`${inputCls} h-20 py-2`} value={form.description_telugu} onChange={e => setForm({...form, description_telugu: e.target.value})} data-testid="seva-description-telugu" />
             </div>
             <div>
               <label className="block text-xs font-medium text-[#5D4037] mb-1">Base Price (Rs.)</label>
