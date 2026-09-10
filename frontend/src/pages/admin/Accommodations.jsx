@@ -8,14 +8,14 @@ export default function AdminAccommodations() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: '', name_telugu: '', description: '', room_type: 'AC', capacity: 2, price_per_day: 0, amenities: '', total_rooms: 10, active_flag: true });
+  const [form, setForm] = useState({ name: '', name_telugu: '', description: '', description_telugu: '', room_type: 'AC', capacity: 2, price_per_day: 0, amenities: '', total_rooms: 10, active_flag: true });
 
   const load = () => api.get('/accommodations?active_only=false').then(r => { setItems(r.data); setLoading(false); });
   useEffect(() => { load(); }, []);
 
-  const resetForm = () => { setForm({ name: '', name_telugu: '', description: '', room_type: 'AC', capacity: 2, price_per_day: 0, amenities: '', total_rooms: 10, active_flag: true }); setEditing(null); setShowForm(false); };
+  const resetForm = () => { setForm({ name: '', name_telugu: '', description: '', description_telugu: '', room_type: 'AC', capacity: 2, price_per_day: 0, amenities: '', total_rooms: 10, active_flag: true }); setEditing(null); setShowForm(false); };
 
-  const handleEdit = (a) => { setForm({ name: a.name, name_telugu: a.name_telugu || '', description: a.description || '', room_type: a.room_type, capacity: a.capacity, price_per_day: a.price_per_day, amenities: a.amenities || '', total_rooms: a.total_rooms, active_flag: a.active_flag }); setEditing(a.id); setShowForm(true); };
+  const handleEdit = (a) => { setForm({ name: a.name, name_telugu: a.name_telugu || '', description: a.description || '', description_telugu: a.description_telugu || '', room_type: a.room_type, capacity: a.capacity, price_per_day: a.price_per_day, amenities: a.amenities || '', total_rooms: a.total_rooms, active_flag: a.active_flag }); setEditing(a.id); setShowForm(true); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -43,7 +43,8 @@ export default function AdminAccommodations() {
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div><label className="block text-xs font-medium text-[#5D4037] mb-1">Name</label><input className={inputCls} value={form.name} onChange={e => setForm({...form, name: e.target.value})} required data-testid="acc-name" /></div>
             <div><label className="block text-xs font-medium text-[#5D4037] mb-1">Name (Telugu)</label><input className={inputCls} value={form.name_telugu} onChange={e => setForm({...form, name_telugu: e.target.value})} /></div>
-            <div className="md:col-span-2"><label className="block text-xs font-medium text-[#5D4037] mb-1">Description</label><textarea className={`${inputCls} h-16 py-2`} value={form.description} onChange={e => setForm({...form, description: e.target.value})} /></div>
+            <div><label className="block text-xs font-medium text-[#5D4037] mb-1">Description (English)</label><textarea className={`${inputCls} h-16 py-2`} value={form.description} onChange={e => setForm({...form, description: e.target.value})} /></div>
+            <div><label className="block text-xs font-medium text-[#5D4037] mb-1">Description (Telugu)</label><textarea className={`${inputCls} h-16 py-2`} value={form.description_telugu} onChange={e => setForm({...form, description_telugu: e.target.value})} /></div>
             <div><label className="block text-xs font-medium text-[#5D4037] mb-1">Room Type</label>
               <select className={inputCls} value={form.room_type} onChange={e => setForm({...form, room_type: e.target.value})}>
                 {['AC','Non-AC','Cottage','Dormitory','Guest House'].map(t => <option key={t} value={t}>{t}</option>)}

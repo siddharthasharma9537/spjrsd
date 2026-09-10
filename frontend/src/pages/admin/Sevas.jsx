@@ -34,6 +34,11 @@ export default function AdminSevas() {
     load();
   };
 
+  const handleToggleActive = async (s) => {
+    await api.put(`/admin/sevas/${s.id}`, { active_flag: !s.active_flag });
+    load();
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this seva?')) return;
     await api.delete(`/admin/sevas/${id}`);
@@ -133,7 +138,14 @@ export default function AdminSevas() {
                     <td className="px-4 py-3 text-[#2D1B0E]">Rs. {s.base_price}</td>
                     <td className="px-4 py-3 text-[#8D6E63]">{s.duration_minutes} min</td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs ${s.active_flag ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{s.active_flag ? 'Active' : 'Inactive'}</span>
+                      <button
+                        onClick={() => handleToggleActive(s)}
+                        className={`px-2 py-0.5 rounded-full text-xs transition-colors ${s.active_flag ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-red-100 text-red-800 hover:bg-red-200'}`}
+                        data-testid={`toggle-active-${s.id}`}
+                        title="Click to toggle"
+                      >
+                        {s.active_flag ? 'Active' : 'Inactive'}
+                      </button>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button onClick={() => handleEdit(s)} className="p-1.5 text-[#8D6E63] hover:text-[#C43E00] transition-colors" data-testid={`edit-seva-${s.id}`}><Pencil className="h-4 w-4" /></button>

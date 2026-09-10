@@ -47,7 +47,7 @@ export default function Accommodation() {
                     </div>
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${typeColors[acc.room_type] || 'bg-gray-100 text-gray-800'}`}>{acc.room_type}</span>
                   </div>
-                  <p className="text-sm text-[#5D4037] mb-4">{acc.description}</p>
+                  <p className="text-sm text-[#5D4037] mb-4">{t(acc.description, acc.description_telugu)}</p>
                   <div className="flex flex-wrap items-center gap-3 text-xs text-[#8D6E63] mb-4">
                     <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {t('Capacity', 'సామర్థ్యం')}: {acc.capacity}</span>
                     <span className="flex items-center gap-1"><BedDouble className="h-3.5 w-3.5" /> {t(`${acc.total_rooms} rooms`, `${acc.total_rooms} గదులు`)}</span>

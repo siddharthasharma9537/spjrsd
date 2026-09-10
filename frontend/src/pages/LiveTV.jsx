@@ -50,8 +50,8 @@ export default function LiveTV() {
                       <span className={`w-2 h-2 rounded-full ${selected.is_live && selected.stream_url ? 'bg-red-500 animate-pulse' : 'bg-[#8D6E63]'}`} />
                       <span className={`text-xs font-medium uppercase ${selected.is_live && selected.stream_url ? 'text-red-600' : 'text-[#8D6E63]'}`}>{selected.is_live && selected.stream_url ? t('Live', 'ప్రత్యక్ష ప్రసారం') : t('Offline', 'ఆఫ్‌లైన్')}</span>
                     </div>
-                    <h2 className="font-english-heading text-lg text-[#621B00]">{selected.name}</h2>
-                    <p className="text-sm text-[#5D4037] mt-1">{selected.description}</p>
+                    <h2 className="font-english-heading text-lg text-[#621B00]">{t(selected.name, selected.name_telugu)}</h2>
+                    <p className="text-sm text-[#5D4037] mt-1">{t(selected.description, selected.description_telugu)}</p>
                     <p className="text-xs text-[#8D6E63] flex items-center gap-1 mt-2"><Clock className="h-3.5 w-3.5" /> {selected.schedule_info}</p>
                   </div>
                 </div>
@@ -67,7 +67,7 @@ export default function LiveTV() {
                         <Play className="h-4 w-4 text-red-600" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-[#2D1B0E]">{s.name}</p>
+                        <p className="text-sm font-medium text-[#2D1B0E]">{t(s.name, s.name_telugu)}</p>
                         <p className="text-xs text-[#8D6E63]">{s.schedule_info}</p>
                       </div>
                     </div>

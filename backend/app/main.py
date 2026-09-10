@@ -394,6 +394,7 @@ class AccommodationCreate(BaseModel):
     name: str
     name_telugu: Optional[str] = ""
     description: Optional[str] = ""
+    description_telugu: Optional[str] = ""
     room_type: str  # AC, Non-AC, Cottage, Guest House, Dormitory
     capacity: int = 2
     price_per_day: float
@@ -405,6 +406,7 @@ class AccommodationUpdate(BaseModel):
     name: Optional[str] = None
     name_telugu: Optional[str] = None
     description: Optional[str] = None
+    description_telugu: Optional[str] = None
     room_type: Optional[str] = None
     capacity: Optional[int] = None
     price_per_day: Optional[float] = None

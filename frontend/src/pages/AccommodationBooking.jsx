@@ -59,7 +59,7 @@ export default function AccommodationBooking() {
               <IndianRupee className="h-4 w-4" /> {t(`${acc.price_per_day} / day`, `${acc.price_per_day} / రోజుకు`)}
             </div>
           </div>
-          {acc.description && <p className="text-sm text-[#5D4037] leading-relaxed mb-4">{acc.description}</p>}
+          {acc.description && <p className="text-sm text-[#5D4037] leading-relaxed mb-4">{t(acc.description, acc.description_telugu)}</p>}
           <div className="flex flex-wrap items-center gap-4 text-xs text-[#8D6E63] mb-4">
             <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {t('Capacity', 'సామర్థ్యం')}: {acc.capacity}</span>
             <span className="flex items-center gap-1"><BedDouble className="h-3.5 w-3.5" /> {t(`${acc.total_rooms} rooms`, `${acc.total_rooms} గదులు`)}</span>
