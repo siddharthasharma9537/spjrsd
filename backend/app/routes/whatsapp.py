@@ -104,6 +104,12 @@ MENU_LISTS_TE = [
     },
 ]
 
+# Every tappable menu row id ("1".."12"), independent of REPLIES_EN/REPLIES_TE
+# - option "7" (Temple History) is intercepted before those dicts are
+# consulted and has no entry in either, so _resolve_option can't use dict
+# membership alone to recognize it.
+VALID_MENU_OPTIONS = {row["id"] for menu_list in MENU_LISTS_EN for row in menu_list["rows"]}
+
 REPLIES_EN = {
     "1": (
         "🕉️ Temple Timings\n\n"
@@ -554,7 +560,7 @@ def _resolve_option(stripped: str) -> str | None:
     (e.g. "11") rather than its reply text - so the webhook handler can special-
     case option 11 (Devotee Registration) into the chat flow below instead of
     just sending back a link."""
-    if stripped in REPLIES_EN:  # REPLIES_EN/REPLIES_TE share the same key set
+    if stripped in VALID_MENU_OPTIONS:
         return stripped
     lowered = stripped.lower()
     if ("kaly" in lowered or "kalay" in lowered) and "katt" in lowered:
