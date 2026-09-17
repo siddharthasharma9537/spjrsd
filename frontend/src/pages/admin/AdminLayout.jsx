@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { ShieldCheck, LayoutDashboard, Flame as FlameIcon, Calendar, Clock, BookOpen, Users, LogOut, HandCoins, BedDouble, Newspaper, Camera, Sun, Radio, Mail, MessageSquare, Gift, ScrollText, Receipt } from 'lucide-react';
+import { ShieldCheck, LayoutDashboard, Flame as FlameIcon, Calendar, Clock, BookOpen, Users, LogOut, HandCoins, BedDouble, Newspaper, Camera, Sun, Radio, Mail, MessageSquare, Gift, ScrollText, Receipt, UserCog } from 'lucide-react';
 
 const navItems = [
   { path: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
@@ -9,6 +9,7 @@ const navItems = [
   { path: '/admin/slots', icon: Clock, label: 'Slots' },
   { path: '/admin/bookings', icon: BookOpen, label: 'Bookings' },
   { path: '/admin/counter-sale', icon: Receipt, label: 'Counter Sale' },
+  { path: '/admin/staff', icon: UserCog, label: 'Staff' },
   { path: '/admin/donations', icon: HandCoins, label: 'Donations' },
   { path: '/admin/accommodations', icon: BedDouble, label: 'Accommodation' },
   { path: '/admin/news', icon: Newspaper, label: 'News' },

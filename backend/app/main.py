@@ -226,6 +226,19 @@ async def get_current_cashier(credentials: HTTPAuthorizationCredentials = Depend
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+async def get_current_eo(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        payload = decode_token(credentials.credentials)
+        if payload.get("role") != "EO":
+            raise HTTPException(status_code=403, detail="Only the Executive Officer can manage staff accounts")
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
 async def get_optional_devotee(credentials: HTTPAuthorizationCredentials = Depends(security)):
     if not credentials:
         return None
@@ -267,6 +280,22 @@ class DevoteeGoogleAuth(BaseModel):
 
 class AdminLogin(BaseModel):
     username: str
+    password: str
+
+STAFF_ROLES = ["EO", "Clerk", "Cashier", "Priest"]
+
+class StaffCreate(BaseModel):
+    name: str
+    username: str
+    password: str
+    role: str
+
+class StaffUpdate(BaseModel):
+    name: Optional[str] = None
+    role: Optional[str] = None
+    active_flag: Optional[bool] = None
+
+class StaffPasswordReset(BaseModel):
     password: str
 
 class SevaCreate(BaseModel):
@@ -767,6 +796,50 @@ async def admin_login(data: AdminLogin):
         raise HTTPException(status_code=403, detail="Account disabled")
     token = create_token({"sub": user["id"], "name": user["name"], "role": user["role"], "username": user["username"]})
     return {"token": token, "user": {k: v for k, v in user.items() if k not in ["_id", "password_hash"]}}
+
+# ==================== STAFF ACCOUNT ROUTES (EO only) ====================
+@api_router.get("/admin/staff")
+async def list_staff(user=Depends(get_current_eo)):
+    return await db.user_accounts.find({}, {"_id": 0, "password_hash": 0}).sort("name", 1).to_list(200)
+
+@api_router.post("/admin/staff")
+async def create_staff(data: StaffCreate, user=Depends(get_current_eo)):
+    if data.role not in STAFF_ROLES:
+        raise HTTPException(status_code=400, detail=f"Role must be one of: {STAFF_ROLES}")
+    if len(data.password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    if await db.user_accounts.find_one({"username": data.username}):
+        raise HTTPException(status_code=400, detail="Username already taken")
+    staff = {
+        "id": str(uuid.uuid4()), "name": data.name, "username": data.username,
+        "password_hash": hash_password(data.password), "role": data.role,
+        "active_flag": True, "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.user_accounts.insert_one(staff)
+    return {k: v for k, v in staff.items() if k not in ["_id", "password_hash"]}
+
+@api_router.put("/admin/staff/{staff_id}")
+async def update_staff(staff_id: str, data: StaffUpdate, user=Depends(get_current_eo)):
+    if data.role is not None and data.role not in STAFF_ROLES:
+        raise HTTPException(status_code=400, detail=f"Role must be one of: {STAFF_ROLES}")
+    if staff_id == user["sub"] and data.active_flag is False:
+        raise HTTPException(status_code=400, detail="You can't deactivate your own account")
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    result = await db.user_accounts.update_one({"id": staff_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Staff account not found")
+    return await db.user_accounts.find_one({"id": staff_id}, {"_id": 0, "password_hash": 0})
+
+@api_router.put("/admin/staff/{staff_id}/password")
+async def reset_staff_password(staff_id: str, data: StaffPasswordReset, user=Depends(get_current_eo)):
+    if len(data.password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    result = await db.user_accounts.update_one({"id": staff_id}, {"$set": {"password_hash": hash_password(data.password)}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Staff account not found")
+    return {"message": "Password updated"}
 
 @api_router.get("/devotee/profile")
 async def get_devotee_profile(user=Depends(get_current_devotee)):
