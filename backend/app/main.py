@@ -908,8 +908,38 @@ async def get_available_slots(seva_id: str, date: str):
     for slot in slots:
         if slot.get("date") and slot["date"] != date:
             continue
-        booked = await db.bookings.count_documents({"slot_id": slot["id"], "for_date": date, "status": {"$nin": ["Cancelled"]}})
+        # Excludes channel="counter" bookings so counter sales never eat into
+        # online_quota - the two channels protect their own reserved
+        # capacity. "$ne" (not strict equality to "online") also counts
+        # bookings made before the channel field existed, which were all
+        # created through this same online endpoint.
+        booked = await db.bookings.count_documents({
+            "slot_id": slot["id"], "for_date": date,
+            "status": {"$nin": ["Cancelled"]}, "channel": {"$ne": "counter"},
+        })
         remaining = slot.get("online_quota", 10) - booked
+        if remaining > 0:
+            slot["remaining_slots"] = remaining
+            slot["booked_count"] = booked
+            available.append(slot)
+    return available
+
+@api_router.get("/admin/slots/available-counter")
+async def get_available_counter_slots(seva_id: str, date: str, user=Depends(get_current_cashier)):
+    """Same shape as GET /slots/available, but against counter_quota and
+    only counting this slot's own counter-channel bookings - so the number
+    shown at the ticket counter is the counter's own remaining capacity, not
+    the website's."""
+    slots = await db.schedule_slots.find({"seva_id": seva_id}, {"_id": 0}).to_list(100)
+    available = []
+    for slot in slots:
+        if slot.get("date") and slot["date"] != date:
+            continue
+        booked = await db.bookings.count_documents({
+            "slot_id": slot["id"], "for_date": date,
+            "status": {"$nin": ["Cancelled"]}, "channel": "counter",
+        })
+        remaining = slot.get("counter_quota", 10) - booked
         if remaining > 0:
             slot["remaining_slots"] = remaining
             slot["booked_count"] = booked

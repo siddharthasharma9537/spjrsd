@@ -45,6 +45,7 @@ import AdminSevas from "@/pages/admin/Sevas";
 import AdminProfiles from "@/pages/admin/Profiles";
 import AdminSlots from "@/pages/admin/Slots";
 import AdminBookings from "@/pages/admin/Bookings";
+import AdminCounterSale from "@/pages/admin/CounterSale";
 import AdminDevotees from "@/pages/admin/Devotees";
 import AdminDevoteeDetail from "@/pages/admin/DevoteeDetail";
 import AdminNews from "@/pages/admin/News";
@@ -211,6 +212,7 @@ function App() {
           <Route path="/admin/profiles" element={<ProtectedAdmin><AdminProfiles /></ProtectedAdmin>} />
           <Route path="/admin/slots" element={<ProtectedAdmin><AdminSlots /></ProtectedAdmin>} />
           <Route path="/admin/bookings" element={<ProtectedAdmin><AdminBookings /></ProtectedAdmin>} />
+          <Route path="/admin/counter-sale" element={<ProtectedAdmin><AdminCounterSale /></ProtectedAdmin>} />
           <Route path="/admin/devotees" element={<ProtectedAdmin><AdminDevotees /></ProtectedAdmin>} />
           <Route path="/admin/devotees/:devoteeId" element={<ProtectedAdmin><AdminDevoteeDetail /></ProtectedAdmin>} />
           <Route path="/admin/news" element={<ProtectedAdmin><AdminNews /></ProtectedAdmin>} />
