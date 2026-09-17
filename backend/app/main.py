@@ -213,6 +213,19 @@ async def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+async def get_current_cashier(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        payload = decode_token(credentials.credentials)
+        if payload.get("role") not in ["Cashier", "EO"]:
+            raise HTTPException(status_code=403, detail="Not authorized to sell counter tickets")
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
 async def get_optional_devotee(credentials: HTTPAuthorizationCredentials = Depends(security)):
     if not credentials:
         return None
@@ -324,6 +337,18 @@ class BookingCreate(BaseModel):
 
 class BookingStatusUpdate(BaseModel):
     status: str
+
+class CounterBookingCreate(BaseModel):
+    seva_id: str
+    slot_id: str
+    for_date: str
+    number_of_persons: int = 1
+    devotee_name: str
+    devotee_mobile: str
+    gotram: str = ""
+    nakshatra: Optional[str] = ""
+    rashi: Optional[str] = ""
+    payment_method: str  # "cash" | "card" | "upi_counter"
 
 class DonationCreate(BaseModel):
     donation_type: str  # e-Hundi, AnnaPrasadam
@@ -938,8 +963,54 @@ async def create_booking(data: BookingCreate, user=Depends(get_current_devotee))
         "slot_end_time": slot.get("end_time", ""),
         "booking_date_time": datetime.now(timezone.utc).isoformat(),
         "for_date": data.for_date, "status": "Confirmed", "payment_status": "Paid",
+        "channel": "online",
         "number_of_persons": data.number_of_persons, "gotram": data.gotram,
         "is_paroksha": data.is_paroksha,
+        "nakshatra": data.nakshatra or "", "rashi": data.rashi or "",
+        "amount": seva.get("base_price", 0),
+        "note_to_devotee": seva.get("special_instructions", "")
+    }
+    await db.bookings.insert_one(booking)
+    return {k: v for k, v in booking.items() if k != "_id"}
+
+@api_router.post("/admin/bookings/counter")
+async def create_counter_booking(data: CounterBookingCreate, user=Depends(get_current_cashier)):
+    seva = await db.sevas.find_one({"id": data.seva_id}, {"_id": 0})
+    if not seva:
+        raise HTTPException(status_code=404, detail="Seva not found")
+    slot = await db.schedule_slots.find_one({"id": data.slot_id}, {"_id": 0})
+    if not slot:
+        raise HTTPException(status_code=404, detail="Slot not found")
+    if data.number_of_persons < 1 or data.number_of_persons > seva.get("max_persons_per_ticket", 4):
+        raise HTTPException(status_code=400, detail=f"Number of persons must be 1-{seva.get('max_persons_per_ticket', 4)}")
+
+    # Counts only this slot's counter-channel bookings against counter_quota,
+    # so online and counter each protect their own reserved capacity instead
+    # of one channel silently starving the other (see PROJECT_SETU.md).
+    counter_booked = await db.bookings.count_documents({
+        "slot_id": data.slot_id, "for_date": data.for_date,
+        "status": {"$nin": ["Cancelled"]}, "channel": "counter",
+    })
+    if counter_booked >= slot.get("counter_quota", 10):
+        raise HTTPException(status_code=400, detail="No counter slots available for this time")
+
+    booking = {
+        "id": str(uuid.uuid4()),
+        "booking_number": f"SPJRS-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:6].upper()}",
+        "devotee_id": None, "devotee_name": data.devotee_name,
+        "devotee_mobile": data.devotee_mobile,
+        "seva_id": data.seva_id, "seva_name_english": seva.get("name_english", ""),
+        "seva_name_telugu": seva.get("name_telugu", ""),
+        "slot_id": data.slot_id, "slot_start_time": slot.get("start_time", ""),
+        "slot_end_time": slot.get("end_time", ""),
+        "booking_date_time": datetime.now(timezone.utc).isoformat(),
+        "for_date": data.for_date, "status": "Confirmed",
+        # Real "Paid" here, unlike the online flow's current mock - cash/card/
+        # UPI was physically collected at the counter before this call is made.
+        "payment_status": "Paid", "payment_method": data.payment_method,
+        "channel": "counter", "created_by": user["sub"],
+        "number_of_persons": data.number_of_persons, "gotram": data.gotram,
+        "is_paroksha": False,
         "nakshatra": data.nakshatra or "", "rashi": data.rashi or "",
         "amount": seva.get("base_price", 0),
         "note_to_devotee": seva.get("special_instructions", "")
