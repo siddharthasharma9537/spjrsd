@@ -104,4 +104,6 @@ This codebase is organized under two named initiatives, documented in full under
 - **Sannidhi** ("divine presence") — the temple's unified digital presence across the website, Google Business Profile, and Facebook Page. See [`docs/PROJECT_SANNIDHI.md`](docs/PROJECT_SANNIDHI.md) for what's been built so far.
 - **Setu** ("bridge") — turning the booking/ticketing engine from its current mocked-payment state into a live, paid booking flow reachable from the website, WhatsApp, and the temple's ticket counter. See [`docs/PROJECT_SETU.md`](docs/PROJECT_SETU.md) for the plan and open questions.
 
-There's also [`docs/LOCAL_MIRROR_SYNC.md`](docs/LOCAL_MIRROR_SYNC.md) and `ops/local-mirror/`, spec'ing an optional read-only local database mirror for temple office staff.
+There's also:
+- [`docs/LOCAL_MIRROR_SYNC.md`](docs/LOCAL_MIRROR_SYNC.md) and `ops/local-mirror/`, spec'ing an optional read-only local database mirror for temple office staff.
+- [`docs/ROLES_AND_PERMISSIONS.md`](docs/ROLES_AND_PERMISSIONS.md), spec'ing a configurable role/permission system so the EO can create new roles (e.g. Accountant, Help Desk) and control which admin screens each one can see, replacing today's fixed 4-role list.
