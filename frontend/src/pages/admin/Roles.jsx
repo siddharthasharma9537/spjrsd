@@ -127,8 +127,8 @@ export default function AdminRoles() {
       <AdminLayout title={`Permissions — ${editing.name}`}>
         {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4" data-testid="roles-matrix-error">{error}</p>}
         <div className="flex items-center gap-3 mb-4">
-          <button onClick={() => toggleGroup(allKeys(), true)} className="px-3 py-1.5 border border-[#E6DCCA] text-[#621B00] text-xs rounded-full hover:bg-[#FDFBF7]" data-testid="roles-matrix-select-all">Select All</button>
-          <button onClick={() => toggleGroup(allKeys(), false)} className="px-3 py-1.5 border border-[#E6DCCA] text-[#621B00] text-xs rounded-full hover:bg-[#FDFBF7]" data-testid="roles-matrix-clear-all">Clear All</button>
+          <button onClick={() => toggleGroup(allKeys(), false)} className="px-3 py-1.5 border border-[#E6DCCA] text-[#621B00] text-xs rounded-full hover:bg-[#FDFBF7]" data-testid="roles-matrix-select-all">Select All</button>
+          <button onClick={() => toggleGroup(allKeys(), true)} className="px-3 py-1.5 border border-[#E6DCCA] text-[#621B00] text-xs rounded-full hover:bg-[#FDFBF7]" data-testid="roles-matrix-clear-all">Clear All</button>
         </div>
         <div className="bg-white border border-[#E6DCCA] rounded-xl overflow-hidden mb-6">
           <div className="overflow-x-auto">
