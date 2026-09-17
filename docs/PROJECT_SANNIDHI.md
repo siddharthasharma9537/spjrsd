@@ -41,15 +41,22 @@ be built later:
   generation
 - Inbound WhatsApp chatbot webhook
 
-**Currently paused / mocked, by deliberate design:**
+**Built, but not yet launched to devotees — digital ticketing does not exist
+in practice yet, only in code:**
 - `BOOKINGS_PAUSED = true` — seva and accommodation booking forms are
-  disabled sitewide (info-only pages shown instead of a submit flow)
+  disabled sitewide (info-only pages shown instead of a submit flow). This
+  was never turned on for real devotees; it is pre-launch, not paused
+  mid-use.
 - `DONATION_FORM_PAUSED = true` — the donation form has no real payment
   gateway behind it; submitting it produces a **mocked** "Paid" record and a
   receipt for a donation that never happened. The genuine QR code / bank
   transfer / UPI details on the same page remain live and unaffected.
 - Ticket and donation-receipt "Payment Status" throughout the UI reflects
   this mocked state, not a real transaction.
+- **In short: the temple has not implemented digital ticketing yet.** The
+  booking/payment engine is built and tested against fake data, but nothing
+  here has taken a real devotee's booking or money. That is exactly what
+  Project Setu (see `PROJECT_SETU.md`) exists to turn on.
 
 ### Admin panel (`/admin/*`)
 Dashboard, Sevas, Slots, Bookings, Devotees (+ detail view), Accommodations,
