@@ -68,6 +68,11 @@ OTP_TTL_MINUTES = 5
 # Shared secret for the external scheduler (GitHub Actions) that triggers the
 # weekly panchangam digest - no browser session exists to hold an admin JWT.
 CRON_SECRET = os.environ.get('CRON_SECRET')
+# Shared secret gating POST /seed - it creates the very first EO account
+# (before any admin login exists to protect it with), so it can't require an
+# admin JWT the way every other admin route does. Leaving it unset disables
+# the endpoint entirely rather than falling back to no protection.
+SEED_SECRET = os.environ.get('SEED_SECRET')
 # OAuth 2.0 Client ID from Google Cloud Console (APIs & Services > Credentials),
 # with the site's origin added under "Authorized JavaScript origins". Devotee
 # Google Sign-In is inactive until this is set.
@@ -2177,7 +2182,13 @@ async def get_live_streams():
 
 # ==================== SEED DATA ====================
 @api_router.post("/seed")
-async def seed_data():
+async def seed_data(request: Request):
+    # Also a no-op once an admin exists (see below), but that alone isn't
+    # enough: this creates the platform's first EO account with a hardcoded
+    # username/password, so it must never be reachable by an unauthenticated
+    # caller even on a fresh, unseeded database.
+    if not SEED_SECRET or request.headers.get("X-Seed-Secret") != SEED_SECRET:
+        raise HTTPException(status_code=401, detail="Invalid or missing seed secret")
     admin_exists = await db.user_accounts.find_one({"username": "admin"})
     if admin_exists:
         return {"message": "Data already seeded"}
