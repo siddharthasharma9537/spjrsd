@@ -8,7 +8,7 @@ This is a monorepo with a FastAPI backend and a React frontend, covering the pub
 
 - **Public site** — temple history (Sthala Puranam), seva (ritual) listings and online booking, accommodation booking, donations, live blog / news, photo gallery, video/live TV, panchangam (Hindu calendar), stotrams, aashirvachanam (blessings), FAQ, volunteer and contact forms.
 - **Devotee accounts** — sign up/sign in by email, Google OAuth, or WhatsApp OTP; manage family members; view booking and donation history; email verification flow.
-- **Admin dashboard** (`/admin`) — staff-only CRUD for sevas, schedule slots, day profiles, accommodations, bookings, donations, gallery (uploads to Cloudflare R2), live blog, news, panchangam, stotrams, aashirvachanam, newsletter, devotee management, and contact messages.
+- **Admin dashboard** (`/admin`) — staff-only CRUD for sevas, schedule slots, day profiles, accommodations, bookings, donations, gallery (uploads to Cloudflare R2), live blog, news, panchangam, stotrams, aashirvachanam, newsletter, devotee management, and contact messages. Also a **Counter Sale** screen for in-person ticket-counter staff (Cashier role) to sell sevas against their own reserved slot capacity, and a **Staff** screen (EO-only) for creating and managing admin accounts.
 - **WhatsApp chatbot** — a Meta Cloud API webhook (`backend/app/routes/whatsapp.py`) that answers devotee questions via native list/button menus, and a separate WhatsApp OTP channel for devotee login/registration.
 - **Conversational AI agent** (optional, off by default) — free-text WhatsApp messages and a `POST /api/chat` endpoint (for a future website widget) that don't match a menu option are classified as either wanting to transact (book/pay/donate — kept on the deterministic menu, never handled by the AI) or wanting to ask a question (answered by Claude, grounded in live seva/panchangam/stotram/news data pulled fresh from MongoDB on every call). See `backend/app/services/chat_agent.py` (the shared "brain") and `backend/app/services/intent_router.py` (the transact-vs-chat classifier). Inert until `ANTHROPIC_API_KEY` is set.
 - **Content syndication** — News and Live Blog posts auto-mirror to the temple's Facebook Page, and (pending Google's API approval) to its Google Business Profile, so the same post reaches all channels without retyping (`backend/app/services/syndication.py`).
@@ -70,6 +70,7 @@ Backend env vars (see `backend/.env.example` for full descriptions of each):
 - `WHATSAPP_VERIFY_TOKEN`, `META_APP_SECRET` — inbound WhatsApp chatbot webhook.
 - `GOOGLE_CLIENT_ID` — devotee "Sign in with Google" (must match the frontend's `REACT_APP_GOOGLE_CLIENT_ID`).
 - `CRON_SECRET` — shared secret for the GitHub Actions-triggered cron endpoints.
+- `SEED_SECRET` — shared secret for `POST /api/seed`, which creates the platform's first EO account. Unset means the endpoint is disabled outright, not "open."
 - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL` — gallery image uploads to Cloudflare R2.
 - `FB_PAGE_ID`, `FB_PAGE_TOKEN`, `FB_GRAPH_VERSION` — Facebook Page syndication (optional; feature is inert without them).
 - `GBP_ACCOUNT_ID`, `GBP_LOCATION_ID`, `GBP_CLIENT_ID`, `GBP_CLIENT_SECRET`, `GBP_REFRESH_TOKEN`, `SITE_URL` — Google Business Profile syndication (optional; feature is inert without them).
@@ -95,3 +96,12 @@ Set `REACT_APP_GOOGLE_CLIENT_ID` (and any API base URL override) in `frontend/.e
 
 - Almost everything lives in `backend/app/main.py` — it's large but not yet split into per-feature routers (only WhatsApp, contact, volunteer, and live-stream have their own route modules).
 - Facebook and Google Business Profile syndication are additive channels: publishing a News or Live Blog post always saves to the site regardless of whether either channel is configured, and each channel's failure is logged without affecting the other.
+
+## Project planning docs
+
+This codebase is organized under two named initiatives, documented in full under `docs/`:
+
+- **Sannidhi** ("divine presence") — the temple's unified digital presence across the website, Google Business Profile, and Facebook Page. See [`docs/PROJECT_SANNIDHI.md`](docs/PROJECT_SANNIDHI.md) for what's been built so far.
+- **Setu** ("bridge") — turning the booking/ticketing engine from its current mocked-payment state into a live, paid booking flow reachable from the website, WhatsApp, and the temple's ticket counter. See [`docs/PROJECT_SETU.md`](docs/PROJECT_SETU.md) for the plan and open questions.
+
+There's also [`docs/LOCAL_MIRROR_SYNC.md`](docs/LOCAL_MIRROR_SYNC.md) and `ops/local-mirror/`, spec'ing an optional read-only local database mirror for temple office staff.
