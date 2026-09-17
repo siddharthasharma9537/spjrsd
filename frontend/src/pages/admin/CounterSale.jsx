@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
 import DateInput from '@/components/ui/date-input';
+import { useAuth } from '@/contexts/AuthContext';
+import { hasPermission } from '@/lib/permissions';
 import { Flame, Printer, Plus, IndianRupee } from 'lucide-react';
 
 const inputCls = "h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-1 focus:ring-[#C43E00]/20 outline-none text-sm text-[#2D1B0E] w-full";
@@ -14,6 +16,14 @@ const emptyForm = {
 };
 
 export default function AdminCounterSale() {
+  const { user } = useAuth();
+  // Reconciling the day's cash total is Cashier's job, not Clerk's - see
+  // docs/ROLES_AND_PERMISSIONS.md. Clerk still holds bookings:view (to look
+  // up an existing booking), so this is a UI-level distinction: the
+  // underlying booking data isn't more sensitive, the consolidated
+  // end-of-day totals view is the thing being restricted.
+  const canReconcile = hasPermission(user, 'bookings:reconcile');
+
   const [sevas, setSevas] = useState([]);
   const [slots, setSlots] = useState([]);
   const [form, setForm] = useState(emptyForm);
@@ -23,6 +33,7 @@ export default function AdminCounterSale() {
   const [todaySales, setTodaySales] = useState([]);
 
   const loadTodaySales = () => {
+    if (!canReconcile) return;
     // No `date` filter here on purpose: that param means the seva's date,
     // not when the sale was made - a counter sale is often an advance
     // booking for a future seva date. "Today's sales" for cash
@@ -154,8 +165,8 @@ export default function AdminCounterSale() {
 
   return (
     <AdminLayout title="Counter Sale">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white border border-[#E6DCCA] rounded-xl p-6">
+      <div className={`grid grid-cols-1 gap-6 ${canReconcile ? 'lg:grid-cols-3' : ''}`}>
+        <div className={`bg-white border border-[#E6DCCA] rounded-xl p-6 ${canReconcile ? 'lg:col-span-2' : ''}`}>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2" data-testid="counter-sale-error">{error}</p>}
 
@@ -231,27 +242,29 @@ export default function AdminCounterSale() {
           </form>
         </div>
 
-        <div className="bg-white border border-[#E6DCCA] rounded-xl p-6">
-          <h2 className="font-english-heading text-sm text-[#621B00] uppercase tracking-wide mb-4">Today's Counter Sales</h2>
-          {todaySales.length === 0 ? (
-            <p className="text-sm text-[#8D6E63]">No counter sales yet today.</p>
-          ) : (
-            <div className="space-y-3" data-testid="counter-today-sales">
-              {todaySales.map(b => (
-                <div key={b.id} className="border-b border-[#E6DCCA]/60 pb-3 last:border-0">
-                  <p className="text-sm text-[#2D1B0E]">{b.devotee_name} — {b.seva_name_english}</p>
-                  <p className="text-xs text-[#8D6E63] flex items-center justify-between">
-                    <span className="font-mono">{b.booking_number}</span>
-                    <span>Rs.{b.amount} · {b.payment_method}</span>
-                  </p>
-                </div>
-              ))}
-              <p className="text-sm font-medium text-[#621B00] pt-1">
-                Total: Rs.{todaySales.reduce((sum, b) => sum + (b.amount || 0), 0)} ({todaySales.length} tickets)
-              </p>
-            </div>
-          )}
-        </div>
+        {canReconcile && (
+          <div className="bg-white border border-[#E6DCCA] rounded-xl p-6">
+            <h2 className="font-english-heading text-sm text-[#621B00] uppercase tracking-wide mb-4">Today's Counter Sales</h2>
+            {todaySales.length === 0 ? (
+              <p className="text-sm text-[#8D6E63]">No counter sales yet today.</p>
+            ) : (
+              <div className="space-y-3" data-testid="counter-today-sales">
+                {todaySales.map(b => (
+                  <div key={b.id} className="border-b border-[#E6DCCA]/60 pb-3 last:border-0">
+                    <p className="text-sm text-[#2D1B0E]">{b.devotee_name} — {b.seva_name_english}</p>
+                    <p className="text-xs text-[#8D6E63] flex items-center justify-between">
+                      <span className="font-mono">{b.booking_number}</span>
+                      <span>Rs.{b.amount} · {b.payment_method}</span>
+                    </p>
+                  </div>
+                ))}
+                <p className="text-sm font-medium text-[#621B00] pt-1">
+                  Total: Rs.{todaySales.reduce((sum, b) => sum + (b.amount || 0), 0)} ({todaySales.length} tickets)
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </AdminLayout>
   );

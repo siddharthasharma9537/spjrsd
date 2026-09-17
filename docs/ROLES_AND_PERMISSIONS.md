@@ -60,15 +60,15 @@ grants instead of one:
 | `sevas` | Sevas | view, create, edit, delete |
 | `day_profiles` | Day Profiles | view, create, edit, delete |
 | `slots` | Slots | view, create, edit, delete |
-| `bookings` | Bookings / Counter Sale | view, create, edit, delete (edit = status change; delete = cancel) |
-| `donations` | Donations | view, create, edit |
+| `bookings` | Bookings / Counter Sale | view, create, edit, delete, reconcile (edit = status change; delete = cancel; reconcile = the end-of-day counter-sales totals view — Cashier-specific, distinct from just viewing individual bookings) |
+| `donations` | Donations | view (that's all that exists today — see note below) |
 | `accommodations` | Accommodation | view, create, edit, delete |
 | `news` | News | view, create, edit, delete |
-| `panchangam` | Panchangam | view, create, edit |
+| `panchangam` | Panchangam | view, create, edit, delete |
 | `live_blog` | Live Blog | view, create, edit, delete |
-| `gallery` | Gallery | view, create, delete |
+| `gallery` | Gallery | view, create, edit, delete |
 | `stotrams` | Stotrams | view, create, edit, delete |
-| `devotees` | Devotees | view, edit (no create — devotees self-register; no delete) |
+| `devotees` | Devotees | view, edit, delete (no create — devotees self-register) |
 | `newsletter` | Newsletter | view, create |
 | `contact_messages` | Contact Messages | view, edit (mark handled) |
 | `aashirvachanam` | Aashirvachanam | view, edit |
@@ -115,26 +115,19 @@ deleted — staff accounts reference it by name):
 - **EO** — `is_superuser: True`. Full access, including the only role that
   can edit or cancel a booking, delete records, or manage staff/roles.
 
-- **Cashier** — `bookings:view`, `bookings:create`. Sells tickets at the
-  counter (the existing Counter Sale screen) and can look up a booking to
-  answer a devotee's question. Cannot edit, cancel, or delete a booking.
+- **Cashier** — `bookings:view`, `bookings:create`, `bookings:reconcile`.
+  Sells tickets at the counter (the existing Counter Sale screen), can look
+  up a booking to answer a devotee's question, and — the distinction from
+  Clerk — owns the cash drawer: sees the end-of-day "Today's Counter
+  Sales" totals view for reconciliation. Cannot edit, cancel, or delete a
+  booking.
 
-- **Clerk** — `bookings:view`, `bookings:create`. Same shape as Cashier:
-  sits at the booking counter, creates new bookings, reads existing ones —
-  **cannot edit, cancel, or delete** a booking. That stays EO-only for now,
-  by explicit decision, regardless of who's asking or why (a devotee
-  dispute, a mistaken entry) — it goes to the EO, not the counter staff.
-
-  *Note the overlap with Cashier above — as scoped today, Clerk and
-  Cashier hold identical permissions.* Worth confirming with the EO
-  whether these are meant to be two names for the same counter job (in
-  which case one role is redundant), or whether Cashier is expected to
-  eventually pick up cash-handling/reconciliation duties Clerk won't have
-  (e.g. a future `bookings:reconcile` for the end-of-day cash tally) —
-  that would be the real difference between them. Not a blocker to
-  implementing either role as specified now; just flagging that "two
-  roles, same permissions" is usually a sign one of them isn't scoped yet
-  rather than a deliberate design.
+- **Clerk** — `bookings:view`, `bookings:create`. Sits at the booking
+  counter, creates new bookings, reads existing ones — **cannot edit,
+  cancel, or delete** a booking (EO-only, regardless of who's asking or
+  why), and does not see the reconciliation totals — that's Cashier's
+  responsibility, not Clerk's. Decided: these are two distinct counter
+  jobs, not the same role under two names.
 
 - **Priest** — no permissions. Confirmed priests don't use the dashboard
   today, so this role is seeded but effectively inert — an account under
@@ -207,11 +200,18 @@ call instead, matching the table above.
 
 ## Worked examples, per the two roles you named
 
-**Accountant** — `donations:view`, `donations:edit` (to correct a
-misrecorded payment), `bookings:view`, nothing else. Sees Donations and
-Bookings in the sidebar; Sevas, Gallery, News, Staff are simply not
-there. Ties directly into the "who reconciles payments" question from
-the Setu roadmap — this is that role, made real.
+**Accountant** — `donations:view`, `bookings:view`, nothing else. Sees
+Donations and Bookings in the sidebar; Sevas, Gallery, News, Staff are
+simply not there. Ties directly into the "who reconciles payments"
+question from the Setu roadmap — this is that role, made real.
+
+*Correcting a misrecorded donation isn't actually possible today* — there
+is no admin endpoint to edit or delete a donation record at all, only the
+public devotee-facing `POST /donations` that creates one. `donations:edit`
+would need that endpoint built first; it's a real gap worth raising with
+the EO (an Accountant who can see a mistake but not fix it isn't much use)
+but it's a separate feature, not something to invent silently as part of
+this permissions pass.
 
 **Help Desk** — `devotees:view`, `bookings:view`, `contact_messages:view`,
 `contact_messages:edit` (marking a query handled). Explicitly *not*
@@ -221,7 +221,7 @@ ticket" doesn't need to be able to change prices or issue refunds.
 ## Migration plan
 
 1. Seed the `roles` collection with the 4 existing roles + their decided
-   permission sets (blocking on the Open Questions below)
+   permission sets (above)
 2. Add `require_permission()` and the new `/admin/roles` endpoints
 3. Go through all 48 generic `get_current_admin` call sites and replace
    each with the specific permission its screen actually needs — this is
@@ -233,13 +233,6 @@ ticket" doesn't need to be able to change prices or issue refunds.
 
 ## Open questions to resolve before implementation
 
-- **Are Clerk and Cashier meant to be the same job, or will Cashier grow
-  cash-handling duties Clerk won't have?** As scoped above they're
-  identical (`bookings:view` + `bookings:create`) — worth a real answer
-  before implementation, since "two roles with the same permissions" is
-  either intentional (two names, two people, same job) or a sign Cashier
-  needs one more grant (e.g. `bookings:reconcile`) that hasn't been named
-  yet.
 - **Do permission changes apply immediately or on next login?** The
   simplest implementation (above) checks the `roles` collection fresh on
   every request, so a permission change is live immediately — no token

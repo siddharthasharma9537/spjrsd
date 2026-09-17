@@ -3,12 +3,12 @@ import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
 import { Plus, KeyRound, X } from 'lucide-react';
 
-const ROLES = ['EO', 'Clerk', 'Cashier', 'Priest'];
 const inputCls = "h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-1 focus:ring-[#C43E00]/20 outline-none text-sm text-[#2D1B0E] w-full";
-const emptyForm = { name: '', username: '', password: '', role: 'Cashier' };
+const emptyForm = { name: '', username: '', password: '', role: '' };
 
 export default function AdminStaff() {
   const [staff, setStaff] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -18,8 +18,12 @@ export default function AdminStaff() {
   const [resetPassword, setResetPassword] = useState('');
 
   const load = () => {
-    api.get('/admin/staff').then(r => { setStaff(r.data); setLoading(false); })
-      .catch(() => setLoading(false));
+    Promise.all([api.get('/admin/staff'), api.get('/admin/roles')]).then(([s, r]) => {
+      setStaff(s.data);
+      setRoles(r.data);
+      setLoading(false);
+      setForm(f => f.role ? f : { ...f, role: r.data[0]?.name || '' });
+    }).catch(() => setLoading(false));
   };
   useEffect(() => { load(); }, []);
 
@@ -72,7 +76,7 @@ export default function AdminStaff() {
   return (
     <AdminLayout title="Staff Accounts">
       <div className="flex items-center justify-between mb-6">
-        <p className="text-sm text-[#8D6E63]">EO, Clerk, Cashier and Priest logins for the admin portal.</p>
+        <p className="text-sm text-[#8D6E63]">Staff logins for the admin portal. Manage what each role can do under Roles.</p>
         <button onClick={() => setShowForm(!showForm)} className="inline-flex items-center gap-2 px-4 py-2 bg-[#621B00] text-white text-sm rounded-full hover:bg-[#621B00]/90" data-testid="staff-add-btn">
           <Plus className="h-4 w-4" /> Add Staff
         </button>
@@ -96,7 +100,7 @@ export default function AdminStaff() {
           <div>
             <label className="block text-sm font-medium text-[#5D4037] mb-1">Role</label>
             <select className={inputCls} value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} data-testid="staff-role">
-              {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+              {roles.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
             </select>
           </div>
           <div className="sm:col-span-4 flex justify-end">
@@ -129,7 +133,7 @@ export default function AdminStaff() {
                     <td className="px-4 py-3 font-mono text-xs text-[#621B00]">{s.username}</td>
                     <td className="px-4 py-3">
                       <select className="h-8 px-2 bg-white border border-[#E6DCCA] rounded-lg text-xs text-[#2D1B0E]" value={s.role} onChange={e => changeRole(s, e.target.value)} data-testid={`staff-role-select-${s.id}`}>
-                        {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                        {roles.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
                       </select>
                     </td>
                     <td className="px-4 py-3">

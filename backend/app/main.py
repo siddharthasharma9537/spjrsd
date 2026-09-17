@@ -244,11 +244,18 @@ async def get_current_devotee(credentials: HTTPAuthorizationCredentials = Depend
         raise HTTPException(status_code=401, detail="Invalid token")
 
 async def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """"Is this any kind of staff member at all" - intentionally not
+    permission-specific. Reserved for the couple of endpoints that are the
+    same for every role by nature (changing your own password, the
+    dashboard's aggregate stats) - everything that touches one resource's
+    data uses require_permission(...) instead. Checks role existence
+    against the roles collection, not a fixed list, so a role the EO
+    creates later (e.g. Accountant) isn't locked out of these either."""
     if not credentials:
         raise HTTPException(status_code=401, detail="Not authenticated")
     try:
         payload = decode_token(credentials.credentials)
-        if payload.get("role") not in ["EO", "Clerk", "Cashier", "Priest"]:
+        if not await db.roles.find_one({"name": payload.get("role")}):
             raise HTTPException(status_code=403, detail="Not an admin")
         return payload
     except jwt.ExpiredSignatureError:
@@ -256,31 +263,28 @@ async def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-async def get_current_cashier(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    if not credentials:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    try:
-        payload = decode_token(credentials.credentials)
-        if payload.get("role") not in ["Cashier", "EO"]:
-            raise HTTPException(status_code=403, detail="Not authorized to sell counter tickets")
-        return payload
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-async def get_current_eo(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    if not credentials:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    try:
-        payload = decode_token(credentials.credentials)
-        if payload.get("role") != "EO":
-            raise HTTPException(status_code=403, detail="Only the Executive Officer can manage staff accounts")
-        return payload
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid token")
+def require_permission(permission: str):
+    """Dependency factory: gates an endpoint on one resource:action grant
+    (e.g. "bookings:create"), looked up fresh from the role's document on
+    every request - see docs/ROLES_AND_PERMISSIONS.md. EO (is_superuser)
+    always passes, without needing every permission enumerated on its role,
+    so EO can never be accidentally locked out as new permissions are added."""
+    async def check(credentials: HTTPAuthorizationCredentials = Depends(security)):
+        if not credentials:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        try:
+            payload = decode_token(credentials.credentials)
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(status_code=401, detail="Token expired")
+        except Exception:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        role = await db.roles.find_one({"name": payload.get("role")}, {"_id": 0})
+        if not role:
+            raise HTTPException(status_code=403, detail="Role not found")
+        if role.get("is_superuser") or permission in role.get("permissions", []):
+            return payload
+        raise HTTPException(status_code=403, detail=f"Missing permission: {permission}")
+    return check
 
 async def get_optional_devotee(credentials: HTTPAuthorizationCredentials = Depends(security)):
     if not credentials:
@@ -340,7 +344,24 @@ class AdminChangePassword(BaseModel):
     current_password: str
     new_password: str
 
-STAFF_ROLES = ["EO", "Clerk", "Cashier", "Priest"]
+# The 4 roles every deployment starts with. Seeded into the `roles`
+# collection at startup (see ensure_system_roles) rather than kept as a
+# fixed list here - the EO can add more roles afterward via /admin/roles,
+# but these 4 are protected (is_system) since staff accounts and the seed
+# admin reference them by name. See docs/ROLES_AND_PERMISSIONS.md.
+SYSTEM_ROLES = [
+    {"name": "EO", "permissions": [], "is_superuser": True},
+    {"name": "Cashier", "permissions": ["bookings:view", "bookings:create", "bookings:reconcile"], "is_superuser": False},
+    {"name": "Clerk", "permissions": ["bookings:view", "bookings:create"], "is_superuser": False},
+    {"name": "Priest", "permissions": [], "is_superuser": False},
+]
+
+class RoleCreate(BaseModel):
+    name: str
+    permissions: List[str] = []
+
+class RoleUpdate(BaseModel):
+    permissions: Optional[List[str]] = None
 
 class StaffCreate(BaseModel):
     name: str
@@ -913,7 +934,15 @@ async def admin_login(data: AdminLogin):
     if is_legacy_hash(stored_hash):
         await db.user_accounts.update_one({"id": user["id"]}, {"$set": {"password_hash": hash_pw(data.password)}})
     token = create_token({"sub": user["id"], "name": user["name"], "role": user["role"], "username": user["username"]})
-    return {"token": token, "user": {k: v for k, v in user.items() if k not in ["_id", "password_hash"]}}
+    # Embedded here rather than requiring a second call so the frontend can
+    # filter the admin nav immediately on login. Fetched fresh from the
+    # roles collection every login, so a role's permissions are never more
+    # than one login-cycle stale - see docs/ROLES_AND_PERMISSIONS.md.
+    role_doc = await db.roles.find_one({"name": user["role"]}, {"_id": 0}) or {}
+    user_out = {k: v for k, v in user.items() if k not in ["_id", "password_hash"]}
+    user_out["permissions"] = role_doc.get("permissions", [])
+    user_out["is_superuser"] = role_doc.get("is_superuser", False)
+    return {"token": token, "user": user_out}
 
 @api_router.post("/auth/admin/change-password")
 async def admin_change_password(data: AdminChangePassword, admin=Depends(get_current_admin)):
@@ -925,15 +954,15 @@ async def admin_change_password(data: AdminChangePassword, admin=Depends(get_cur
     await db.user_accounts.update_one({"id": admin["sub"]}, {"$set": {"password_hash": hash_pw(data.new_password)}})
     return {"message": "Password changed successfully"}
 
-# ==================== STAFF ACCOUNT ROUTES (EO only) ====================
+# ==================== STAFF ACCOUNT ROUTES ====================
 @api_router.get("/admin/staff")
-async def list_staff(user=Depends(get_current_eo)):
+async def list_staff(user=Depends(require_permission("staff:view"))):
     return await db.user_accounts.find({}, {"_id": 0, "password_hash": 0}).sort("name", 1).to_list(200)
 
 @api_router.post("/admin/staff")
-async def create_staff(data: StaffCreate, user=Depends(get_current_eo)):
-    if data.role not in STAFF_ROLES:
-        raise HTTPException(status_code=400, detail=f"Role must be one of: {STAFF_ROLES}")
+async def create_staff(data: StaffCreate, user=Depends(require_permission("staff:create"))):
+    if not await db.roles.find_one({"name": data.role}):
+        raise HTTPException(status_code=400, detail="Role does not exist")
     if len(data.password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
     if await db.user_accounts.find_one({"username": data.username}):
@@ -947,9 +976,9 @@ async def create_staff(data: StaffCreate, user=Depends(get_current_eo)):
     return {k: v for k, v in staff.items() if k not in ["_id", "password_hash"]}
 
 @api_router.put("/admin/staff/{staff_id}")
-async def update_staff(staff_id: str, data: StaffUpdate, user=Depends(get_current_eo)):
-    if data.role is not None and data.role not in STAFF_ROLES:
-        raise HTTPException(status_code=400, detail=f"Role must be one of: {STAFF_ROLES}")
+async def update_staff(staff_id: str, data: StaffUpdate, user=Depends(require_permission("staff:edit"))):
+    if data.role is not None and not await db.roles.find_one({"name": data.role}):
+        raise HTTPException(status_code=400, detail="Role does not exist")
     if staff_id == user["sub"] and data.active_flag is False:
         raise HTTPException(status_code=400, detail="You can't deactivate your own account")
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
@@ -960,14 +989,64 @@ async def update_staff(staff_id: str, data: StaffUpdate, user=Depends(get_curren
         raise HTTPException(status_code=404, detail="Staff account not found")
     return await db.user_accounts.find_one({"id": staff_id}, {"_id": 0, "password_hash": 0})
 
+@api_router.delete("/admin/staff/{staff_id}")
+async def delete_staff(staff_id: str, user=Depends(require_permission("staff:delete"))):
+    if staff_id == user["sub"]:
+        raise HTTPException(status_code=400, detail="You can't delete your own account")
+    result = await db.user_accounts.delete_one({"id": staff_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Staff account not found")
+    return {"message": "Staff account deleted"}
+
 @api_router.put("/admin/staff/{staff_id}/password")
-async def reset_staff_password(staff_id: str, data: StaffPasswordReset, user=Depends(get_current_eo)):
+async def reset_staff_password(staff_id: str, data: StaffPasswordReset, user=Depends(require_permission("staff:edit"))):
     if len(data.password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
     result = await db.user_accounts.update_one({"id": staff_id}, {"$set": {"password_hash": hash_pw(data.password)}})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Staff account not found")
     return {"message": "Password updated"}
+
+# ==================== ROLE MANAGEMENT ROUTES ====================
+@api_router.get("/admin/roles")
+async def list_roles(user=Depends(require_permission("roles:view"))):
+    return await db.roles.find({}, {"_id": 0}).sort("name", 1).to_list(100)
+
+@api_router.post("/admin/roles")
+async def create_role(data: RoleCreate, user=Depends(require_permission("roles:create"))):
+    if await db.roles.find_one({"name": data.name}):
+        raise HTTPException(status_code=400, detail="A role with this name already exists")
+    role = {
+        "id": str(uuid.uuid4()), "name": data.name, "permissions": data.permissions,
+        "is_superuser": False, "is_system": False,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.roles.insert_one(role)
+    return {k: v for k, v in role.items() if k != "_id"}
+
+@api_router.put("/admin/roles/{role_id}")
+async def update_role(role_id: str, data: RoleUpdate, user=Depends(require_permission("roles:edit"))):
+    role = await db.roles.find_one({"id": role_id}, {"_id": 0})
+    if not role:
+        raise HTTPException(status_code=404, detail="Role not found")
+    if role.get("is_system"):
+        raise HTTPException(status_code=400, detail="Built-in roles can't be edited")
+    if data.permissions is None:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    await db.roles.update_one({"id": role_id}, {"$set": {"permissions": data.permissions}})
+    return await db.roles.find_one({"id": role_id}, {"_id": 0})
+
+@api_router.delete("/admin/roles/{role_id}")
+async def delete_role(role_id: str, user=Depends(require_permission("roles:delete"))):
+    role = await db.roles.find_one({"id": role_id}, {"_id": 0})
+    if not role:
+        raise HTTPException(status_code=404, detail="Role not found")
+    if role.get("is_system"):
+        raise HTTPException(status_code=400, detail="Built-in roles can't be deleted")
+    if await db.user_accounts.find_one({"role": role["name"]}):
+        raise HTTPException(status_code=400, detail="Reassign staff off this role before deleting it")
+    await db.roles.delete_one({"id": role_id})
+    return {"message": "Role deleted"}
 
 @api_router.get("/devotee/profile")
 async def get_devotee_profile(user=Depends(get_current_devotee)):
@@ -1046,13 +1125,13 @@ async def get_seva(seva_id: str):
     return seva
 
 @api_router.post("/admin/sevas")
-async def create_seva(data: SevaCreate, user=Depends(get_current_admin)):
+async def create_seva(data: SevaCreate, user=Depends(require_permission("sevas:create"))):
     seva = {"id": str(uuid.uuid4()), **data.model_dump(), "created_at": datetime.now(timezone.utc).isoformat()}
     await db.sevas.insert_one(seva)
     return {k: v for k, v in seva.items() if k != "_id"}
 
 @api_router.put("/admin/sevas/{seva_id}")
-async def update_seva(seva_id: str, data: SevaUpdate, user=Depends(get_current_admin)):
+async def update_seva(seva_id: str, data: SevaUpdate, user=Depends(require_permission("sevas:edit"))):
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
@@ -1062,7 +1141,7 @@ async def update_seva(seva_id: str, data: SevaUpdate, user=Depends(get_current_a
     return await db.sevas.find_one({"id": seva_id}, {"_id": 0})
 
 @api_router.delete("/admin/sevas/{seva_id}")
-async def delete_seva(seva_id: str, user=Depends(get_current_admin)):
+async def delete_seva(seva_id: str, user=Depends(require_permission("sevas:delete"))):
     result = await db.sevas.delete_one({"id": seva_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Seva not found")
@@ -1074,13 +1153,13 @@ async def list_day_profiles():
     return await db.day_profiles.find({}, {"_id": 0}).to_list(100)
 
 @api_router.post("/admin/day-profiles")
-async def create_day_profile(data: DayProfileCreate, user=Depends(get_current_admin)):
+async def create_day_profile(data: DayProfileCreate, user=Depends(require_permission("day_profiles:create"))):
     profile = {"id": str(uuid.uuid4()), **data.model_dump()}
     await db.day_profiles.insert_one(profile)
     return {k: v for k, v in profile.items() if k != "_id"}
 
 @api_router.put("/admin/day-profiles/{profile_id}")
-async def update_day_profile(profile_id: str, data: DayProfileUpdate, user=Depends(get_current_admin)):
+async def update_day_profile(profile_id: str, data: DayProfileUpdate, user=Depends(require_permission("day_profiles:edit"))):
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
@@ -1088,7 +1167,7 @@ async def update_day_profile(profile_id: str, data: DayProfileUpdate, user=Depen
     return await db.day_profiles.find_one({"id": profile_id}, {"_id": 0})
 
 @api_router.delete("/admin/day-profiles/{profile_id}")
-async def delete_day_profile(profile_id: str, user=Depends(get_current_admin)):
+async def delete_day_profile(profile_id: str, user=Depends(require_permission("day_profiles:delete"))):
     result = await db.day_profiles.delete_one({"id": profile_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Profile not found")
@@ -1126,7 +1205,7 @@ async def get_available_slots(seva_id: str, date: str):
     return available
 
 @api_router.get("/admin/slots/available-counter")
-async def get_available_counter_slots(seva_id: str, date: str, user=Depends(get_current_cashier)):
+async def get_available_counter_slots(seva_id: str, date: str, user=Depends(require_permission("bookings:create"))):
     """Same shape as GET /slots/available, but against counter_quota and
     only counting this slot's own counter-channel bookings - so the number
     shown at the ticket counter is the counter's own remaining capacity, not
@@ -1148,13 +1227,13 @@ async def get_available_counter_slots(seva_id: str, date: str, user=Depends(get_
     return available
 
 @api_router.post("/admin/schedule-slots")
-async def create_schedule_slot(data: SlotCreate, user=Depends(get_current_admin)):
+async def create_schedule_slot(data: SlotCreate, user=Depends(require_permission("slots:create"))):
     slot = {"id": str(uuid.uuid4()), **data.model_dump()}
     await db.schedule_slots.insert_one(slot)
     return {k: v for k, v in slot.items() if k != "_id"}
 
 @api_router.put("/admin/schedule-slots/{slot_id}")
-async def update_schedule_slot(slot_id: str, data: SlotUpdate, user=Depends(get_current_admin)):
+async def update_schedule_slot(slot_id: str, data: SlotUpdate, user=Depends(require_permission("slots:edit"))):
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
@@ -1162,7 +1241,7 @@ async def update_schedule_slot(slot_id: str, data: SlotUpdate, user=Depends(get_
     return await db.schedule_slots.find_one({"id": slot_id}, {"_id": 0})
 
 @api_router.delete("/admin/schedule-slots/{slot_id}")
-async def delete_schedule_slot(slot_id: str, user=Depends(get_current_admin)):
+async def delete_schedule_slot(slot_id: str, user=Depends(require_permission("slots:delete"))):
     result = await db.schedule_slots.delete_one({"id": slot_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Slot not found")
@@ -1219,7 +1298,7 @@ async def create_booking(data: BookingCreate, user=Depends(get_current_devotee))
     return {k: v for k, v in booking.items() if k != "_id"}
 
 @api_router.post("/admin/bookings/counter")
-async def create_counter_booking(data: CounterBookingCreate, user=Depends(get_current_cashier)):
+async def create_counter_booking(data: CounterBookingCreate, user=Depends(require_permission("bookings:create"))):
     seva = await db.sevas.find_one({"id": data.seva_id}, {"_id": 0})
     if not seva:
         raise HTTPException(status_code=404, detail="Seva not found")
@@ -1300,7 +1379,7 @@ async def lookup_ticket(booking_number: Optional[str] = None, mobile: Optional[s
     raise HTTPException(status_code=400, detail="Provide booking_number or mobile")
 
 @api_router.get("/admin/bookings")
-async def admin_list_bookings(date: Optional[str] = None, seva_id: Optional[str] = None, status: Optional[str] = None, user=Depends(get_current_admin)):
+async def admin_list_bookings(date: Optional[str] = None, seva_id: Optional[str] = None, status: Optional[str] = None, user=Depends(require_permission("bookings:view"))):
     query = {}
     if date: query["for_date"] = date
     if seva_id: query["seva_id"] = seva_id
@@ -1308,7 +1387,7 @@ async def admin_list_bookings(date: Optional[str] = None, seva_id: Optional[str]
     return await db.bookings.find(query, {"_id": 0}).sort("booking_date_time", -1).to_list(500)
 
 @api_router.put("/admin/bookings/{booking_id}/status")
-async def update_booking_status(booking_id: str, data: BookingStatusUpdate, user=Depends(get_current_admin)):
+async def update_booking_status(booking_id: str, data: BookingStatusUpdate, user=Depends(require_permission("bookings:edit"))):
     valid_statuses = ["Pending", "Confirmed", "Completed", "Cancelled", "NoShow"]
     if data.status not in valid_statuses:
         raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
@@ -1341,13 +1420,13 @@ async def get_my_donations(user=Depends(get_current_devotee)):
     return await db.donations.find({"devotee_id": user["sub"]}, {"_id": 0}).sort("created_at", -1).to_list(50)
 
 @api_router.get("/admin/donations")
-async def admin_list_donations(donation_type: Optional[str] = None, user=Depends(get_current_admin)):
+async def admin_list_donations(donation_type: Optional[str] = None, user=Depends(require_permission("donations:view"))):
     query = {}
     if donation_type: query["donation_type"] = donation_type
     return await db.donations.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
 
 @api_router.get("/admin/donation-stats")
-async def admin_donation_stats(user=Depends(get_current_admin)):
+async def admin_donation_stats(user=Depends(require_permission("donations:view"))):
     pipeline_hundi = [{"$match": {"donation_type": "e-Hundi", "payment_status": "Paid"}}, {"$group": {"_id": None, "total": {"$sum": "$amount"}, "count": {"$sum": 1}}}]
     pipeline_anna = [{"$match": {"donation_type": "AnnaPrasadam", "payment_status": "Paid"}}, {"$group": {"_id": None, "total": {"$sum": "$amount"}, "count": {"$sum": 1}}}]
     hundi = await db.donations.aggregate(pipeline_hundi).to_list(1)
@@ -1420,13 +1499,13 @@ async def get_accommodation(acc_id: str):
     return acc
 
 @api_router.post("/admin/accommodations")
-async def create_accommodation(data: AccommodationCreate, user=Depends(get_current_admin)):
+async def create_accommodation(data: AccommodationCreate, user=Depends(require_permission("accommodations:create"))):
     acc = {"id": str(uuid.uuid4()), **data.model_dump(), "created_at": datetime.now(timezone.utc).isoformat()}
     await db.accommodations.insert_one(acc)
     return {k: v for k, v in acc.items() if k != "_id"}
 
 @api_router.put("/admin/accommodations/{acc_id}")
-async def update_accommodation(acc_id: str, data: AccommodationUpdate, user=Depends(get_current_admin)):
+async def update_accommodation(acc_id: str, data: AccommodationUpdate, user=Depends(require_permission("accommodations:edit"))):
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
@@ -1434,7 +1513,7 @@ async def update_accommodation(acc_id: str, data: AccommodationUpdate, user=Depe
     return await db.accommodations.find_one({"id": acc_id}, {"_id": 0})
 
 @api_router.delete("/admin/accommodations/{acc_id}")
-async def delete_accommodation(acc_id: str, user=Depends(get_current_admin)):
+async def delete_accommodation(acc_id: str, user=Depends(require_permission("accommodations:delete"))):
     result = await db.accommodations.delete_one({"id": acc_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Accommodation not found")
@@ -1503,11 +1582,11 @@ async def get_my_accommodation_bookings(user=Depends(get_current_devotee)):
     return await db.accommodation_bookings.find({"devotee_id": user["sub"]}, {"_id": 0}).sort("created_at", -1).to_list(50)
 
 @api_router.get("/admin/accommodation-bookings")
-async def admin_list_accommodation_bookings(user=Depends(get_current_admin)):
+async def admin_list_accommodation_bookings(user=Depends(require_permission("accommodations:view"))):
     return await db.accommodation_bookings.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
 
 @api_router.put("/admin/accommodation-bookings/{booking_id}/status")
-async def update_acc_booking_status(booking_id: str, data: BookingStatusUpdate, user=Depends(get_current_admin)):
+async def update_acc_booking_status(booking_id: str, data: BookingStatusUpdate, user=Depends(require_permission("accommodations:edit"))):
     await db.accommodation_bookings.update_one({"id": booking_id}, {"$set": {"status": data.status}})
     return await db.accommodation_bookings.find_one({"id": booking_id}, {"_id": 0})
 
@@ -1525,7 +1604,7 @@ async def get_news(news_id: str):
     return item
 
 @api_router.post("/admin/news")
-async def create_news(data: NewsCreate, background_tasks: BackgroundTasks, user=Depends(get_current_admin)):
+async def create_news(data: NewsCreate, background_tasks: BackgroundTasks, user=Depends(require_permission("news:create"))):
     item = {"id": str(uuid.uuid4()), **data.model_dump(), "created_at": datetime.now(timezone.utc).isoformat()}
     await db.news.insert_one(item)
     result = {k: v for k, v in item.items() if k != "_id"}
@@ -1536,7 +1615,7 @@ async def create_news(data: NewsCreate, background_tasks: BackgroundTasks, user=
     return result
 
 @api_router.put("/admin/news/{news_id}")
-async def update_news(news_id: str, data: NewsUpdate, user=Depends(get_current_admin)):
+async def update_news(news_id: str, data: NewsUpdate, user=Depends(require_permission("news:edit"))):
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
@@ -1544,7 +1623,7 @@ async def update_news(news_id: str, data: NewsUpdate, user=Depends(get_current_a
     return await db.news.find_one({"id": news_id}, {"_id": 0})
 
 @api_router.delete("/admin/news/{news_id}")
-async def delete_news(news_id: str, user=Depends(get_current_admin)):
+async def delete_news(news_id: str, user=Depends(require_permission("news:delete"))):
     result = await db.news.delete_one({"id": news_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="News not found")
@@ -1606,12 +1685,12 @@ async def get_panchangam_by_date(date: str):
     return _enrich_panchangam_item(item)
 
 @api_router.get("/admin/panchangam")
-async def admin_list_panchangam(user=Depends(get_current_admin)):
+async def admin_list_panchangam(user=Depends(require_permission("panchangam:view"))):
     items = await db.panchangam.find({}, {"_id": 0}).sort("date", -1).to_list(1000)
     return [_enrich_panchangam_item(item) for item in items]
 
 @api_router.post("/admin/panchangam")
-async def create_panchangam(data: PanchangamCreate, user=Depends(get_current_admin)):
+async def create_panchangam(data: PanchangamCreate, user=Depends(require_permission("panchangam:create"))):
     existing = await db.panchangam.find_one({"date": data.date})
     if existing:
         raise HTTPException(status_code=400, detail="Panchangam already exists for this date")
@@ -1620,7 +1699,7 @@ async def create_panchangam(data: PanchangamCreate, user=Depends(get_current_adm
     return {k: v for k, v in item.items() if k != "_id"}
 
 @api_router.put("/admin/panchangam/{item_id}")
-async def update_panchangam(item_id: str, data: PanchangamUpdate, user=Depends(get_current_admin)):
+async def update_panchangam(item_id: str, data: PanchangamUpdate, user=Depends(require_permission("panchangam:edit"))):
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
@@ -1630,7 +1709,7 @@ async def update_panchangam(item_id: str, data: PanchangamUpdate, user=Depends(g
     return await db.panchangam.find_one({"id": item_id}, {"_id": 0})
 
 @api_router.delete("/admin/panchangam/{item_id}")
-async def delete_panchangam(item_id: str, user=Depends(get_current_admin)):
+async def delete_panchangam(item_id: str, user=Depends(require_permission("panchangam:delete"))):
     result = await db.panchangam.delete_one({"id": item_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Panchangam entry not found")
@@ -1681,7 +1760,7 @@ def _clean_cell(v) -> str:
     return str(v).strip()
 
 @api_router.post("/admin/panchangam/bulk-import")
-async def bulk_import_panchangam(file: UploadFile = File(...), user=Depends(get_current_admin)):
+async def bulk_import_panchangam(file: UploadFile = File(...), user=Depends(require_permission("panchangam:create"))):
     filename = (file.filename or "").lower()
     if not filename.endswith((".xlsx", ".xls", ".csv")):
         raise HTTPException(status_code=400, detail="Upload an Excel (.xlsx/.xls) or CSV file")
@@ -1769,11 +1848,11 @@ async def get_live_blog_post(post_id: str):
     return item
 
 @api_router.get("/admin/live-blog")
-async def admin_list_live_blog(user=Depends(get_current_admin)):
+async def admin_list_live_blog(user=Depends(require_permission("live_blog:view"))):
     return await db.live_blog.find({}, {"_id": 0}).sort([("is_pinned", -1), ("posted_at", -1)]).to_list(200)
 
 @api_router.post("/admin/live-blog")
-async def create_live_blog_post(data: LiveBlogPostCreate, background_tasks: BackgroundTasks, user=Depends(get_current_admin)):
+async def create_live_blog_post(data: LiveBlogPostCreate, background_tasks: BackgroundTasks, user=Depends(require_permission("live_blog:create"))):
     item = {
         "id": str(uuid.uuid4()), **data.model_dump(exclude={"also_show_in_ticker"}),
         "posted_at": datetime.now(timezone.utc).isoformat(),
@@ -1801,7 +1880,7 @@ async def create_live_blog_post(data: LiveBlogPostCreate, background_tasks: Back
     return result
 
 @api_router.put("/admin/live-blog/{post_id}")
-async def update_live_blog_post(post_id: str, data: LiveBlogPostUpdate, user=Depends(get_current_admin)):
+async def update_live_blog_post(post_id: str, data: LiveBlogPostUpdate, user=Depends(require_permission("live_blog:edit"))):
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
@@ -1811,7 +1890,7 @@ async def update_live_blog_post(post_id: str, data: LiveBlogPostUpdate, user=Dep
     return await db.live_blog.find_one({"id": post_id}, {"_id": 0})
 
 @api_router.delete("/admin/live-blog/{post_id}")
-async def delete_live_blog_post(post_id: str, user=Depends(get_current_admin)):
+async def delete_live_blog_post(post_id: str, user=Depends(require_permission("live_blog:delete"))):
     result = await db.live_blog.delete_one({"id": post_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Live blog post not found")
@@ -1839,7 +1918,7 @@ def _r2_client():
     )
 
 @api_router.post("/admin/gallery/upload")
-async def upload_gallery_image(file: UploadFile = File(...), user=Depends(get_current_admin)):
+async def upload_gallery_image(file: UploadFile = File(...), user=Depends(require_permission("gallery:create"))):
     """Uploads an image straight to R2 and hands back its public URL, so the
     admin never has to place a file in the repo or know a path by hand."""
     if not R2_ACCOUNT_ID or not R2_ACCESS_KEY_ID or not R2_SECRET_ACCESS_KEY or not R2_PUBLIC_URL:
@@ -1861,13 +1940,13 @@ async def list_gallery(active_only: bool = True, media_type: Optional[str] = Non
     return await db.gallery.find(query, {"_id": 0}).sort("created_at", -1).to_list(50)
 
 @api_router.post("/admin/gallery")
-async def create_gallery(data: GalleryCreate, user=Depends(get_current_admin)):
+async def create_gallery(data: GalleryCreate, user=Depends(require_permission("gallery:create"))):
     item = {"id": str(uuid.uuid4()), **data.model_dump(), "created_at": datetime.now(timezone.utc).isoformat()}
     await db.gallery.insert_one(item)
     return {k: v for k, v in item.items() if k != "_id"}
 
 @api_router.put("/admin/gallery/{item_id}")
-async def update_gallery(item_id: str, data: GalleryUpdate, user=Depends(get_current_admin)):
+async def update_gallery(item_id: str, data: GalleryUpdate, user=Depends(require_permission("gallery:edit"))):
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
@@ -1875,7 +1954,7 @@ async def update_gallery(item_id: str, data: GalleryUpdate, user=Depends(get_cur
     return await db.gallery.find_one({"id": item_id}, {"_id": 0})
 
 @api_router.delete("/admin/gallery/{item_id}")
-async def delete_gallery(item_id: str, user=Depends(get_current_admin)):
+async def delete_gallery(item_id: str, user=Depends(require_permission("gallery:delete"))):
     result = await db.gallery.delete_one({"id": item_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Gallery item not found")
@@ -1923,7 +2002,7 @@ async def get_stotram(stotram_id: str):
     return item
 
 @api_router.post("/admin/stotrams")
-async def create_stotram(data: StotramCreate, user=Depends(get_current_admin)):
+async def create_stotram(data: StotramCreate, user=Depends(require_permission("stotrams:create"))):
     payload = data.model_dump()
     payload["slug"] = await unique_stotram_slug(payload.get("slug") or payload["title"])
     item = {"id": str(uuid.uuid4()), **payload, "created_at": datetime.now(timezone.utc).isoformat()}
@@ -1931,7 +2010,7 @@ async def create_stotram(data: StotramCreate, user=Depends(get_current_admin)):
     return {k: v for k, v in item.items() if k != "_id"}
 
 @api_router.put("/admin/stotrams/{stotram_id}")
-async def update_stotram(stotram_id: str, data: StotramUpdate, user=Depends(get_current_admin)):
+async def update_stotram(stotram_id: str, data: StotramUpdate, user=Depends(require_permission("stotrams:edit"))):
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
@@ -1939,7 +2018,7 @@ async def update_stotram(stotram_id: str, data: StotramUpdate, user=Depends(get_
     return await db.stotrams.find_one({"id": stotram_id}, {"_id": 0})
 
 @api_router.delete("/admin/stotrams/{stotram_id}")
-async def delete_stotram(stotram_id: str, user=Depends(get_current_admin)):
+async def delete_stotram(stotram_id: str, user=Depends(require_permission("stotrams:delete"))):
     result = await db.stotrams.delete_one({"id": stotram_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Stotram not found")
@@ -1947,11 +2026,11 @@ async def delete_stotram(stotram_id: str, user=Depends(get_current_admin)):
 
 # ==================== ADMIN DEVOTEES + STATS ====================
 @api_router.get("/admin/devotees")
-async def admin_list_devotees(user=Depends(get_current_admin)):
+async def admin_list_devotees(user=Depends(require_permission("devotees:view"))):
     return await db.devotees.find({}, {"_id": 0, "password_hash": 0}).sort("created_at", -1).to_list(500)
 
 @api_router.put("/admin/devotees/{devotee_id}")
-async def admin_update_devotee(devotee_id: str, data: DevoteeUpdate, user=Depends(get_current_admin)):
+async def admin_update_devotee(devotee_id: str, data: DevoteeUpdate, user=Depends(require_permission("devotees:edit"))):
     devotee = await db.devotees.find_one({"id": devotee_id}, {"_id": 0})
     if not devotee:
         raise HTTPException(status_code=404, detail="Devotee not found")
@@ -1966,14 +2045,14 @@ async def admin_update_devotee(devotee_id: str, data: DevoteeUpdate, user=Depend
     return await db.devotees.find_one({"id": devotee_id}, {"_id": 0, "password_hash": 0})
 
 @api_router.delete("/admin/devotees/{devotee_id}")
-async def admin_delete_devotee(devotee_id: str, user=Depends(get_current_admin)):
+async def admin_delete_devotee(devotee_id: str, user=Depends(require_permission("devotees:delete"))):
     result = await db.devotees.delete_one({"id": devotee_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Devotee not found")
     return {"message": "Devotee deleted"}
 
 @api_router.get("/admin/devotees/{devotee_id}/activity")
-async def admin_devotee_activity(devotee_id: str, user=Depends(get_current_admin)):
+async def admin_devotee_activity(devotee_id: str, user=Depends(require_permission("devotees:view"))):
     devotee = await db.devotees.find_one({"id": devotee_id}, {"_id": 0, "password_hash": 0})
     if not devotee:
         raise HTTPException(status_code=404, detail="Devotee not found")
@@ -2052,12 +2131,12 @@ async def newsletter_subscribe(data: NewsletterSubscribe):
     return {"message": "Subscribed successfully"}
 
 @api_router.get("/admin/newsletter/subscribers")
-async def count_newsletter_subscribers(user=Depends(get_current_admin)):
+async def count_newsletter_subscribers(user=Depends(require_permission("newsletter:view"))):
     count = await db.newsletter.count_documents({})
     return {"count": count}
 
 @api_router.post("/admin/newsletter/send-alert")
-async def send_newsletter_alert(data: NewsletterAlert, user=Depends(get_current_admin)):
+async def send_newsletter_alert(data: NewsletterAlert, user=Depends(require_permission("newsletter:create"))):
     subscribers = await db.newsletter.find({}, {"_id": 0, "email": 1}).to_list(None)
     if not subscribers:
         return {"message": "No subscribers to send to", "sent": 0}
@@ -2098,7 +2177,7 @@ async def submit_aashirvachanam(data: AashirvachanamCreate):
     return {"message": "Aashirvachanam request submitted successfully"}
 
 @api_router.get("/admin/aashirvachanam")
-async def admin_list_aashirvachanam(user=Depends(get_current_admin)):
+async def admin_list_aashirvachanam(user=Depends(require_permission("aashirvachanam:view"))):
     return await db.aashirvachanam.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
 
 def _build_aashirvachanam_message(name: str, occasion_type: str, for_family_member: dict = None) -> str:
@@ -2184,7 +2263,7 @@ async def cron_send_aashirvachanam_blessings(request: Request):
     return {"message": "Blessings sent", "sent": sent, "date": today.isoformat()}
 
 @api_router.post("/admin/send-email")
-async def admin_send_email(data: AdminSendEmail, user=Depends(get_current_admin)):
+async def admin_send_email(data: AdminSendEmail, user=Depends(require_permission("contact_messages:edit"))):
     await send_email_via_msg91([{"email": data.to}], subject=data.subject, message=data.message)
     return {"message": "Email sent"}
 
@@ -2535,7 +2614,7 @@ async def seed_data(request: Request):
     return {"message": "Seed data created successfully", "sevas": len(sevas), "profiles": len(profiles), "slots": len(slots), "accommodations": len(accommodations), "news": len(news_items), "gallery": len(gallery_items), "panchangam": 1, "live_blog": len(live_blog_posts)}
 
 @api_router.post("/seed/stotrams")
-async def seed_stotrams(user=Depends(get_current_admin)):
+async def seed_stotrams(user=Depends(require_permission("stotrams:create"))):
     """Create the stotram entries the temple chants, with their text left blank.
 
     Titles and seva links only - the text itself is entered by the Devasthanam
@@ -2623,6 +2702,23 @@ app.include_router(volunteer.router)
 app.include_router(contact.router)
 app.include_router(whatsapp.router)
 app.include_router(chat.router)
+
+@app.on_event("startup")
+async def ensure_system_roles():
+    """Idempotently seeds the 4 built-in roles into the `roles` collection
+    on every boot. Only inserts roles that don't exist yet - an is_system
+    role's permissions are fixed by SYSTEM_ROLES above and can't be edited
+    via the API, so there's nothing to reconcile on an existing document."""
+    for role in SYSTEM_ROLES:
+        if not await db.roles.find_one({"name": role["name"]}):
+            await db.roles.insert_one({
+                "id": str(uuid.uuid4()),
+                "name": role["name"],
+                "permissions": role["permissions"],
+                "is_superuser": role["is_superuser"],
+                "is_system": True,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            })
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
