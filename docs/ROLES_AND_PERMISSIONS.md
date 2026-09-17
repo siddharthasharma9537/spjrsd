@@ -37,43 +37,51 @@ Replace the hardcoded `STAFF_ROLES` list with a real collection:
 {
     "id": "uuid",
     "name": "Accountant",           # what shows in the Staff screen's dropdown
-    "permissions": ["view_donations", "view_bookings", "manage_donations"],
+    "permissions": ["donations:view", "donations:edit", "bookings:view"],
     "is_system": False,             # True for the 4 seeded roles - see below
     "is_superuser": False,          # True only for EO - see below
     "created_at": "...",
 }
 ```
 
-### Permissions, one per admin screen
+### Permissions are `resource:action` pairs, not one flag per screen
 
-Each permission maps to one screen/feature, matching the existing admin
-nav almost 1:1:
+The Clerk scoping below needs "can create a booking, can view bookings,
+cannot edit or cancel one" — a single `manage_bookings` flag can't express
+that; it's all-or-nothing. So every resource gets up to four independent
+grants instead of one:
 
-| Permission | Screen / capability |
-|---|---|
-| `manage_sevas` | Sevas |
-| `manage_day_profiles` | Day Profiles |
-| `manage_slots` | Slots |
-| `view_bookings` / `manage_bookings` | Bookings (read vs. status changes — an Accountant might need to *see* bookings for reconciliation without being able to cancel one) |
-| `sell_counter_tickets` | Counter Sale (replaces the current hardcoded Cashier/EO check) |
-| `manage_staff` | Staff screen — create/disable accounts |
-| `manage_roles` | The new Roles screen this spec adds |
-| `view_donations` / `manage_donations` | Donations |
-| `manage_accommodations` | Accommodation |
-| `manage_news` | News |
-| `manage_panchangam` | Panchangam |
-| `manage_live_blog` | Live Blog |
-| `manage_gallery` | Gallery |
-| `manage_stotrams` | Stotrams |
-| `view_devotees` / `manage_devotees` | Devotees |
-| `manage_newsletter` | Newsletter |
-| `view_contact_messages` | Contact Messages |
-| `manage_aashirvachanam` | Aashirvachanam |
+```
+{resource}:view    {resource}:create    {resource}:edit    {resource}:delete
+```
 
-Splitting a few into view/manage pairs (bookings, donations, devotees) is
-deliberate — it's exactly what makes an Accountant or Help Desk role
-possible: read access to the data they need without edit rights over
-things outside their job.
+| Resource | Screen | Typical actions used |
+|---|---|---|
+| `sevas` | Sevas | view, create, edit, delete |
+| `day_profiles` | Day Profiles | view, create, edit, delete |
+| `slots` | Slots | view, create, edit, delete |
+| `bookings` | Bookings / Counter Sale | view, create, edit, delete (edit = status change; delete = cancel) |
+| `donations` | Donations | view, create, edit |
+| `accommodations` | Accommodation | view, create, edit, delete |
+| `news` | News | view, create, edit, delete |
+| `panchangam` | Panchangam | view, create, edit |
+| `live_blog` | Live Blog | view, create, edit, delete |
+| `gallery` | Gallery | view, create, delete |
+| `stotrams` | Stotrams | view, create, edit, delete |
+| `devotees` | Devotees | view, edit (no create — devotees self-register; no delete) |
+| `newsletter` | Newsletter | view, create |
+| `contact_messages` | Contact Messages | view, edit (mark handled) |
+| `aashirvachanam` | Aashirvachanam | view, edit |
+| `staff` | Staff screen | view, create, edit (role/active status), delete |
+| `roles` | Roles screen (new) | view, create, edit, delete |
+
+Not every resource needs all four — e.g. nobody deletes a devotee record
+or creates the Dashboard's summary data — so the Roles screen only shows
+the actions that are actually meaningful per resource, not a blanket
+4-column grid with dead checkboxes.
+
+A role's `permissions` field becomes a flat list of the grants it holds,
+e.g. `["bookings:view", "bookings:create", "donations:view"]`.
 
 ### EO stays a superuser, not an enumerated list
 
@@ -99,27 +107,57 @@ deletable — the same self-protection the current "can't deactivate your
 own account" guard exists for, extended to "can't lock the EO role out of
 its own system."
 
-### The 4 existing roles, migrated
+### The 4 existing roles, migrated — scopes decided
 
 Seeded as `is_system: True` (name can't be renamed, role can't be
-deleted — staff accounts reference it by name) with a starting permission
-set. This migration is also the natural moment to actually decide what
-Clerk and Priest should be scoped to, since today they're accidentally
-unscoped:
+deleted — staff accounts reference it by name):
 
-- **EO** — `is_superuser: True`
-- **Cashier** — `sell_counter_tickets`, `view_bookings`
-- **Clerk** — *(needs a real decision — see Open Questions)*
-- **Priest** — *(needs a real decision — see Open Questions)*
+- **EO** — `is_superuser: True`. Full access, including the only role that
+  can edit or cancel a booking, delete records, or manage staff/roles.
+
+- **Cashier** — `bookings:view`, `bookings:create`. Sells tickets at the
+  counter (the existing Counter Sale screen) and can look up a booking to
+  answer a devotee's question. Cannot edit, cancel, or delete a booking.
+
+- **Clerk** — `bookings:view`, `bookings:create`. Same shape as Cashier:
+  sits at the booking counter, creates new bookings, reads existing ones —
+  **cannot edit, cancel, or delete** a booking. That stays EO-only for now,
+  by explicit decision, regardless of who's asking or why (a devotee
+  dispute, a mistaken entry) — it goes to the EO, not the counter staff.
+
+  *Note the overlap with Cashier above — as scoped today, Clerk and
+  Cashier hold identical permissions.* Worth confirming with the EO
+  whether these are meant to be two names for the same counter job (in
+  which case one role is redundant), or whether Cashier is expected to
+  eventually pick up cash-handling/reconciliation duties Clerk won't have
+  (e.g. a future `bookings:reconcile` for the end-of-day cash tally) —
+  that would be the real difference between them. Not a blocker to
+  implementing either role as specified now; just flagging that "two
+  roles, same permissions" is usually a sign one of them isn't scoped yet
+  rather than a deliberate design.
+
+- **Priest** — no permissions. Confirmed priests don't use the dashboard
+  today, so this role is seeded but effectively inert — an account under
+  it can log in but sees an empty admin nav beyond the dashboard shell.
+  Left in place (rather than removed) since it's a `is_system` role tied
+  to the existing seed data, and because a future need (e.g. a priest
+  checking their own day's seva schedule) would slot in as a new
+  `bookings:view` grant on this same role, not a new one.
 
 ## New endpoints
 
 ```
-GET    /admin/roles              # list all roles (manage_roles or superuser)
+GET    /admin/roles              # list all roles (roles:view or superuser)
 POST   /admin/roles              # create a role: {name, permissions: [...]}
 PUT    /admin/roles/{id}         # edit name/permissions (blocked if is_system)
 DELETE /admin/roles/{id}         # blocked if is_system, or if any staff account uses it
 ```
+
+`POST /admin/bookings/counter` (the existing Counter Sale endpoint) swaps
+its hardcoded `get_current_cashier` dependency for
+`require_permission("bookings:create")` — which is exactly how Clerk gets
+the same counter-creation access as Cashier without a second, parallel
+endpoint.
 
 `POST /admin/staff`'s `role` field now validates against the `roles`
 collection (`db.roles.find_one({"name": data.role})`) instead of the
@@ -133,12 +171,28 @@ Two layers, not one — hiding a nav link is a UX nicety, not security:
 1. **Frontend (UX):** on login, fetch the current user's role's permission
    list once (a small `GET /admin/me/permissions` endpoint, or embed it in
    the login response next to `user`). `AdminLayout.jsx`'s `navItems` array
-   gets a `permission` field per item and filters at render time:
+   gets a `resource` field per item, and a nav link shows if the user holds
+   *any* action on that resource (view is enough to show the link; the
+   page itself then hides/disables buttons for actions they don't have —
+   e.g. Clerk sees the Bookings list but no Cancel button on each row):
    ```jsx
-   const visibleItems = navItems.filter(item => hasPermission(item.permission));
+   const visibleItems = navItems.filter(item => hasAnyPermission(item.resource));
    ```
    A Help Desk account simply never sees "Donations" or "Sevas" in the
    sidebar — less confusing than seeing a link that 403s.
+
+   The Roles screen itself presents this as a matrix, not a flat
+   checklist — one row per resource, one column per action, so "Clerk can
+   view and create bookings but not edit or delete them" is four
+   checkboxes in a row, not four differently-worded flags to hunt through:
+
+   ```
+                    View    Create   Edit    Delete
+   Bookings          ☑        ☑       ☐        ☐
+   Donations         ☐        ☐       ☐        ☐
+   Sevas             ☐        ☐       ☐        ☐
+   ...
+   ```
 
 2. **Backend (actual security):** every endpoint swaps its
    `Depends(get_current_admin)` for `Depends(require_permission("..."))`.
@@ -153,17 +207,16 @@ call instead, matching the table above.
 
 ## Worked examples, per the two roles you named
 
-**Accountant** — `view_donations`, `view_bookings`, `manage_donations`
-(to correct a misrecorded payment), nothing else. Sees Donations and
+**Accountant** — `donations:view`, `donations:edit` (to correct a
+misrecorded payment), `bookings:view`, nothing else. Sees Donations and
 Bookings in the sidebar; Sevas, Gallery, News, Staff are simply not
 there. Ties directly into the "who reconciles payments" question from
 the Setu roadmap — this is that role, made real.
 
-**Help Desk** — `view_devotees`, `view_bookings`, `view_contact_messages`,
-maybe `manage_newsletter` if they also handle subscriber questions.
-Explicitly *not* `manage_sevas` or `manage_donations` — a help desk
-answering "where's my ticket" doesn't need to be able to change prices or
-issue refunds.
+**Help Desk** — `devotees:view`, `bookings:view`, `contact_messages:view`,
+`contact_messages:edit` (marking a query handled). Explicitly *not*
+`sevas:edit` or `donations:edit` — a help desk answering "where's my
+ticket" doesn't need to be able to change prices or issue refunds.
 
 ## Migration plan
 
@@ -180,10 +233,13 @@ issue refunds.
 
 ## Open questions to resolve before implementation
 
-- **What should Clerk and Priest actually be scoped to?** Today they're
-  unscoped by accident. This is a real decision for the EO, not something
-  to guess at — worth a short conversation about what each role's job
-  actually is day-to-day.
+- **Are Clerk and Cashier meant to be the same job, or will Cashier grow
+  cash-handling duties Clerk won't have?** As scoped above they're
+  identical (`bookings:view` + `bookings:create`) — worth a real answer
+  before implementation, since "two roles with the same permissions" is
+  either intentional (two names, two people, same job) or a sign Cashier
+  needs one more grant (e.g. `bookings:reconcile`) that hasn't been named
+  yet.
 - **Do permission changes apply immediately or on next login?** The
   simplest implementation (above) checks the `roles` collection fresh on
   every request, so a permission change is live immediately — no token
