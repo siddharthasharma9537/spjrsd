@@ -23,8 +23,13 @@ export default function AdminCounterSale() {
   const [todaySales, setTodaySales] = useState([]);
 
   const loadTodaySales = () => {
-    api.get(`/admin/bookings?date=${today}`).then(r => {
-      setTodaySales(r.data.filter(b => b.channel === 'counter'));
+    // No `date` filter here on purpose: that param means the seva's date,
+    // not when the sale was made - a counter sale is often an advance
+    // booking for a future seva date. "Today's sales" for cash
+    // reconciliation means sold today, so it's filtered client-side on
+    // booking_date_time instead.
+    api.get('/admin/bookings').then(r => {
+      setTodaySales(r.data.filter(b => b.channel === 'counter' && b.booking_date_time?.startsWith(today)));
     });
   };
 
