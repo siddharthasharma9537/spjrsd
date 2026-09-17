@@ -27,6 +27,30 @@ const RESOURCES = [
 ];
 
 const ACTION_LABELS = { view: 'View', create: 'Create', edit: 'Edit', delete: 'Delete', reconcile: 'Reconcile' };
+const ALL_ACTIONS = ['view', 'create', 'edit', 'delete', 'reconcile'];
+
+// Permission keys for one row (every action that resource supports) or one
+// column (that action, across every resource that supports it) - the units
+// the row/column/select-all checkboxes each toggle as a group.
+const rowKeys = (resource) => resource.actions.map(a => `${resource.key}:${a}`);
+const columnKeys = (action) => RESOURCES.filter(r => r.actions.includes(action)).map(r => `${r.key}:${action}`);
+const allKeys = () => RESOURCES.flatMap(rowKeys);
+
+// A checkbox that shows an indeterminate dash when some but not all of its
+// group is selected - plain `checked` alone can't express "partially on".
+function GroupCheckbox({ keys, permissions, onToggle, testId }) {
+  const allOn = keys.every(k => permissions.includes(k));
+  const someOn = keys.some(k => permissions.includes(k));
+  return (
+    <input
+      type="checkbox"
+      checked={allOn}
+      ref={el => { if (el) el.indeterminate = !allOn && someOn; }}
+      onChange={() => onToggle(keys, allOn)}
+      data-testid={testId}
+    />
+  );
+}
 
 export default function AdminRoles() {
   const [roles, setRoles] = useState([]);
@@ -62,6 +86,19 @@ export default function AdminRoles() {
     setEditing({ ...role, permissions: next });
   };
 
+  // Shared by the row, column, and "select all" checkboxes: turns a whole
+  // group of permission keys on (if any are currently off) or off (if the
+  // whole group is already on) in one click, instead of one checkbox at a
+  // time - e.g. granting "view" everywhere, or every action on "Bookings".
+  const toggleGroup = (keys, currentlyAllOn) => {
+    setEditing(role => ({
+      ...role,
+      permissions: currentlyAllOn
+        ? role.permissions.filter(p => !keys.includes(p))
+        : [...new Set([...role.permissions, ...keys])],
+    }));
+  };
+
   const savePermissions = async () => {
     setError('');
     try {
@@ -89,22 +126,36 @@ export default function AdminRoles() {
     return (
       <AdminLayout title={`Permissions — ${editing.name}`}>
         {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4" data-testid="roles-matrix-error">{error}</p>}
+        <div className="flex items-center gap-3 mb-4">
+          <button onClick={() => toggleGroup(allKeys(), true)} className="px-3 py-1.5 border border-[#E6DCCA] text-[#621B00] text-xs rounded-full hover:bg-[#FDFBF7]" data-testid="roles-matrix-select-all">Select All</button>
+          <button onClick={() => toggleGroup(allKeys(), false)} className="px-3 py-1.5 border border-[#E6DCCA] text-[#621B00] text-xs rounded-full hover:bg-[#FDFBF7]" data-testid="roles-matrix-clear-all">Clear All</button>
+        </div>
         <div className="bg-white border border-[#E6DCCA] rounded-xl overflow-hidden mb-6">
           <div className="overflow-x-auto">
             <table className="w-full text-sm" data-testid="permissions-matrix">
               <thead className="bg-[#FDFBF7] border-b border-[#E6DCCA]">
                 <tr>
                   <th className="text-left px-4 py-3 font-medium text-[#5D4037]">Resource</th>
-                  {['view', 'create', 'edit', 'delete', 'reconcile'].map(a => (
-                    <th key={a} className="text-center px-4 py-3 font-medium text-[#5D4037]">{ACTION_LABELS[a]}</th>
+                  {ALL_ACTIONS.map(a => (
+                    <th key={a} className="text-center px-4 py-3 font-medium text-[#5D4037]">
+                      <div className="flex flex-col items-center gap-1">
+                        <span>{ACTION_LABELS[a]}</span>
+                        <GroupCheckbox keys={columnKeys(a)} permissions={editing.permissions} onToggle={toggleGroup} testId={`perm-col-${a}`} />
+                      </div>
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {RESOURCES.map(r => (
                   <tr key={r.key} className="border-b border-[#E6DCCA]/50" data-testid={`roles-matrix-row-${r.key}`}>
-                    <td className="px-4 py-3 text-[#2D1B0E]">{r.label}</td>
-                    {['view', 'create', 'edit', 'delete', 'reconcile'].map(a => (
+                    <td className="px-4 py-3 text-[#2D1B0E]">
+                      <label className="flex items-center gap-2">
+                        <GroupCheckbox keys={rowKeys(r)} permissions={editing.permissions} onToggle={toggleGroup} testId={`perm-row-${r.key}`} />
+                        {r.label}
+                      </label>
+                    </td>
+                    {ALL_ACTIONS.map(a => (
                       <td key={a} className="text-center px-4 py-3">
                         {r.actions.includes(a) ? (
                           <input
