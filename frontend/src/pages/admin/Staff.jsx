@@ -4,11 +4,12 @@ import api from '@/lib/api';
 import { Plus, KeyRound, X } from 'lucide-react';
 
 const inputCls = "h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-1 focus:ring-[#C43E00]/20 outline-none text-sm text-[#2D1B0E] w-full";
-const emptyForm = { name: '', username: '', password: '', role: '' };
+const emptyForm = { name: '', username: '', password: '', role: '', counter_id: '' };
 
 export default function AdminStaff() {
   const [staff, setStaff] = useState([]);
   const [roles, setRoles] = useState([]);
+  const [counters, setCounters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -18,9 +19,10 @@ export default function AdminStaff() {
   const [resetPassword, setResetPassword] = useState('');
 
   const load = () => {
-    Promise.all([api.get('/admin/staff'), api.get('/admin/roles')]).then(([s, r]) => {
+    Promise.all([api.get('/admin/staff'), api.get('/admin/roles'), api.get('/admin/counters')]).then(([s, r, c]) => {
       setStaff(s.data);
       setRoles(r.data);
+      setCounters(c.data);
       setLoading(false);
       setForm(f => f.role ? f : { ...f, role: r.data[0]?.name || '' });
     }).catch(() => setLoading(false));
@@ -31,7 +33,7 @@ export default function AdminStaff() {
     e.preventDefault();
     setError('');
     try {
-      await api.post('/admin/staff', form);
+      await api.post('/admin/staff', { ...form, counter_id: form.counter_id || null });
       setForm(emptyForm);
       setShowForm(false);
       load();
@@ -60,6 +62,18 @@ export default function AdminStaff() {
     }
   };
 
+  const changeCounter = async (member, counterId) => {
+    setListError('');
+    try {
+      // "" means "no counter" - the backend treats an explicit empty string
+      // as unassign, not "leave unchanged" (see StaffUpdate.counter_id).
+      await api.put(`/admin/staff/${member.id}`, { counter_id: counterId });
+      load();
+    } catch (err) {
+      setListError(err.response?.data?.detail || 'Could not update that account.');
+    }
+  };
+
   const submitReset = async (e) => {
     e.preventDefault();
     if (!resetTarget) return;
@@ -74,17 +88,17 @@ export default function AdminStaff() {
   };
 
   return (
-    <AdminLayout title="Staff Accounts">
+    <AdminLayout title="User Accounts">
       <div className="flex items-center justify-between mb-6">
-        <p className="text-sm text-[#8D6E63]">Staff logins for the admin portal. Manage what each role can do under Roles.</p>
+        <p className="text-sm text-[#8D6E63]">Logins for the admin portal. Manage what each role can do under Roles, and which counter (if any) under Counters.</p>
         <button onClick={() => setShowForm(!showForm)} className="inline-flex items-center gap-2 px-4 py-2 bg-[#621B00] text-white text-sm rounded-full hover:bg-[#621B00]/90" data-testid="staff-add-btn">
-          <Plus className="h-4 w-4" /> Add Staff
+          <Plus className="h-4 w-4" /> Add User Account
         </button>
       </div>
 
       {showForm && (
-        <form onSubmit={handleCreate} className="bg-white border border-[#E6DCCA] rounded-xl p-6 mb-6 grid grid-cols-1 sm:grid-cols-4 gap-4">
-          {error && <p className="sm:col-span-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2" data-testid="staff-form-error">{error}</p>}
+        <form onSubmit={handleCreate} className="bg-white border border-[#E6DCCA] rounded-xl p-6 mb-6 grid grid-cols-1 sm:grid-cols-5 gap-4">
+          {error && <p className="sm:col-span-5 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2" data-testid="staff-form-error">{error}</p>}
           <div>
             <label className="block text-sm font-medium text-[#5D4037] mb-1">Name</label>
             <input className={inputCls} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required data-testid="staff-name" />
@@ -103,7 +117,14 @@ export default function AdminStaff() {
               {roles.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
             </select>
           </div>
-          <div className="sm:col-span-4 flex justify-end">
+          <div>
+            <label className="block text-sm font-medium text-[#5D4037] mb-1">Counter</label>
+            <select className={inputCls} value={form.counter_id} onChange={e => setForm({ ...form, counter_id: e.target.value })} data-testid="staff-counter">
+              <option value="">— No counter (office role) —</option>
+              {counters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div className="sm:col-span-5 flex justify-end">
             <button type="submit" className="px-5 py-2 bg-[#C43E00] text-white text-sm rounded-full hover:bg-[#C43E00]/90" data-testid="staff-create-btn">Create Account</button>
           </div>
         </form>
@@ -112,7 +133,7 @@ export default function AdminStaff() {
       {listError && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4" data-testid="staff-list-error">{listError}</p>}
 
       {loading ? <p className="text-[#8D6E63]">Loading...</p> : staff.length === 0 ? (
-        <p className="text-center py-12 text-[#8D6E63]">No staff accounts yet.</p>
+        <p className="text-center py-12 text-[#8D6E63]">No user accounts yet.</p>
       ) : (
         <div className="bg-white border border-[#E6DCCA] rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
@@ -122,6 +143,7 @@ export default function AdminStaff() {
                   <th className="text-left px-4 py-3 font-medium text-[#5D4037]">Name</th>
                   <th className="text-left px-4 py-3 font-medium text-[#5D4037]">Username</th>
                   <th className="text-left px-4 py-3 font-medium text-[#5D4037]">Role</th>
+                  <th className="text-left px-4 py-3 font-medium text-[#5D4037]">Counter</th>
                   <th className="text-left px-4 py-3 font-medium text-[#5D4037]">Status</th>
                   <th className="text-right px-4 py-3 font-medium text-[#5D4037]">Actions</th>
                 </tr>
@@ -134,6 +156,12 @@ export default function AdminStaff() {
                     <td className="px-4 py-3">
                       <select className="h-8 px-2 bg-white border border-[#E6DCCA] rounded-lg text-xs text-[#2D1B0E]" value={s.role} onChange={e => changeRole(s, e.target.value)} data-testid={`staff-role-select-${s.id}`}>
                         {roles.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+                      </select>
+                    </td>
+                    <td className="px-4 py-3">
+                      <select className="h-8 px-2 bg-white border border-[#E6DCCA] rounded-lg text-xs text-[#2D1B0E]" value={s.counter_id || ''} onChange={e => changeCounter(s, e.target.value)} data-testid={`staff-counter-select-${s.id}`}>
+                        <option value="">— No counter —</option>
+                        {counters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                       </select>
                     </td>
                     <td className="px-4 py-3">

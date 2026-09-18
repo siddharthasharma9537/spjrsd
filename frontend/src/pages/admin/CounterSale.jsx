@@ -58,7 +58,12 @@ export default function AdminCounterSale() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [ticket, setTicket] = useState(null);
-  const [todaySales, setTodaySales] = useState([]);
+  // { scope: 'single', counter, bookings, total_amount, ticket_count } for a
+  // login tied to one counter, or { scope: 'all', counters: [...], ... } for
+  // an office login (EO/SysAdmin/Accountant) - see
+  // GET /admin/counters/today-summary, scoped server-side by the caller's
+  // own account, not anything picked here.
+  const [summary, setSummary] = useState(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [queue, setQueue] = useState(loadQueue);
   const syncingRef = useRef(false);
@@ -67,14 +72,8 @@ export default function AdminCounterSale() {
 
   const loadTodaySales = () => {
     if (!canReconcile) return;
-    // No `date` filter here on purpose: that param means the seva's date,
-    // not when the sale was made - a counter sale is often an advance
-    // booking for a future seva date. "Today's sales" for cash
-    // reconciliation means sold today, so it's filtered client-side on
-    // booking_date_time instead.
-    api.get('/admin/bookings').then(r => {
-      setTodaySales(r.data.filter(b => b.channel === 'counter' && b.booking_date_time?.startsWith(today)));
-    }).catch(() => {}); // offline - the queued items below still cover today's cash total
+    api.get('/admin/counters/today-summary').then(r => setSummary(r.data))
+      .catch(() => {}); // offline - the queued items below still cover today's cash total
   };
 
   // Syncs queued sales one at a time (not Promise.all) so a still-offline
@@ -455,38 +454,53 @@ export default function AdminCounterSale() {
           </form>
         </div>
 
-        {canReconcile && (
+        {canReconcile && summary && (
           <div className="bg-white border border-[#E6DCCA] rounded-xl p-6">
-            <h2 className="font-english-heading text-sm text-[#621B00] uppercase tracking-wide mb-4">Today's Counter Sales</h2>
-            {todaySales.length === 0 && unsyncedToday.length === 0 ? (
-              <p className="text-sm text-[#8D6E63]">No counter sales yet today.</p>
+            <h2 className="font-english-heading text-sm text-[#621B00] uppercase tracking-wide mb-4">
+              {summary.scope === 'single' ? `Today's Sales — ${summary.counter.name}` : "Today's Counter Sales (All Counters)"}
+            </h2>
+            {summary.scope === 'single' ? (
+              summary.bookings.length === 0 && unsyncedToday.length === 0 ? (
+                <p className="text-sm text-[#8D6E63]">No counter sales yet today.</p>
+              ) : (
+                <div className="space-y-3" data-testid="counter-today-sales">
+                  {summary.bookings.map(b => (
+                    <div key={b.id} className="border-b border-[#E6DCCA]/60 pb-3 last:border-0">
+                      <p className="text-sm text-[#2D1B0E]">{b.devotee_name} — {b.seva_name_english}</p>
+                      <p className="text-xs text-[#8D6E63] flex items-center justify-between">
+                        <span className="font-mono">{b.booking_number}</span>
+                        <span>Rs.{b.amount} · {b.payment_method}</span>
+                      </p>
+                    </div>
+                  ))}
+                  {unsyncedToday.map(item => (
+                    <div key={item.local_id} className="border-b border-[#E6DCCA]/60 pb-3 last:border-0">
+                      <p className="text-sm text-[#2D1B0E]">{item.preview?.devotee_name} — {item.preview?.seva_name_english}</p>
+                      <p className="text-xs text-[#8D6E63] flex items-center justify-between">
+                        <span className="font-mono">{item.local_id}</span>
+                        <span>Rs.{item.preview?.amount} · {item.preview?.payment_method}</span>
+                      </p>
+                      <p className={`text-xs mt-0.5 ${item.status === 'conflict' ? 'text-red-600' : 'text-amber-700'}`}>
+                        {item.status === 'conflict' ? 'Sync failed — needs review' : item.status === 'syncing' ? 'Syncing…' : 'Pending sync'}
+                      </p>
+                    </div>
+                  ))}
+                  <p className="text-sm font-medium text-[#621B00] pt-1">
+                    Total: Rs.{summary.total_amount + unsyncedToday.reduce((sum, q) => sum + (q.preview?.amount || 0), 0)}
+                    {' '}({summary.ticket_count + unsyncedToday.length} tickets{unsyncedToday.length > 0 ? `, ${unsyncedToday.length} pending sync` : ''})
+                  </p>
+                </div>
+              )
             ) : (
-              <div className="space-y-3" data-testid="counter-today-sales">
-                {todaySales.map(b => (
-                  <div key={b.id} className="border-b border-[#E6DCCA]/60 pb-3 last:border-0">
-                    <p className="text-sm text-[#2D1B0E]">{b.devotee_name} — {b.seva_name_english}</p>
-                    <p className="text-xs text-[#8D6E63] flex items-center justify-between">
-                      <span className="font-mono">{b.booking_number}</span>
-                      <span>Rs.{b.amount} · {b.payment_method}</span>
-                    </p>
-                  </div>
-                ))}
-                {unsyncedToday.map(item => (
-                  <div key={item.local_id} className="border-b border-[#E6DCCA]/60 pb-3 last:border-0">
-                    <p className="text-sm text-[#2D1B0E]">{item.preview?.devotee_name} — {item.preview?.seva_name_english}</p>
-                    <p className="text-xs text-[#8D6E63] flex items-center justify-between">
-                      <span className="font-mono">{item.local_id}</span>
-                      <span>Rs.{item.preview?.amount} · {item.preview?.payment_method}</span>
-                    </p>
-                    <p className={`text-xs mt-0.5 ${item.status === 'conflict' ? 'text-red-600' : 'text-amber-700'}`}>
-                      {item.status === 'conflict' ? 'Sync failed — needs review' : item.status === 'syncing' ? 'Syncing…' : 'Pending sync'}
-                    </p>
-                  </div>
-                ))}
-                <p className="text-sm font-medium text-[#621B00] pt-1">
-                  Total: Rs.{todaySales.reduce((sum, b) => sum + (b.amount || 0), 0) + unsyncedToday.reduce((sum, q) => sum + (q.preview?.amount || 0), 0)}
-                  {' '}({todaySales.length + unsyncedToday.length} tickets{unsyncedToday.length > 0 ? `, ${unsyncedToday.length} pending sync` : ''})
+              // This account isn't tied to one counter (EO/SysAdmin/Accountant) -
+              // the combined total only, not a duplicate of the full per-counter
+              // breakdown that Counter Reports already shows.
+              <div>
+                <p className="text-sm font-medium text-[#621B00]">
+                  Combined total: Rs.{summary.grand_total_amount + unsyncedToday.reduce((sum, q) => sum + (q.preview?.amount || 0), 0)}
+                  {' '}({summary.grand_ticket_count + unsyncedToday.length} tickets{unsyncedToday.length > 0 ? `, ${unsyncedToday.length} pending sync` : ''})
                 </p>
+                <a href="/admin/counter-reports" className="text-xs text-[#C43E00] hover:underline">See the per-counter breakdown in Counter Reports →</a>
               </div>
             )}
           </div>

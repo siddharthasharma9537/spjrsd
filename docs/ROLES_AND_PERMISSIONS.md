@@ -72,7 +72,8 @@ grants instead of one:
 | `newsletter` | Newsletter | view, create |
 | `contact_messages` | Contact Messages | view, edit (mark handled) |
 | `aashirvachanam` | Aashirvachanam | view, edit |
-| `staff` | Staff screen | view, create, edit (role/active status), delete |
+| `staff` | User Accounts screen | view, create, edit (role/counter/active status), delete |
+| `counters` | Counters screen | view, create, edit (rename), delete |
 | `roles` | Roles screen (new) | view, create, edit, delete |
 
 Not every resource needs all four — e.g. nobody deletes a devotee record

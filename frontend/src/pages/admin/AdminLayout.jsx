@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasAnyPermission, hasPermission } from '@/lib/permissions';
-import { ShieldCheck, LayoutDashboard, Flame as FlameIcon, Calendar, Clock, BookOpen, Users, LogOut, HandCoins, BedDouble, Newspaper, Camera, Sun, Radio, Mail, MessageSquare, Gift, ScrollText, Settings, Receipt, UserCog, KeyRound, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { ShieldCheck, LayoutDashboard, Flame as FlameIcon, Calendar, Clock, BookOpen, Users, LogOut, HandCoins, BedDouble, Newspaper, Camera, Sun, Radio, Mail, MessageSquare, Gift, ScrollText, Settings, Receipt, UserCog, KeyRound, PanelLeftClose, PanelLeftOpen, Store, BarChart3 } from 'lucide-react';
 
 // Remembered across page loads/navigations, not just component state - so
 // the sidebar doesn't snap back open every time an admin clicks between
@@ -22,7 +22,13 @@ const navItems = [
   // showing it to view-only roles (e.g. an Accountant with bookings:view)
   // would land them on a screen they can't actually use.
   { path: '/admin/counter-sale', icon: Receipt, label: 'Counter Sale', permission: 'bookings:create' },
-  { path: '/admin/staff', icon: UserCog, label: 'Staff', resource: 'staff' },
+  // Reconciliation, not sales - so gated on bookings:reconcile alone rather
+  // than needing bookings:create too. An Accountant-style account (no
+  // counter_id of its own) sees every counter here; a counter login sees
+  // only its own - see /admin/counters/today-summary in the backend.
+  { path: '/admin/counter-reports', icon: BarChart3, label: 'Counter Reports', permission: 'bookings:reconcile' },
+  { path: '/admin/staff', icon: UserCog, label: 'User Accounts', resource: 'staff' },
+  { path: '/admin/counters', icon: Store, label: 'Counters', resource: 'counters' },
   { path: '/admin/roles', icon: KeyRound, label: 'Roles', resource: 'roles' },
   { path: '/admin/donations', icon: HandCoins, label: 'Donations', resource: 'donations' },
   { path: '/admin/accommodations', icon: BedDouble, label: 'Accommodation', resource: 'accommodations' },

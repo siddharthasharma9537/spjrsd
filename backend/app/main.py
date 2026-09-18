@@ -369,11 +369,24 @@ class StaffCreate(BaseModel):
     username: str
     password: str
     role: str
+    # Which physical counter (Main Booking Counter, MGBC1, ...) this login
+    # sells tickets at - None for office/admin roles (EO, SysAdmin,
+    # Accountant) that aren't tied to one. See CounterCreate below.
+    counter_id: Optional[str] = None
 
 class StaffUpdate(BaseModel):
     name: Optional[str] = None
     role: Optional[str] = None
     active_flag: Optional[bool] = None
+    # "" explicitly unassigns the counter; omitted (None) leaves it
+    # unchanged - see the model_dump handling in update_staff.
+    counter_id: Optional[str] = None
+
+class CounterCreate(BaseModel):
+    name: str
+
+class CounterUpdate(BaseModel):
+    name: Optional[str] = None
 
 class StaffPasswordReset(BaseModel):
     password: str
@@ -981,9 +994,12 @@ async def create_staff(data: StaffCreate, user=Depends(require_permission("staff
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
     if await db.user_accounts.find_one({"username": data.username}):
         raise HTTPException(status_code=400, detail="Username already taken")
+    if data.counter_id and not await db.counters.find_one({"id": data.counter_id}):
+        raise HTTPException(status_code=400, detail="Counter does not exist")
     staff = {
         "id": str(uuid.uuid4()), "name": data.name, "username": data.username,
         "password_hash": hash_pw(data.password), "role": data.role,
+        "counter_id": data.counter_id,
         "active_flag": True, "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.user_accounts.insert_one(staff)
@@ -995,7 +1011,15 @@ async def update_staff(staff_id: str, data: StaffUpdate, user=Depends(require_pe
         raise HTTPException(status_code=400, detail="Role does not exist")
     if staff_id == user["sub"] and data.active_flag is False:
         raise HTTPException(status_code=400, detail="You can't deactivate your own account")
-    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    if data.counter_id and not await db.counters.find_one({"id": data.counter_id}):
+        raise HTTPException(status_code=400, detail="Counter does not exist")
+    # counter_id needs its own handling: "" means "unassign" and must reach
+    # the $set, which the generic `v is not None` filter below would drop
+    # since "" is falsy-but-not-None just fine, but an explicit None (field
+    # omitted entirely) must still mean "leave unchanged".
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None and k != "counter_id"}
+    if data.counter_id is not None:
+        update_data["counter_id"] = data.counter_id or None
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
     result = await db.user_accounts.update_one({"id": staff_id}, {"$set": update_data})
@@ -1020,6 +1044,46 @@ async def reset_staff_password(staff_id: str, data: StaffPasswordReset, user=Dep
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Staff account not found")
     return {"message": "Password updated"}
+
+# ==================== COUNTER MANAGEMENT ROUTES ====================
+# Physical ticket-selling stations (Main Booking Counter, MGBC1, Ammavari
+# Gudi Booking Counter 1, ...), not staff themselves - a User Account is
+# assigned to one via StaffCreate/StaffUpdate.counter_id, and each counter
+# booking is tagged with it (see create_counter_booking) so sales can be
+# reported per-counter as well as combined (see /admin/counters/today-summary).
+@api_router.get("/admin/counters")
+async def list_counters(user=Depends(require_permission("counters:view"))):
+    return await db.counters.find({}, {"_id": 0}).sort("name", 1).to_list(100)
+
+@api_router.post("/admin/counters")
+async def create_counter(data: CounterCreate, user=Depends(require_permission("counters:create"))):
+    if await db.counters.find_one({"name": data.name}):
+        raise HTTPException(status_code=400, detail="A counter with this name already exists")
+    counter = {"id": str(uuid.uuid4()), "name": data.name, "created_at": datetime.now(timezone.utc).isoformat()}
+    await db.counters.insert_one(counter)
+    return {k: v for k, v in counter.items() if k != "_id"}
+
+@api_router.put("/admin/counters/{counter_id}")
+async def update_counter(counter_id: str, data: CounterUpdate, user=Depends(require_permission("counters:edit"))):
+    counter = await db.counters.find_one({"id": counter_id}, {"_id": 0})
+    if not counter:
+        raise HTTPException(status_code=404, detail="Counter not found")
+    if data.name is None:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    if data.name != counter["name"] and await db.counters.find_one({"name": data.name}):
+        raise HTTPException(status_code=400, detail="A counter with this name already exists")
+    await db.counters.update_one({"id": counter_id}, {"$set": {"name": data.name}})
+    return await db.counters.find_one({"id": counter_id}, {"_id": 0})
+
+@api_router.delete("/admin/counters/{counter_id}")
+async def delete_counter(counter_id: str, user=Depends(require_permission("counters:delete"))):
+    counter = await db.counters.find_one({"id": counter_id}, {"_id": 0})
+    if not counter:
+        raise HTTPException(status_code=404, detail="Counter not found")
+    if await db.user_accounts.find_one({"counter_id": counter_id}):
+        raise HTTPException(status_code=400, detail="Reassign staff off this counter before deleting it")
+    await db.counters.delete_one({"id": counter_id})
+    return {"message": "Counter deleted"}
 
 # ==================== ROLE MANAGEMENT ROUTES ====================
 @api_router.get("/admin/roles")
@@ -1349,6 +1413,18 @@ async def create_counter_booking(data: CounterBookingCreate, user=Depends(requir
     if counter_booked >= slot.get("counter_quota", 10):
         raise HTTPException(status_code=400, detail="No counter slots available for this time")
 
+    # Tag the sale with whichever physical counter this login is assigned to
+    # (see StaffCreate.counter_id) - denormalized onto the booking, not just
+    # looked up via created_by, so a counter's name/history stays accurate
+    # even if the account is later reassigned or removed. None for a login
+    # with no counter assigned (e.g. an EO making a test sale).
+    account = await db.user_accounts.find_one({"id": user["sub"]}, {"_id": 0})
+    counter_id = account.get("counter_id") if account else None
+    counter_name = None
+    if counter_id:
+        counter_doc = await db.counters.find_one({"id": counter_id}, {"_id": 0})
+        counter_name = counter_doc["name"] if counter_doc else None
+
     booking = {
         "id": str(uuid.uuid4()),
         "booking_number": f"SPJRS-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:6].upper()}",
@@ -1364,6 +1440,7 @@ async def create_counter_booking(data: CounterBookingCreate, user=Depends(requir
         # UPI was physically collected at the counter before this call is made.
         "payment_status": "Paid", "payment_method": data.payment_method,
         "channel": "counter", "created_by": user["sub"],
+        "counter_id": counter_id, "counter_name": counter_name,
         "number_of_persons": data.number_of_persons, "gotram": data.gotram,
         "is_paroksha": False,
         "nakshatra": data.nakshatra or "", "rashi": data.rashi or "",
@@ -1372,6 +1449,60 @@ async def create_counter_booking(data: CounterBookingCreate, user=Depends(requir
     }
     await db.bookings.insert_one(booking)
     return {k: v for k, v in booking.items() if k != "_id"}
+
+@api_router.get("/admin/counters/today-summary")
+async def counters_today_summary(user=Depends(require_permission("bookings:reconcile"))):
+    # Scoped by the caller's own account, not a query param: a login tied to
+    # one counter (see StaffCreate.counter_id) only ever gets its own
+    # counter's numbers back; a login with no counter of its own (EO,
+    # SysAdmin, or an Accountant role granted just bookings:reconcile) gets
+    # every counter, separately and combined - this is what makes "the
+    # Accountant sees everything, a counter login sees only its own counter"
+    # true from the server side, not just something the UI happens to filter.
+    account = await db.user_accounts.find_one({"id": user["sub"]}, {"_id": 0})
+    own_counter_id = account.get("counter_id") if account else None
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    todays_bookings = await db.bookings.find({
+        "channel": "counter",
+        "booking_date_time": {"$regex": f"^{today_str}"},
+    }, {"_id": 0}).sort("booking_date_time", -1).to_list(2000)
+
+    if own_counter_id:
+        scoped = [b for b in todays_bookings if b.get("counter_id") == own_counter_id]
+        counter_doc = await db.counters.find_one({"id": own_counter_id}, {"_id": 0})
+        return {
+            "scope": "single",
+            "counter": {"id": own_counter_id, "name": counter_doc["name"] if counter_doc else "Unknown Counter"},
+            "bookings": scoped,
+            "total_amount": sum(b.get("amount", 0) for b in scoped),
+            "ticket_count": len(scoped),
+        }
+
+    all_counters = await db.counters.find({}, {"_id": 0}).sort("name", 1).to_list(200)
+    groups = {}
+    for b in todays_bookings:
+        groups.setdefault(b.get("counter_id") or "unassigned", []).append(b)
+
+    counters_out = [{
+        "counter_id": c["id"], "counter_name": c["name"],
+        "bookings": groups.get(c["id"], []),
+        "total_amount": sum(b.get("amount", 0) for b in groups.get(c["id"], [])),
+        "ticket_count": len(groups.get(c["id"], [])),
+    } for c in all_counters]
+    unassigned = groups.get("unassigned", [])
+
+    return {
+        "scope": "all",
+        "counters": counters_out,
+        "unassigned": {
+            "bookings": unassigned,
+            "total_amount": sum(b.get("amount", 0) for b in unassigned),
+            "ticket_count": len(unassigned),
+        },
+        "grand_total_amount": sum(b.get("amount", 0) for b in todays_bookings),
+        "grand_ticket_count": len(todays_bookings),
+    }
 
 @api_router.get("/bookings/my")
 async def get_my_bookings(user=Depends(get_current_devotee)):

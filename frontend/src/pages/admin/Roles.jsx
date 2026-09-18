@@ -22,7 +22,8 @@ const RESOURCES = [
   { key: 'newsletter', label: 'Newsletter', actions: ['view', 'create'] },
   { key: 'contact_messages', label: 'Contact Messages', actions: ['view', 'edit'] },
   { key: 'aashirvachanam', label: 'Aashirvachanam', actions: ['view'] },
-  { key: 'staff', label: 'Staff', actions: ['view', 'create', 'edit', 'delete'] },
+  { key: 'staff', label: 'User Accounts', actions: ['view', 'create', 'edit', 'delete'] },
+  { key: 'counters', label: 'Counters', actions: ['view', 'create', 'edit', 'delete'] },
   { key: 'roles', label: 'Roles', actions: ['view', 'create', 'edit', 'delete'] },
 ];
 
