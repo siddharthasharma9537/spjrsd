@@ -361,6 +361,7 @@ class RoleCreate(BaseModel):
     permissions: List[str] = []
 
 class RoleUpdate(BaseModel):
+    name: Optional[str] = None
     permissions: Optional[List[str]] = None
 
 class StaffCreate(BaseModel):
@@ -1029,11 +1030,28 @@ async def update_role(role_id: str, data: RoleUpdate, user=Depends(require_permi
     role = await db.roles.find_one({"id": role_id}, {"_id": 0})
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")
-    if role.get("is_system"):
-        raise HTTPException(status_code=400, detail="Built-in roles can't be edited")
-    if data.permissions is None:
+    if data.name is None and data.permissions is None:
         raise HTTPException(status_code=400, detail="No fields to update")
-    await db.roles.update_one({"id": role_id}, {"$set": {"permissions": data.permissions}})
+
+    update_data = {}
+    if data.permissions is not None:
+        update_data["permissions"] = data.permissions
+    if data.name is not None and data.name != role["name"]:
+        # Only the name is locked for a system role (Staff's role dropdown and
+        # every existing account still reference it by that exact string) -
+        # its permissions stay editable, same as any other non-superuser role.
+        if role.get("is_system"):
+            raise HTTPException(status_code=400, detail="Built-in roles can't be renamed")
+        if await db.roles.find_one({"name": data.name}):
+            raise HTTPException(status_code=400, detail="A role with this name already exists")
+        update_data["name"] = data.name
+        # Staff accounts store the role as a plain name string, not this
+        # role's id - without this, every account already on this role would
+        # be silently locked out (require_permission looks its role up by
+        # name and would find nothing under the old one).
+        await db.user_accounts.update_many({"role": role["name"]}, {"$set": {"role": data.name}})
+
+    await db.roles.update_one({"id": role_id}, {"$set": update_data})
     return await db.roles.find_one({"id": role_id}, {"_id": 0})
 
 @api_router.delete("/admin/roles/{role_id}")

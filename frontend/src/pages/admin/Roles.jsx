@@ -102,7 +102,7 @@ export default function AdminRoles() {
   const savePermissions = async () => {
     setError('');
     try {
-      await api.put(`/admin/roles/${editing.id}`, { permissions: editing.permissions });
+      await api.put(`/admin/roles/${editing.id}`, { name: editing.name, permissions: editing.permissions });
       setEditing(null);
       load();
     } catch (err) {
@@ -124,8 +124,24 @@ export default function AdminRoles() {
 
   if (editing) {
     return (
-      <AdminLayout title={`Permissions — ${editing.name}`}>
+      <AdminLayout title="Edit Role">
         {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4" data-testid="roles-matrix-error">{error}</p>}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-[#5D4037] mb-1">Role Name</label>
+          {editing.is_system ? (
+            <p className="flex items-center gap-2 text-[#2D1B0E]" data-testid="roles-matrix-name-locked">
+              {editing.name} <Lock className="h-3 w-3 text-[#8D6E63]" title="Built-in roles can't be renamed" />
+            </p>
+          ) : (
+            <input
+              className={`${inputCls} w-full max-w-xs`}
+              value={editing.name}
+              onChange={e => setEditing(role => ({ ...role, name: e.target.value }))}
+              required
+              data-testid="roles-matrix-name"
+            />
+          )}
+        </div>
         <div className="flex items-center gap-3 mb-4">
           <button onClick={() => toggleGroup(allKeys(), false)} className="px-3 py-1.5 border border-[#E6DCCA] text-[#621B00] text-xs rounded-full hover:bg-[#FDFBF7]" data-testid="roles-matrix-select-all">Select All</button>
           <button onClick={() => toggleGroup(allKeys(), true)} className="px-3 py-1.5 border border-[#E6DCCA] text-[#621B00] text-xs rounded-full hover:bg-[#FDFBF7]" data-testid="roles-matrix-clear-all">Clear All</button>
