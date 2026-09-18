@@ -107,35 +107,38 @@ deletable — the same self-protection the current "can't deactivate your
 own account" guard exists for, extended to "can't lock the EO role out of
 its own system."
 
-### The 4 existing roles, migrated — scopes decided
+### The 2 default roles — everything else is created, not pre-seeded
 
-Seeded as `is_system: True` (name can't be renamed, role can't be
-deleted — staff accounts reference it by name):
+Only two roles are seeded (`is_system: True` — name can't be renamed, role
+can't be deleted, since staff accounts reference it by name), and both are
+full superusers:
 
-- **EO** — `is_superuser: True`. Full access, including the only role that
-  can edit or cancel a booking, delete records, or manage staff/roles.
+- **EO** — the temple's Executive Officer. Full access to every screen and
+  action, including editing/cancelling/deleting a booking and managing
+  staff/roles.
 
-- **Cashier** — `bookings:view`, `bookings:create`, `bookings:reconcile`.
-  Sells tickets at the counter (the existing Counter Sale screen), can look
-  up a booking to answer a devotee's question, and — the distinction from
-  Clerk — owns the cash drawer: sees the end-of-day "Today's Counter
-  Sales" totals view for reconciliation. Cannot edit, cancel, or delete a
-  booking.
+- **SysAdmin** — whoever administers the platform itself (not a temple
+  role). Also `is_superuser: True`, same full access as EO — a separate
+  login rather than sharing the EO's own credentials for system upkeep.
 
-- **Clerk** — `bookings:view`, `bookings:create`. Sits at the booking
-  counter, creates new bookings, reads existing ones — **cannot edit,
-  cancel, or delete** a booking (EO-only, regardless of who's asking or
-  why), and does not see the reconciliation totals — that's Cashier's
-  responsibility, not Clerk's. Decided: these are two distinct counter
-  jobs, not the same role under two names.
+Cashier, Clerk, Priest, and any other narrower role (Accountant, Help
+Desk, ...) are no longer pre-seeded — the EO creates them via `New Role`
+on the Roles screen and scopes them with the permission matrix, same as
+any custom role. The Cashier/Clerk split described below is kept as a
+worked example of *how* to scope a counter-staff role with this system,
+not as something every deployment starts with:
 
-- **Priest** — no permissions. Confirmed priests don't use the dashboard
-  today, so this role is seeded but effectively inert — an account under
-  it can log in but sees an empty admin nav beyond the dashboard shell.
-  Left in place (rather than removed) since it's a `is_system` role tied
-  to the existing seed data, and because a future need (e.g. a priest
-  checking their own day's seva schedule) would slot in as a new
-  `bookings:view` grant on this same role, not a new one.
+- A **Cashier**-style role would get `bookings:view`, `bookings:create`,
+  `bookings:reconcile` — sells tickets at the counter (Counter Sale
+  screen), can look up a booking to answer a devotee's question, and owns
+  the cash drawer: sees the end-of-day "Today's Counter Sales" totals view
+  for reconciliation. No edit/cancel/delete on a booking.
+
+- A **Clerk**-style role would get `bookings:view`, `bookings:create` only
+  — sits at the booking counter, creates and reads bookings, but doesn't
+  see the reconciliation totals (that's the Cashier-style role's job) and
+  can't edit, cancel, or delete a booking (EO/SysAdmin-only, regardless of
+  who's asking or why).
 
 ## New endpoints
 
@@ -220,8 +223,7 @@ ticket" doesn't need to be able to change prices or issue refunds.
 
 ## Migration plan
 
-1. Seed the `roles` collection with the 4 existing roles + their decided
-   permission sets (above)
+1. Seed the `roles` collection with the 2 default roles (EO, SysAdmin)
 2. Add `require_permission()` and the new `/admin/roles` endpoints
 3. Go through all 48 generic `get_current_admin` call sites and replace
    each with the specific permission its screen actually needs — this is

@@ -344,16 +344,16 @@ class AdminChangePassword(BaseModel):
     current_password: str
     new_password: str
 
-# The 4 roles every deployment starts with. Seeded into the `roles`
-# collection at startup (see ensure_system_roles) rather than kept as a
-# fixed list here - the EO can add more roles afterward via /admin/roles,
-# but these 4 are protected (is_system) since staff accounts and the seed
-# admin reference them by name. See docs/ROLES_AND_PERMISSIONS.md.
+# The 2 roles every deployment starts with, both full superusers - one for
+# the temple EO, one for whoever administers the system itself. Seeded into
+# the `roles` collection at startup (see ensure_system_roles) rather than
+# kept as a fixed list here. Both are protected (is_system) since staff
+# accounts reference them by name; anything more specific (Cashier, Clerk,
+# a future Accountant, ...) is created afterward via /admin/roles rather
+# than pre-seeded. See docs/ROLES_AND_PERMISSIONS.md.
 SYSTEM_ROLES = [
     {"name": "EO", "permissions": [], "is_superuser": True},
-    {"name": "Cashier", "permissions": ["bookings:view", "bookings:create", "bookings:reconcile"], "is_superuser": False},
-    {"name": "Clerk", "permissions": ["bookings:view", "bookings:create"], "is_superuser": False},
-    {"name": "Priest", "permissions": [], "is_superuser": False},
+    {"name": "SysAdmin", "permissions": [], "is_superuser": True},
 ]
 
 class RoleCreate(BaseModel):
