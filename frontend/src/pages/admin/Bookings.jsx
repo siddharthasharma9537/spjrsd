@@ -16,6 +16,8 @@ export default function AdminBookings() {
   const [filterDate, setFilterDate] = useState('');
   const [filterSeva, setFilterSeva] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [requestingId, setRequestingId] = useState(null);
+  const [reasonDraft, setReasonDraft] = useState('');
 
   const load = () => {
     const params = new URLSearchParams();
@@ -41,6 +43,19 @@ export default function AdminBookings() {
       load();
     } catch (err) {
       setError(err.response?.data?.detail || 'Could not update this booking.');
+    }
+  };
+
+  const submitCancellationRequest = async (bookingId) => {
+    if (!reasonDraft.trim()) return;
+    setError('');
+    try {
+      await api.post(`/admin/bookings/${bookingId}/request-cancellation`, { reason: reasonDraft });
+      setRequestingId(null);
+      setReasonDraft('');
+      load();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Could not submit the cancellation request.');
     }
   };
 
@@ -122,6 +137,26 @@ export default function AdminBookings() {
                           <button onClick={() => updateStatus(b.id, 'Confirmed')} className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full hover:bg-green-200">Confirm</button>
                           <button onClick={() => updateStatus(b.id, 'Cancelled')} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full hover:bg-red-200">Cancel</button>
                         </div>
+                      )}
+                      {!canEdit && ['Confirmed', 'Pending'].includes(b.status) && (
+                        b.cancellation_requested ? (
+                          <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full" data-testid={`cancellation-pending-${b.id}`}>Cancellation Requested</span>
+                        ) : requestingId === b.id ? (
+                          <div className="flex gap-1 justify-end items-center">
+                            <input
+                              autoFocus
+                              className="h-8 px-2 text-xs border border-[#E6DCCA] rounded-lg outline-none focus:border-[#C43E00]"
+                              placeholder="Reason..."
+                              value={reasonDraft}
+                              onChange={e => setReasonDraft(e.target.value)}
+                              data-testid={`cancellation-reason-${b.id}`}
+                            />
+                            <button onClick={() => submitCancellationRequest(b.id)} className="px-2 py-1 bg-[#621B00] text-white text-xs rounded-full hover:bg-[#4a1400]" data-testid={`submit-cancellation-${b.id}`}>Submit</button>
+                            <button onClick={() => { setRequestingId(null); setReasonDraft(''); }} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full hover:bg-gray-200">Cancel</button>
+                          </div>
+                        ) : (
+                          <button onClick={() => { setRequestingId(b.id); setReasonDraft(''); }} className="px-2 py-1 bg-[#E6DCCA] text-[#621B00] text-xs rounded-full hover:bg-[#D4AF37]/40" data-testid={`request-cancellation-${b.id}`}>Request Cancellation</button>
+                        )
                       )}
                     </td>
                   </tr>

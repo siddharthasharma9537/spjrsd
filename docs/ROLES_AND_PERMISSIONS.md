@@ -60,7 +60,7 @@ grants instead of one:
 | `sevas` | Sevas | view, create, edit, delete |
 | `day_profiles` | Day Profiles | view, create, edit, delete |
 | `slots` | Slots | view, create, edit, delete |
-| `bookings` | Bookings / Counter Sale | view, create, edit, delete, reconcile (edit = status change; delete = cancel; reconcile = the end-of-day counter-sales totals view — Cashier-specific, distinct from just viewing individual bookings) |
+| `bookings` | Bookings / Counter Sale | view, create, edit, delete, reconcile (edit = status change; delete = cancel; reconcile = the end-of-day counter-sales totals view — Cashier-specific, distinct from just viewing individual bookings). A `bookings:view`-only account (e.g. Clerk) can't cancel directly - it can only *request* a cancellation, which a `bookings:edit` holder then approves (which actually cancels it) or rejects, via the Cancellation Requests screen. |
 | `donations` | Donations | view (that's all that exists today — see note below) |
 | `accommodations` | Accommodation | view, create, edit, delete |
 | `news` | News | view, create, edit, delete |

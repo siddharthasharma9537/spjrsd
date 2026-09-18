@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasAnyPermission, hasPermission } from '@/lib/permissions';
-import { ShieldCheck, LayoutDashboard, Flame as FlameIcon, Calendar, Clock, BookOpen, Users, LogOut, HandCoins, BedDouble, Newspaper, Camera, Sun, Radio, Mail, MessageSquare, Gift, ScrollText, Settings, Receipt, UserCog, KeyRound, PanelLeftClose, PanelLeftOpen, Store, BarChart3 } from 'lucide-react';
+import { ShieldCheck, LayoutDashboard, Flame as FlameIcon, Calendar, Clock, BookOpen, Users, LogOut, HandCoins, BedDouble, Newspaper, Camera, Sun, Radio, Mail, MessageSquare, Gift, ScrollText, Settings, Receipt, UserCog, KeyRound, PanelLeftClose, PanelLeftOpen, Store, BarChart3, Ban } from 'lucide-react';
 
 // Remembered across page loads/navigations, not just component state - so
 // the sidebar doesn't snap back open every time an admin clicks between
@@ -18,6 +18,12 @@ const navItems = [
   { path: '/admin/profiles', icon: Calendar, label: 'Day Profiles', resource: 'day_profiles' },
   { path: '/admin/slots', icon: Clock, label: 'Slots', resource: 'slots' },
   { path: '/admin/bookings', icon: BookOpen, label: 'Bookings', resource: 'bookings' },
+  // The approval queue for cancellation requests a bookings:view-only
+  // account raises from the Bookings screen (they can't cancel directly -
+  // see request_booking_cancellation in the backend). Gated on
+  // bookings:edit since that's the same permission that lets an account
+  // cancel a booking outright.
+  { path: '/admin/cancellation-requests', icon: Ban, label: 'Cancellation Requests', permission: 'bookings:edit' },
   // Counter Sale is a bookings:create workflow, not just a bookings viewer -
   // showing it to view-only roles (e.g. an Accountant with bookings:view)
   // would land them on a screen they can't actually use.

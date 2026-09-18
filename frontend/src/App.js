@@ -50,6 +50,7 @@ import AdminCounterSale from "@/pages/admin/CounterSale";
 import AdminStaff from "@/pages/admin/Staff";
 import AdminCounters from "@/pages/admin/Counters";
 import AdminCounterReports from "@/pages/admin/CounterReports";
+import AdminCancellationRequests from "@/pages/admin/CancellationRequests";
 import AdminRoles from "@/pages/admin/Roles";
 import AdminDevotees from "@/pages/admin/Devotees";
 import AdminDevoteeDetail from "@/pages/admin/DevoteeDetail";
@@ -220,6 +221,7 @@ function App() {
           <Route path="/admin/profiles" element={<ProtectedAdmin><AdminProfiles /></ProtectedAdmin>} />
           <Route path="/admin/slots" element={<ProtectedAdmin><AdminSlots /></ProtectedAdmin>} />
           <Route path="/admin/bookings" element={<ProtectedAdmin><AdminBookings /></ProtectedAdmin>} />
+          <Route path="/admin/cancellation-requests" element={<ProtectedAdmin><AdminCancellationRequests /></ProtectedAdmin>} />
           <Route path="/admin/counter-sale" element={<ProtectedAdmin><AdminCounterSale /></ProtectedAdmin>} />
           <Route path="/admin/staff" element={<ProtectedAdmin><AdminStaff /></ProtectedAdmin>} />
           <Route path="/admin/counters" element={<ProtectedAdmin><AdminCounters /></ProtectedAdmin>} />

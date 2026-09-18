@@ -477,6 +477,12 @@ class BookingCreate(BaseModel):
 class BookingStatusUpdate(BaseModel):
     status: str
 
+class CancellationRequestCreate(BaseModel):
+    reason: str
+
+class CancellationReview(BaseModel):
+    note: Optional[str] = ""
+
 class CounterBookingCreate(BaseModel):
     seva_id: str
     slot_id: str
@@ -1550,7 +1556,99 @@ async def admin_list_bookings(date: Optional[str] = None, seva_id: Optional[str]
     own_counter_id = account.get("counter_id") if account else None
     if own_counter_id:
         query["counter_id"] = own_counter_id
-    return await db.bookings.find(query, {"_id": 0}).sort("booking_date_time", -1).to_list(500)
+    bookings = await db.bookings.find(query, {"_id": 0}).sort("booking_date_time", -1).to_list(500)
+    if bookings:
+        booking_ids = [b["id"] for b in bookings]
+        pending_ids = {r["booking_id"] for r in await db.cancellation_requests.find(
+            {"booking_id": {"$in": booking_ids}, "status": "Pending"}, {"_id": 0, "booking_id": 1}
+        ).to_list(len(booking_ids))}
+        for b in bookings:
+            b["cancellation_requested"] = b["id"] in pending_ids
+    return bookings
+
+# A clerk without bookings:edit can't cancel a booking outright (see
+# update_booking_status below) - this lets them flag one for cancellation
+# instead of having no recourse at all. Someone with bookings:edit reviews
+# it via the endpoints further down and either approves (which actually
+# cancels the booking) or rejects it. Gated on bookings:view since that's
+# the same permission that lets an account see the booking in the first
+# place - no new resource/permission needed.
+@api_router.post("/admin/bookings/{booking_id}/request-cancellation")
+async def request_booking_cancellation(booking_id: str, data: CancellationRequestCreate, user=Depends(require_permission("bookings:view"))):
+    if not data.reason.strip():
+        raise HTTPException(status_code=400, detail="A reason is required")
+    booking = await db.bookings.find_one({"id": booking_id}, {"_id": 0})
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    if booking["status"] in ["Cancelled", "Completed"]:
+        raise HTTPException(status_code=400, detail=f"Booking is already {booking['status']}")
+
+    account = await db.user_accounts.find_one({"id": user["sub"]}, {"_id": 0})
+    own_counter_id = account.get("counter_id") if account else None
+    if own_counter_id and booking.get("counter_id") != own_counter_id:
+        raise HTTPException(status_code=403, detail="Not your counter's booking")
+
+    if await db.cancellation_requests.find_one({"booking_id": booking_id, "status": "Pending"}):
+        raise HTTPException(status_code=400, detail="A cancellation request is already pending for this booking")
+
+    request_doc = {
+        "id": str(uuid.uuid4()),
+        "booking_id": booking_id,
+        "booking_number": booking["booking_number"],
+        "devotee_name": booking["devotee_name"],
+        "counter_id": booking.get("counter_id"),
+        "counter_name": booking.get("counter_name"),
+        "reason": data.reason.strip(),
+        "requested_by": user["sub"],
+        "requested_by_name": account["name"] if account else user.get("name"),
+        "status": "Pending",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "reviewed_by": None,
+        "reviewed_by_name": None,
+        "reviewed_at": None,
+        "review_note": None,
+    }
+    await db.cancellation_requests.insert_one(request_doc)
+    request_doc.pop("_id", None)
+    return request_doc
+
+@api_router.get("/admin/cancellation-requests")
+async def list_cancellation_requests(status: Optional[str] = None, user=Depends(require_permission("bookings:edit"))):
+    query = {}
+    if status: query["status"] = status
+    return await db.cancellation_requests.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+
+@api_router.put("/admin/cancellation-requests/{request_id}/approve")
+async def approve_cancellation_request(request_id: str, user=Depends(require_permission("bookings:edit"))):
+    req = await db.cancellation_requests.find_one({"id": request_id}, {"_id": 0})
+    if not req:
+        raise HTTPException(status_code=404, detail="Request not found")
+    if req["status"] != "Pending":
+        raise HTTPException(status_code=400, detail=f"Request is already {req['status']}")
+    account = await db.user_accounts.find_one({"id": user["sub"]}, {"_id": 0})
+    await db.bookings.update_one({"id": req["booking_id"]}, {"$set": {"status": "Cancelled"}})
+    await db.cancellation_requests.update_one({"id": request_id}, {"$set": {
+        "status": "Approved", "reviewed_by": user["sub"],
+        "reviewed_by_name": account["name"] if account else user.get("name"),
+        "reviewed_at": datetime.now(timezone.utc).isoformat(),
+    }})
+    return await db.cancellation_requests.find_one({"id": request_id}, {"_id": 0})
+
+@api_router.put("/admin/cancellation-requests/{request_id}/reject")
+async def reject_cancellation_request(request_id: str, data: CancellationReview, user=Depends(require_permission("bookings:edit"))):
+    req = await db.cancellation_requests.find_one({"id": request_id}, {"_id": 0})
+    if not req:
+        raise HTTPException(status_code=404, detail="Request not found")
+    if req["status"] != "Pending":
+        raise HTTPException(status_code=400, detail=f"Request is already {req['status']}")
+    account = await db.user_accounts.find_one({"id": user["sub"]}, {"_id": 0})
+    await db.cancellation_requests.update_one({"id": request_id}, {"$set": {
+        "status": "Rejected", "reviewed_by": user["sub"],
+        "reviewed_by_name": account["name"] if account else user.get("name"),
+        "reviewed_at": datetime.now(timezone.utc).isoformat(),
+        "review_note": data.note.strip() if data.note else None,
+    }})
+    return await db.cancellation_requests.find_one({"id": request_id}, {"_id": 0})
 
 @api_router.put("/admin/bookings/{booking_id}/status")
 async def update_booking_status(booking_id: str, data: BookingStatusUpdate, user=Depends(require_permission("bookings:edit"))):
