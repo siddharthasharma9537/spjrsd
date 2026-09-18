@@ -1,7 +1,13 @@
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasAnyPermission, hasPermission } from '@/lib/permissions';
-import { ShieldCheck, LayoutDashboard, Flame as FlameIcon, Calendar, Clock, BookOpen, Users, LogOut, HandCoins, BedDouble, Newspaper, Camera, Sun, Radio, Mail, MessageSquare, Gift, ScrollText, Settings, Receipt, UserCog, KeyRound } from 'lucide-react';
+import { ShieldCheck, LayoutDashboard, Flame as FlameIcon, Calendar, Clock, BookOpen, Users, LogOut, HandCoins, BedDouble, Newspaper, Camera, Sun, Radio, Mail, MessageSquare, Gift, ScrollText, Settings, Receipt, UserCog, KeyRound, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+
+// Remembered across page loads/navigations, not just component state - so
+// the sidebar doesn't snap back open every time an admin clicks between
+// screens after collapsing it once.
+const COLLAPSE_KEY = 'admin-sidebar-collapsed';
 
 // `resource` matches the resource half of a "resource:action" permission
 // (see docs/ROLES_AND_PERMISSIONS.md). No `resource` = always shown to any
@@ -35,35 +41,56 @@ const navItems = [
 export default function AdminLayout({ children, title }) {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSE_KEY) === 'true');
   const visibleItems = navItems.filter(item => {
     if (item.permission) return hasPermission(user, item.permission);
     return !item.resource || hasAnyPermission(user, item.resource);
   });
 
+  const toggleCollapsed = () => {
+    setCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem(COLLAPSE_KEY, String(next));
+      return next;
+    });
+  };
+
   return (
     <div className="min-h-screen bg-[#FFFCF5] flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-[#2D1B0E] text-[#FFE0B2] hidden md:flex flex-col shrink-0">
-        <div className="p-5 border-b border-[#5D4037]/30">
-          <div className="flex items-center gap-2 mb-1">
-            <ShieldCheck className="h-5 w-5 text-[#D4AF37]" />
-            <span className="font-english-heading text-xs tracking-wide">ADMIN PORTAL</span>
+      {/* Sidebar - collapsible on desktop only; the mobile header below has
+          its own always-compact, icon-only layout so it isn't affected. */}
+      <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-[#2D1B0E] text-[#FFE0B2] hidden md:flex flex-col shrink-0 transition-all duration-200`}>
+        <div className="p-5 border-b border-[#5D4037]/30 flex items-start justify-between gap-2">
+          <div className={collapsed ? 'sr-only' : ''}>
+            <div className="flex items-center gap-2 mb-1">
+              <ShieldCheck className="h-5 w-5 text-[#D4AF37] shrink-0" />
+              <span className="font-english-heading text-xs tracking-wide">ADMIN PORTAL</span>
+            </div>
+            <p className="text-xs text-[#8D6E63]">{user?.name} ({user?.role})</p>
           </div>
-          <p className="text-xs text-[#8D6E63]">{user?.name} ({user?.role})</p>
+          {collapsed && <ShieldCheck className="h-5 w-5 text-[#D4AF37] mx-auto" />}
+          <button
+            onClick={toggleCollapsed}
+            className="text-[#FFE0B2]/60 hover:text-white transition-colors shrink-0"
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            data-testid="admin-sidebar-toggle"
+          >
+            {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+          </button>
         </div>
         <nav className="flex-1 p-3 space-y-1">
           {visibleItems.map(item => (
-            <Link key={item.path} to={item.path} className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all ${
+            <Link key={item.path} to={item.path} title={collapsed ? item.label : undefined} className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all ${collapsed ? 'justify-center px-2' : ''} ${
               location.pathname === item.path ? 'bg-[#C43E00] text-white' : 'hover:bg-white/5 text-[#FFE0B2]/80'
             }`} data-testid={`admin-nav-${item.label.toLowerCase().replace(' ', '-')}`}>
-              <item.icon className="h-4 w-4" />
-              {item.label}
+              <item.icon className="h-4 w-4 shrink-0" />
+              {!collapsed && item.label}
             </Link>
           ))}
         </nav>
         <div className="p-3 border-t border-[#5D4037]/30">
-          <button onClick={logout} className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#FFE0B2]/60 hover:text-white transition-colors w-full" data-testid="admin-logout">
-            <LogOut className="h-4 w-4" /> Logout
+          <button onClick={logout} title={collapsed ? 'Logout' : undefined} className={`flex items-center gap-3 px-4 py-2.5 text-sm text-[#FFE0B2]/60 hover:text-white transition-colors w-full ${collapsed ? 'justify-center px-2' : ''}`} data-testid="admin-logout">
+            <LogOut className="h-4 w-4 shrink-0" /> {!collapsed && 'Logout'}
           </button>
         </div>
       </aside>
