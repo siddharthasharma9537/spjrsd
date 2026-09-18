@@ -378,6 +378,10 @@ class StaffUpdate(BaseModel):
 class StaffPasswordReset(BaseModel):
     password: str
 
+class PrasadamItem(BaseModel):
+    name: str
+    quantity: int
+
 class SevaCreate(BaseModel):
     name_english: str
     name_telugu: str
@@ -392,6 +396,13 @@ class SevaCreate(BaseModel):
     special_instructions: Optional[str] = ""
     location_categories: Optional[List[str]] = []  # "gattupaina", "ammavari" - can be both, or neither ("Other Sevas")
     active_flag: bool = True
+    # Free prasadam entitlement for a booking of this seva (e.g. 2 Laddu, 1
+    # Pulihora Packet) - redeemed at the Prasadam Counter, not printed as a
+    # fixed rule since it varies per seva and the EO needs to change it
+    # without a code deploy. prasadam_items is only meaningful when
+    # prasadam_eligible is True.
+    prasadam_eligible: bool = False
+    prasadam_items: List[PrasadamItem] = []
 
 class SevaUpdate(BaseModel):
     name_english: Optional[str] = None
@@ -407,6 +418,8 @@ class SevaUpdate(BaseModel):
     special_instructions: Optional[str] = None
     location_categories: Optional[List[str]] = None
     active_flag: Optional[bool] = None
+    prasadam_eligible: Optional[bool] = None
+    prasadam_items: Optional[List[PrasadamItem]] = None
 
 class DayProfileCreate(BaseModel):
     name: str
