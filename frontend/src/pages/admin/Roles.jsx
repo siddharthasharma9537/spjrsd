@@ -26,7 +26,11 @@ const RESOURCES = [
   { key: 'roles', label: 'Roles', actions: ['view', 'create', 'edit', 'delete'] },
 ];
 
-const ACTION_LABELS = { view: 'View', create: 'Create', edit: 'Edit', delete: 'Delete', reconcile: 'Reconcile' };
+// Displayed as the standard CRUD terms; the underlying permission keys
+// stay "view"/"create" (e.g. "sevas:view") since that's what every
+// require_permission(...) call in backend/app/main.py already checks -
+// this is a label-only change, not a rename of the permission strings.
+const ACTION_LABELS = { view: 'Read', create: 'Write', edit: 'Edit', delete: 'Delete', reconcile: 'Reconcile' };
 const ALL_ACTIONS = ['view', 'create', 'edit', 'delete', 'reconcile'];
 
 // Permission keys for one row (every action that resource supports) or one

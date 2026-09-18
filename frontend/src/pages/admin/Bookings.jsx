@@ -3,11 +3,16 @@ import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
 import DateInput from '@/components/ui/date-input';
 import { Search, ChevronDown } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { hasPermission } from '@/lib/permissions';
 
 export default function AdminBookings() {
+  const { user } = useAuth();
+  const canEdit = hasPermission(user, 'bookings:edit');
   const [bookings, setBookings] = useState([]);
   const [sevas, setSevas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [filterDate, setFilterDate] = useState('');
   const [filterSeva, setFilterSeva] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -30,8 +35,13 @@ export default function AdminBookings() {
   useEffect(() => { load(); }, [filterDate, filterSeva, filterStatus]);
 
   const updateStatus = async (bookingId, newStatus) => {
-    await api.put(`/admin/bookings/${bookingId}/status`, { status: newStatus });
-    load();
+    setError('');
+    try {
+      await api.put(`/admin/bookings/${bookingId}/status`, { status: newStatus });
+      load();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Could not update this booking.');
+    }
   };
 
   const statusColors = {
@@ -62,6 +72,8 @@ export default function AdminBookings() {
         </select>
         <span className="text-sm text-[#8D6E63]">{bookings.length} results</span>
       </div>
+
+      {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4" data-testid="bookings-error">{error}</p>}
 
       {loading ? <p className="text-[#8D6E63]">Loading...</p> : bookings.length === 0 ? (
         <p className="text-center py-12 text-[#8D6E63]">No bookings found</p>
@@ -99,13 +111,13 @@ export default function AdminBookings() {
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[b.status] || ''}`}>{b.status}</span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {b.status === 'Confirmed' && (
+                      {canEdit && b.status === 'Confirmed' && (
                         <div className="flex gap-1 justify-end">
                           <button onClick={() => updateStatus(b.id, 'Completed')} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full hover:bg-blue-200" data-testid={`complete-booking-${b.id}`}>Complete</button>
                           <button onClick={() => updateStatus(b.id, 'Cancelled')} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full hover:bg-red-200" data-testid={`cancel-booking-${b.id}`}>Cancel</button>
                         </div>
                       )}
-                      {b.status === 'Pending' && (
+                      {canEdit && b.status === 'Pending' && (
                         <div className="flex gap-1 justify-end">
                           <button onClick={() => updateStatus(b.id, 'Confirmed')} className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full hover:bg-green-200">Confirm</button>
                           <button onClick={() => updateStatus(b.id, 'Cancelled')} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full hover:bg-red-200">Cancel</button>
