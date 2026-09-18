@@ -1,8 +1,14 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function AdminCancellationRequests() {
+  const { user } = useAuth();
+  // Approving actually cancels the booking - kept to EO/SysAdmin only (see
+  // require_superuser() in the backend), even though anyone with
+  // bookings:edit can see this queue and reject an obviously bad request.
+  const canApprove = !!user?.is_superuser;
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -107,7 +113,7 @@ export default function AdminCancellationRequests() {
                           </div>
                         ) : (
                           <div className="flex gap-1 justify-end">
-                            <button onClick={() => approve(r.id)} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full hover:bg-red-200" data-testid={`approve-request-${r.id}`}>Approve Cancellation</button>
+                            {canApprove && <button onClick={() => approve(r.id)} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full hover:bg-red-200" data-testid={`approve-request-${r.id}`}>Approve Cancellation</button>}
                             <button onClick={() => { setRejectingId(r.id); setNoteDraft(''); }} className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full hover:bg-gray-200" data-testid={`reject-request-${r.id}`}>Reject</button>
                           </div>
                         )

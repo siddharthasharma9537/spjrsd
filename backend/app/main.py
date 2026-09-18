@@ -286,6 +286,27 @@ def require_permission(permission: str):
         raise HTTPException(status_code=403, detail=f"Missing permission: {permission}")
     return check
 
+def require_superuser():
+    """Stricter than require_permission: only EO/SysAdmin (is_superuser
+    roles) pass, even if a custom role has been granted bookings:edit.
+    Used for actually cancelling a booking - the EO wants that authority
+    kept to superusers only, with every other bookings:edit role limited
+    to *requesting* a cancellation (see request_booking_cancellation)."""
+    async def check(credentials: HTTPAuthorizationCredentials = Depends(security)):
+        if not credentials:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        try:
+            payload = decode_token(credentials.credentials)
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(status_code=401, detail="Token expired")
+        except Exception:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        role = await db.roles.find_one({"name": payload.get("role")}, {"_id": 0})
+        if not role or not role.get("is_superuser"):
+            raise HTTPException(status_code=403, detail="Only EO/SysAdmin can do this")
+        return payload
+    return check
+
 async def get_optional_devotee(credentials: HTTPAuthorizationCredentials = Depends(security)):
     if not credentials:
         return None
@@ -1619,7 +1640,7 @@ async def list_cancellation_requests(status: Optional[str] = None, user=Depends(
     return await db.cancellation_requests.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
 
 @api_router.put("/admin/cancellation-requests/{request_id}/approve")
-async def approve_cancellation_request(request_id: str, user=Depends(require_permission("bookings:edit"))):
+async def approve_cancellation_request(request_id: str, user=Depends(require_superuser())):
     req = await db.cancellation_requests.find_one({"id": request_id}, {"_id": 0})
     if not req:
         raise HTTPException(status_code=404, detail="Request not found")
@@ -1655,6 +1676,20 @@ async def update_booking_status(booking_id: str, data: BookingStatusUpdate, user
     valid_statuses = ["Pending", "Confirmed", "Completed", "Cancelled", "NoShow"]
     if data.status not in valid_statuses:
         raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
+    if data.status == "Cancelled":
+        role = await db.roles.find_one({"name": user.get("role")}, {"_id": 0})
+        if not role or not role.get("is_superuser"):
+            raise HTTPException(status_code=403, detail="Only EO/SysAdmin can cancel a booking directly - use Request Cancellation instead")
+        # A pending request for this booking would otherwise be stuck
+        # "Pending" forever once it's cancelled by this direct path instead
+        # of being approved through the request itself.
+        account = await db.user_accounts.find_one({"id": user["sub"]}, {"_id": 0})
+        await db.cancellation_requests.update_many({"booking_id": booking_id, "status": "Pending"}, {"$set": {
+            "status": "Approved", "reviewed_by": user["sub"],
+            "reviewed_by_name": account["name"] if account else user.get("name"),
+            "reviewed_at": datetime.now(timezone.utc).isoformat(),
+            "review_note": "Cancelled directly, outside this request",
+        }})
     await db.bookings.update_one({"id": booking_id}, {"$set": {"status": data.status}})
     return await db.bookings.find_one({"id": booking_id}, {"_id": 0})
 

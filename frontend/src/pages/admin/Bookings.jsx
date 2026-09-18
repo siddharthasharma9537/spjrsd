@@ -9,6 +9,11 @@ import { hasPermission } from '@/lib/permissions';
 export default function AdminBookings() {
   const { user } = useAuth();
   const canEdit = hasPermission(user, 'bookings:edit');
+  // Cancelling is EO/SysAdmin authority only, even for a role otherwise
+  // granted bookings:edit (e.g. to Confirm/Complete a booking) - everyone
+  // else can only *request* a cancellation, reviewed on the Cancellation
+  // Requests screen. See require_superuser() in the backend.
+  const canCancelDirectly = !!user?.is_superuser;
   const [bookings, setBookings] = useState([]);
   const [sevas, setSevas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -126,38 +131,36 @@ export default function AdminBookings() {
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[b.status] || ''}`}>{b.status}</span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {canEdit && b.status === 'Confirmed' && (
-                        <div className="flex gap-1 justify-end">
+                      <div className="flex gap-1 justify-end items-center flex-wrap">
+                        {canEdit && b.status === 'Confirmed' && (
                           <button onClick={() => updateStatus(b.id, 'Completed')} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full hover:bg-blue-200" data-testid={`complete-booking-${b.id}`}>Complete</button>
-                          <button onClick={() => updateStatus(b.id, 'Cancelled')} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full hover:bg-red-200" data-testid={`cancel-booking-${b.id}`}>Cancel</button>
-                        </div>
-                      )}
-                      {canEdit && b.status === 'Pending' && (
-                        <div className="flex gap-1 justify-end">
+                        )}
+                        {canEdit && b.status === 'Pending' && (
                           <button onClick={() => updateStatus(b.id, 'Confirmed')} className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full hover:bg-green-200">Confirm</button>
-                          <button onClick={() => updateStatus(b.id, 'Cancelled')} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full hover:bg-red-200">Cancel</button>
-                        </div>
-                      )}
-                      {!canEdit && ['Confirmed', 'Pending'].includes(b.status) && (
-                        b.cancellation_requested ? (
-                          <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full" data-testid={`cancellation-pending-${b.id}`}>Cancellation Requested</span>
-                        ) : requestingId === b.id ? (
-                          <div className="flex gap-1 justify-end items-center">
-                            <input
-                              autoFocus
-                              className="h-8 px-2 text-xs border border-[#E6DCCA] rounded-lg outline-none focus:border-[#C43E00]"
-                              placeholder="Reason..."
-                              value={reasonDraft}
-                              onChange={e => setReasonDraft(e.target.value)}
-                              data-testid={`cancellation-reason-${b.id}`}
-                            />
-                            <button onClick={() => submitCancellationRequest(b.id)} className="px-2 py-1 bg-[#621B00] text-white text-xs rounded-full hover:bg-[#4a1400]" data-testid={`submit-cancellation-${b.id}`}>Submit</button>
-                            <button onClick={() => { setRequestingId(null); setReasonDraft(''); }} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full hover:bg-gray-200">Cancel</button>
-                          </div>
-                        ) : (
-                          <button onClick={() => { setRequestingId(b.id); setReasonDraft(''); }} className="px-2 py-1 bg-[#E6DCCA] text-[#621B00] text-xs rounded-full hover:bg-[#D4AF37]/40" data-testid={`request-cancellation-${b.id}`}>Request Cancellation</button>
-                        )
-                      )}
+                        )}
+                        {['Confirmed', 'Pending'].includes(b.status) && (
+                          canCancelDirectly ? (
+                            <button onClick={() => updateStatus(b.id, 'Cancelled')} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full hover:bg-red-200" data-testid={`cancel-booking-${b.id}`}>Cancel</button>
+                          ) : b.cancellation_requested ? (
+                            <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full" data-testid={`cancellation-pending-${b.id}`}>Cancellation Requested</span>
+                          ) : requestingId === b.id ? (
+                            <>
+                              <input
+                                autoFocus
+                                className="h-8 px-2 text-xs border border-[#E6DCCA] rounded-lg outline-none focus:border-[#C43E00]"
+                                placeholder="Reason..."
+                                value={reasonDraft}
+                                onChange={e => setReasonDraft(e.target.value)}
+                                data-testid={`cancellation-reason-${b.id}`}
+                              />
+                              <button onClick={() => submitCancellationRequest(b.id)} className="px-2 py-1 bg-[#621B00] text-white text-xs rounded-full hover:bg-[#4a1400]" data-testid={`submit-cancellation-${b.id}`}>Submit</button>
+                              <button onClick={() => { setRequestingId(null); setReasonDraft(''); }} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full hover:bg-gray-200">Cancel</button>
+                            </>
+                          ) : (
+                            <button onClick={() => { setRequestingId(b.id); setReasonDraft(''); }} className="px-2 py-1 bg-[#E6DCCA] text-[#621B00] text-xs rounded-full hover:bg-[#D4AF37]/40" data-testid={`request-cancellation-${b.id}`}>Request Cancellation</button>
+                          )
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
