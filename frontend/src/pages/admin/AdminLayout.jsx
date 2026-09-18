@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasAnyPermission, hasPermission } from '@/lib/permissions';
-import { ShieldCheck, LayoutDashboard, Flame as FlameIcon, Calendar, Clock, BookOpen, Users, LogOut, HandCoins, BedDouble, Newspaper, Camera, Sun, Radio, Mail, MessageSquare, Gift, ScrollText, Settings, Receipt, UserCog, KeyRound, PanelLeftClose, PanelLeftOpen, Store, BarChart3, Ban } from 'lucide-react';
+import { ShieldCheck, LayoutDashboard, Flame as FlameIcon, Calendar, Clock, BookOpen, Users, LogOut, HandCoins, BedDouble, Newspaper, Camera, Sun, Radio, Mail, MessageSquare, Gift, ScrollText, Settings, Receipt, UserCog, KeyRound, PanelLeftClose, PanelLeftOpen, Store, BarChart3, Ban, ScanLine } from 'lucide-react';
 
 // Remembered across page loads/navigations, not just component state - so
 // the sidebar doesn't snap back open every time an admin clicks between
@@ -24,6 +24,11 @@ const navItems = [
   // bookings:edit since that's the same permission that lets an account
   // cancel a booking outright.
   { path: '/admin/cancellation-requests', icon: Ban, label: 'Cancellation Requests', permission: 'bookings:edit' },
+  // The seva-location and Prasadam Counter scanning station - same
+  // permission as Complete/Confirm since scanning just drives the same
+  // status transitions (plus prasadam redemption) via a barcode/QR scanner
+  // instead of a button click. See scan_complete_booking/scan_redeem_prasadam.
+  { path: '/admin/scan-ticket', icon: ScanLine, label: 'Scan Ticket', permission: 'bookings:edit' },
   // Counter Sale is a bookings:create workflow, not just a bookings viewer -
   // showing it to view-only roles (e.g. an Accountant with bookings:view)
   // would land them on a screen they can't actually use.

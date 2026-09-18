@@ -128,7 +128,7 @@ export default function AdminBookings() {
                     <td className="px-4 py-3 text-[#2D1B0E]">{b.gotram}</td>
                     <td className="px-4 py-3 text-[#2D1B0E]">Rs.{b.amount}</td>
                     <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[b.status] || ''}`}>{b.status}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${b.prasadam_redeemed ? 'bg-green-100 text-green-800' : statusColors[b.status] || ''}`}>{b.prasadam_redeemed ? 'Free Prasadam Redeemed' : b.status}</span>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex gap-1 justify-end items-center flex-wrap">

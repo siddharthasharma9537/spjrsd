@@ -505,6 +505,9 @@ class CancellationRequestCreate(BaseModel):
 class CancellationReview(BaseModel):
     note: Optional[str] = ""
 
+class TicketScan(BaseModel):
+    booking_number: str
+
 class CounterBookingCreate(BaseModel):
     seva_id: str
     slot_id: str
@@ -1414,7 +1417,14 @@ async def create_booking(data: BookingCreate, user=Depends(get_current_devotee))
         "is_paroksha": data.is_paroksha,
         "nakshatra": data.nakshatra or "", "rashi": data.rashi or "",
         "amount": seva.get("base_price", 0),
-        "note_to_devotee": seva.get("special_instructions", "")
+        "note_to_devotee": seva.get("special_instructions", ""),
+        # Denormalized from the seva at booking time, same as counter_id/
+        # counter_name below - so a ticket's prasadam entitlement stays fixed
+        # to what applied when it was booked, even if the seva's config is
+        # changed later. See scan_redeem_prasadam.
+        "prasadam_eligible": seva.get("prasadam_eligible", False),
+        "prasadam_items": seva.get("prasadam_items", []),
+        "prasadam_redeemed": False, "prasadam_redeemed_at": None,
     }
     # Reserve atomically: insert first, then check this booking's rank among all
     # non-cancelled bookings for the same slot+date, ordered by _id (MongoDB's
@@ -1487,7 +1497,10 @@ async def create_counter_booking(data: CounterBookingCreate, user=Depends(requir
         "is_paroksha": False,
         "nakshatra": data.nakshatra or "", "rashi": data.rashi or "",
         "amount": seva.get("base_price", 0),
-        "note_to_devotee": seva.get("special_instructions", "")
+        "note_to_devotee": seva.get("special_instructions", ""),
+        "prasadam_eligible": seva.get("prasadam_eligible", False),
+        "prasadam_items": seva.get("prasadam_items", []),
+        "prasadam_redeemed": False, "prasadam_redeemed_at": None,
     }
     await db.bookings.insert_one(booking)
     return {k: v for k, v in booking.items() if k != "_id"}
@@ -1707,6 +1720,41 @@ async def update_booking_status(booking_id: str, data: BookingStatusUpdate, user
         }})
     await db.bookings.update_one({"id": booking_id}, {"$set": {"status": data.status}})
     return await db.bookings.find_one({"id": booking_id}, {"_id": 0})
+
+# Each ticket prints a QR code encoding its booking_number (see
+# frontend/src/components/TicketQRCode.jsx) - these two endpoints are what a
+# handheld barcode/QR scanner at the seva location and the Prasadam Counter
+# call into, by having the scanner act as a keyboard (types the scanned code
+# then Enter) into a plain text input. No camera/scanning logic lives here or
+# in the frontend - only lookup-by-code and a status transition.
+@api_router.post("/admin/bookings/scan-complete")
+async def scan_complete_booking(data: TicketScan, user=Depends(require_permission("bookings:edit"))):
+    booking = await db.bookings.find_one({"booking_number": data.booking_number}, {"_id": 0})
+    if not booking:
+        raise HTTPException(status_code=404, detail="No ticket found with that number")
+    if booking["status"] == "Completed":
+        raise HTTPException(status_code=400, detail="This ticket was already marked Completed")
+    if booking["status"] != "Confirmed":
+        raise HTTPException(status_code=400, detail=f"This ticket is {booking['status']}, not Confirmed - it can't be completed")
+    await db.bookings.update_one({"id": booking["id"]}, {"$set": {"status": "Completed"}})
+    return await db.bookings.find_one({"id": booking["id"]}, {"_id": 0})
+
+@api_router.post("/admin/bookings/scan-redeem-prasadam")
+async def scan_redeem_prasadam(data: TicketScan, user=Depends(require_permission("bookings:edit"))):
+    booking = await db.bookings.find_one({"booking_number": data.booking_number}, {"_id": 0})
+    if not booking:
+        raise HTTPException(status_code=404, detail="No ticket found with that number")
+    if not booking.get("prasadam_eligible"):
+        raise HTTPException(status_code=400, detail="This ticket is not eligible for free prasadam")
+    if booking["status"] != "Completed":
+        raise HTTPException(status_code=400, detail="This ticket hasn't been scanned as Completed at the seva location yet")
+    if booking.get("prasadam_redeemed"):
+        raise HTTPException(status_code=400, detail=f"Prasadam was already redeemed for this ticket at {booking.get('prasadam_redeemed_at')}")
+    await db.bookings.update_one({"id": booking["id"]}, {"$set": {
+        "prasadam_redeemed": True,
+        "prasadam_redeemed_at": datetime.now(timezone.utc).isoformat(),
+    }})
+    return await db.bookings.find_one({"id": booking["id"]}, {"_id": 0})
 
 # ==================== DONATION ROUTES (e-Hundi + AnnaPrasadam) ====================
 @api_router.post("/donations")

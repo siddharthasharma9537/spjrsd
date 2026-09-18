@@ -4,7 +4,8 @@ import api from '@/lib/api';
 import DateInput from '@/components/ui/date-input';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasPermission } from '@/lib/permissions';
-import { Flame, Printer, Plus, IndianRupee, WifiOff, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Flame, Printer, Plus, IndianRupee, WifiOff, RefreshCw, AlertTriangle, Gift } from 'lucide-react';
+import TicketQRCode from '@/components/TicketQRCode';
 
 const inputCls = "h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-1 focus:ring-[#C43E00]/20 outline-none text-sm text-[#2D1B0E] w-full";
 const today = new Date().toISOString().split('T')[0];
@@ -279,11 +280,23 @@ export default function AdminCounterSale() {
             </div>
 
             <div className="p-6 space-y-4">
+              {!ticket.provisional && (
+                <div className="flex justify-center">
+                  <TicketQRCode bookingNumber={ticket.booking_number} />
+                </div>
+              )}
+
               <div className="bg-[#FDFBF7] rounded-lg p-4 border border-[#E6DCCA]">
                 <p className="text-xs text-[#8D6E63] uppercase tracking-wide mb-1">Seva / సేవ</p>
                 <p className="font-english-heading text-base text-[#2D1B0E]">{ticket.seva_name_english}</p>
                 <p className="font-telugu-heading text-lg text-[#621B00]">{ticket.seva_name_telugu}</p>
               </div>
+
+              {ticket.prasadam_eligible && (
+                <div className="flex items-center gap-2 rounded-lg p-3 border bg-green-50 border-green-200 text-green-800 text-sm">
+                  <Gift className="h-4 w-4 shrink-0" /> Includes free prasadam — redeem at the Prasadam Counter
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>

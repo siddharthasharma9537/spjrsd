@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '@/lib/api';
-import { Flame, Printer, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Flame, Printer, ArrowLeft, CheckCircle, Gift } from 'lucide-react';
+import TicketQRCode from '@/components/TicketQRCode';
 
 export default function BookingTicket() {
   const { bookingId } = useParams();
@@ -69,12 +70,25 @@ export default function BookingTicket() {
           </div>
 
           <div className="p-6 space-y-4">
+            <div className="flex justify-center" data-testid="ticket-qr">
+              <TicketQRCode bookingNumber={booking.booking_number} />
+            </div>
+
             {/* Seva info */}
             <div className="bg-[#FDFBF7] rounded-lg p-4 border border-[#E6DCCA]">
               <p className="text-xs text-[#8D6E63] uppercase tracking-wide mb-1">Seva / సేవ</p>
               <p className="font-english-heading text-base text-[#2D1B0E]" data-testid="ticket-seva-english">{booking.seva_name_english}</p>
               <p className="font-telugu-heading text-lg text-[#621B00]" data-testid="ticket-seva-telugu">{booking.seva_name_telugu}</p>
             </div>
+
+            {booking.prasadam_eligible && (
+              <div className={`flex items-center gap-2 rounded-lg p-3 border text-sm ${booking.prasadam_redeemed ? 'bg-gray-50 border-gray-200 text-gray-600' : 'bg-green-50 border-green-200 text-green-800'}`} data-testid="ticket-prasadam-note">
+                <Gift className="h-4 w-4 shrink-0" />
+                {booking.prasadam_redeemed
+                  ? 'Free prasadam already redeemed for this ticket'
+                  : 'Includes free prasadam — redeem at the Prasadam Counter'}
+              </div>
+            )}
 
             {/* Details grid */}
             <div className="grid grid-cols-2 gap-4">
@@ -139,11 +153,12 @@ export default function BookingTicket() {
             {/* Status */}
             <div className="text-center">
               <span className={`inline-block px-4 py-1.5 rounded-full text-sm font-medium ${
+                booking.prasadam_redeemed ? 'bg-green-100 text-green-800' :
                 booking.status === 'Confirmed' ? 'bg-green-100 text-green-800' :
                 booking.status === 'Completed' ? 'bg-blue-100 text-blue-800' :
                 booking.status === 'Cancelled' ? 'bg-red-100 text-red-800' :
                 'bg-yellow-100 text-yellow-800'
-              }`} data-testid="ticket-status">Status: {booking.status}</span>
+              }`} data-testid="ticket-status">Status: {booking.prasadam_redeemed ? 'Free Prasadam Redeemed' : booking.status}</span>
             </div>
           </div>
 
