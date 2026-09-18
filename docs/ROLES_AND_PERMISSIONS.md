@@ -72,7 +72,7 @@ grants instead of one:
 | `newsletter` | Newsletter | view, create |
 | `contact_messages` | Contact Messages | view, edit (mark handled) |
 | `aashirvachanam` | Aashirvachanam | view, edit |
-| `staff` | User Accounts screen | view, create, edit (role/counter/active status), delete |
+| `staff` | User Accounts screen | view, create, edit (name/username/role/counter/active status), delete (blocked while the account is still assigned to a counter - unassign it or disable the account instead) |
 | `counters` | Counters screen | view, create, edit (rename), delete |
 | `roles` | Roles screen (new) | view, create, edit, delete |
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
-import { Plus, KeyRound, X } from 'lucide-react';
+import { Plus, KeyRound, X, Pencil, Trash2 } from 'lucide-react';
 
 const inputCls = "h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-1 focus:ring-[#C43E00]/20 outline-none text-sm text-[#2D1B0E] w-full";
 const emptyForm = { name: '', username: '', password: '', role: '', counter_id: '' };
@@ -17,6 +17,9 @@ export default function AdminStaff() {
   const [listError, setListError] = useState('');
   const [resetTarget, setResetTarget] = useState(null);
   const [resetPassword, setResetPassword] = useState('');
+  const [editTarget, setEditTarget] = useState(null);
+  const [editForm, setEditForm] = useState({ name: '', username: '' });
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const load = () => {
     Promise.all([api.get('/admin/staff'), api.get('/admin/roles'), api.get('/admin/counters')]).then(([s, r, c]) => {
@@ -84,6 +87,37 @@ export default function AdminStaff() {
       setResetPassword('');
     } catch (err) {
       setListError(err.response?.data?.detail || 'Could not reset that password.');
+    }
+  };
+
+  const openEdit = (member) => {
+    setListError('');
+    setEditTarget(member);
+    setEditForm({ name: member.name, username: member.username });
+  };
+
+  const submitEdit = async (e) => {
+    e.preventDefault();
+    if (!editTarget) return;
+    setListError('');
+    try {
+      await api.put(`/admin/staff/${editTarget.id}`, editForm);
+      setEditTarget(null);
+      load();
+    } catch (err) {
+      setListError(err.response?.data?.detail || 'Could not update that account.');
+    }
+  };
+
+  const confirmDelete = async (member) => {
+    setListError('');
+    try {
+      await api.delete(`/admin/staff/${member.id}`);
+      setDeleteTarget(null);
+      load();
+    } catch (err) {
+      setListError(err.response?.data?.detail || 'Could not delete that account.');
+      setDeleteTarget(null);
     }
   };
 
@@ -170,14 +204,28 @@ export default function AdminStaff() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <div className="flex gap-1 justify-end">
-                        <button onClick={() => setResetTarget(s)} className="px-2 py-1 bg-[#FDFBF7] border border-[#E6DCCA] text-[#621B00] text-xs rounded-full hover:bg-[#F0E6D6] inline-flex items-center gap-1" data-testid={`staff-reset-${s.id}`}>
-                          <KeyRound className="h-3 w-3" /> Reset Password
-                        </button>
-                        <button onClick={() => toggleActive(s)} className={`px-2 py-1 text-xs rounded-full ${s.active_flag ? 'bg-red-100 text-red-800 hover:bg-red-200' : 'bg-green-100 text-green-800 hover:bg-green-200'}`} data-testid={`staff-toggle-${s.id}`}>
-                          {s.active_flag ? 'Disable' : 'Enable'}
-                        </button>
-                      </div>
+                      {deleteTarget === s.id ? (
+                        <div className="flex gap-1 justify-end items-center">
+                          <span className="text-xs text-[#8D6E63]">Delete {s.name}?</span>
+                          <button onClick={() => confirmDelete(s)} className="px-2 py-1 bg-red-600 text-white text-xs rounded-full hover:bg-red-700" data-testid={`staff-delete-confirm-${s.id}`}>Confirm</button>
+                          <button onClick={() => setDeleteTarget(null)} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full hover:bg-gray-200">Cancel</button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-1 justify-end">
+                          <button onClick={() => openEdit(s)} className="px-2 py-1 bg-[#FDFBF7] border border-[#E6DCCA] text-[#621B00] text-xs rounded-full hover:bg-[#F0E6D6] inline-flex items-center gap-1" data-testid={`staff-edit-${s.id}`}>
+                            <Pencil className="h-3 w-3" /> Edit
+                          </button>
+                          <button onClick={() => setResetTarget(s)} className="px-2 py-1 bg-[#FDFBF7] border border-[#E6DCCA] text-[#621B00] text-xs rounded-full hover:bg-[#F0E6D6] inline-flex items-center gap-1" data-testid={`staff-reset-${s.id}`}>
+                            <KeyRound className="h-3 w-3" /> Reset Password
+                          </button>
+                          <button onClick={() => toggleActive(s)} className={`px-2 py-1 text-xs rounded-full ${s.active_flag ? 'bg-red-100 text-red-800 hover:bg-red-200' : 'bg-green-100 text-green-800 hover:bg-green-200'}`} data-testid={`staff-toggle-${s.id}`}>
+                            {s.active_flag ? 'Disable' : 'Enable'}
+                          </button>
+                          <button onClick={() => setDeleteTarget(s.id)} className="px-2 py-1 bg-[#FDFBF7] border border-[#E6DCCA] text-red-700 text-xs rounded-full hover:bg-red-50 inline-flex items-center gap-1" data-testid={`staff-delete-${s.id}`}>
+                            <Trash2 className="h-3 w-3" /> Delete
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -197,6 +245,28 @@ export default function AdminStaff() {
             <form onSubmit={submitReset} className="space-y-4">
               <input className={inputCls} type="text" minLength={8} placeholder="New password" value={resetPassword} onChange={e => setResetPassword(e.target.value)} required data-testid="staff-reset-password-input" />
               <button type="submit" className="w-full h-10 bg-[#C43E00] text-white text-sm rounded-full hover:bg-[#C43E00]/90" data-testid="staff-reset-submit">Set New Password</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {editTarget && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-english-heading text-[#621B00]">Edit — {editTarget.name}</h3>
+              <button onClick={() => setEditTarget(null)}><X className="h-4 w-4 text-[#8D6E63]" /></button>
+            </div>
+            <form onSubmit={submitEdit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[#5D4037] mb-1">Name</label>
+                <input className={inputCls} value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} required data-testid="staff-edit-name-input" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#5D4037] mb-1">Username</label>
+                <input className={inputCls} value={editForm.username} onChange={e => setEditForm({ ...editForm, username: e.target.value })} required data-testid="staff-edit-username-input" />
+              </div>
+              <button type="submit" className="w-full h-10 bg-[#C43E00] text-white text-sm rounded-full hover:bg-[#C43E00]/90" data-testid="staff-edit-submit">Save Changes</button>
             </form>
           </div>
         </div>

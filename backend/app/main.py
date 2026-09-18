@@ -397,6 +397,7 @@ class StaffCreate(BaseModel):
 
 class StaffUpdate(BaseModel):
     name: Optional[str] = None
+    username: Optional[str] = None
     role: Optional[str] = None
     active_flag: Optional[bool] = None
     # "" explicitly unassigns the counter; omitted (None) leaves it
@@ -1040,6 +1041,10 @@ async def update_staff(staff_id: str, data: StaffUpdate, user=Depends(require_pe
         raise HTTPException(status_code=400, detail="You can't deactivate your own account")
     if data.counter_id and not await db.counters.find_one({"id": data.counter_id}):
         raise HTTPException(status_code=400, detail="Counter does not exist")
+    if data.username is not None:
+        existing = await db.user_accounts.find_one({"username": data.username})
+        if existing and existing["id"] != staff_id:
+            raise HTTPException(status_code=400, detail="Username already taken")
     # counter_id needs its own handling: "" means "unassign" and must reach
     # the $set, which the generic `v is not None` filter below would drop
     # since "" is falsy-but-not-None just fine, but an explicit None (field
@@ -1058,9 +1063,19 @@ async def update_staff(staff_id: str, data: StaffUpdate, user=Depends(require_pe
 async def delete_staff(staff_id: str, user=Depends(require_permission("staff:delete"))):
     if staff_id == user["sub"]:
         raise HTTPException(status_code=400, detail="You can't delete your own account")
-    result = await db.user_accounts.delete_one({"id": staff_id})
-    if result.deleted_count == 0:
+    account = await db.user_accounts.find_one({"id": staff_id}, {"_id": 0})
+    if not account:
         raise HTTPException(status_code=404, detail="Staff account not found")
+    # Deleting a login still wired to a live counter would silently break
+    # that counter's till - same protective pattern as delete_counter and
+    # delete_role. Unassigning the counter or disabling the account (both
+    # still allowed) are the ways out, named directly in the error so the
+    # EO isn't left guessing.
+    if account.get("counter_id"):
+        counter = await db.counters.find_one({"id": account["counter_id"]}, {"_id": 0})
+        counter_name = counter["name"] if counter else "a counter"
+        raise HTTPException(status_code=400, detail=f"This account is assigned to '{counter_name}'. Unassign it from the counter, or disable the account instead of deleting it.")
+    await db.user_accounts.delete_one({"id": staff_id})
     return {"message": "Staff account deleted"}
 
 @api_router.put("/admin/staff/{staff_id}/password")
