@@ -1546,6 +1546,10 @@ async def admin_list_bookings(date: Optional[str] = None, seva_id: Optional[str]
     if date: query["for_date"] = date
     if seva_id: query["seva_id"] = seva_id
     if status: query["status"] = status
+    account = await db.user_accounts.find_one({"id": user["sub"]}, {"_id": 0})
+    own_counter_id = account.get("counter_id") if account else None
+    if own_counter_id:
+        query["counter_id"] = own_counter_id
     return await db.bookings.find(query, {"_id": 0}).sort("booking_date_time", -1).to_list(500)
 
 @api_router.put("/admin/bookings/{booking_id}/status")
@@ -2257,9 +2261,28 @@ async def admin_devotee_activity(devotee_id: str, user=Depends(require_permissio
 
 @api_router.get("/admin/stats")
 async def admin_stats(user=Depends(get_current_admin)):
+    account = await db.user_accounts.find_one({"id": user["sub"]}, {"_id": 0})
+    own_counter_id = account.get("counter_id") if account else None
+    today = datetime.now(IST).strftime("%Y-%m-%d")
+
+    if own_counter_id:
+        booking_filter = {"counter_id": own_counter_id}
+        total_bookings = await db.bookings.count_documents(booking_filter)
+        today_bookings = await db.bookings.count_documents({**booking_filter, "for_date": today})
+        confirmed_bookings = await db.bookings.count_documents({**booking_filter, "status": "Confirmed"})
+        pipeline = [{"$match": {**booking_filter, "payment_status": "Paid"}}, {"$group": {"_id": None, "total": {"$sum": "$amount"}}}]
+        rev = await db.bookings.aggregate(pipeline).to_list(1)
+        total_revenue = rev[0]["total"] if rev else 0
+        return {
+            "total_devotees": 0, "total_bookings": total_bookings,
+            "today_bookings": today_bookings, "total_sevas": 0,
+            "confirmed_bookings": confirmed_bookings, "total_revenue": total_revenue,
+            "total_donations": 0, "total_donation_amount": 0,
+            "total_acc_bookings": 0, "total_visitors": 0, "todays_visitors": 0,
+        }
+
     total_devotees = await db.devotees.count_documents({})
     total_bookings = await db.bookings.count_documents({})
-    today = datetime.now(IST).strftime("%Y-%m-%d")
     today_bookings = await db.bookings.count_documents({"for_date": today})
     total_sevas = await db.sevas.count_documents({"active_flag": True})
     confirmed_bookings = await db.bookings.count_documents({"status": "Confirmed"})
