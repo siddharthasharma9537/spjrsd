@@ -1,41 +1,91 @@
 import { useState, useRef, useEffect } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
-import { CheckCircle, XCircle, Gift, Flame } from 'lucide-react';
+import { Html5Qrcode } from 'html5-qrcode';
+import { CheckCircle, XCircle, Gift, Flame, Camera, CameraOff } from 'lucide-react';
 
-// No camera or barcode-decoding logic here on purpose - a handheld barcode/
-// QR scanner acts as a keyboard (types the scanned booking_number, then
-// Enter), so a plain auto-focused text input is all this screen needs. Works
-// with the cheap USB/Bluetooth scanners a temple counter would actually use,
-// and needs no camera permissions.
 const MODES = {
   complete: { label: 'Seva Completion', endpoint: '/admin/bookings/scan-complete' },
   prasadam: { label: 'Prasadam Redemption', endpoint: '/admin/bookings/scan-redeem-prasadam' },
 };
+
+const QR_READER_ID = 'scan-ticket-qr-reader';
 
 export default function AdminScanTicket() {
   const [mode, setMode] = useState('complete');
   const [code, setCode] = useState('');
   const [result, setResult] = useState(null); // { ok: bool, booking?, message? }
   const [submitting, setSubmitting] = useState(false);
+  const [cameraOn, setCameraOn] = useState(false);
+  const [cameraError, setCameraError] = useState('');
   const inputRef = useRef(null);
+  // A stale closure would otherwise freeze the html5-qrcode success callback
+  // on whichever mode was active when the camera was started.
+  const modeRef = useRef(mode);
+  const scannerRef = useRef(null);
+  const processingRef = useRef(false);
 
+  useEffect(() => { modeRef.current = mode; }, [mode]);
   useEffect(() => { inputRef.current?.focus(); }, [mode]);
 
-  const submitScan = async (e) => {
-    e.preventDefault();
-    if (!code.trim() || submitting) return;
+  const processScan = async (scannedCode) => {
+    if (processingRef.current || !scannedCode.trim()) return;
+    processingRef.current = true;
     setSubmitting(true);
     try {
-      const r = await api.post(MODES[mode].endpoint, { booking_number: code.trim() });
+      const r = await api.post(MODES[modeRef.current].endpoint, { booking_number: scannedCode.trim() });
       setResult({ ok: true, booking: r.data });
     } catch (err) {
       setResult({ ok: false, message: err.response?.data?.detail || 'Could not process this scan.' });
     }
     setCode('');
     setSubmitting(false);
+    processingRef.current = false;
     inputRef.current?.focus();
   };
+
+  const submitScan = (e) => {
+    e.preventDefault();
+    processScan(code);
+  };
+
+  // Camera-based scanning - point a phone/tablet at the printed QR instead of
+  // needing a handheld barcode-scanner device. The text input above stays as
+  // a fallback (camera permission denied, damaged code, etc.).
+  useEffect(() => {
+    if (!cameraOn) return;
+    setCameraError('');
+    const scanner = new Html5Qrcode(QR_READER_ID);
+    scannerRef.current = scanner;
+    let cancelled = false;
+    // stop() throws synchronously (not a rejected promise) if the camera
+    // never actually started - e.g. permission denied - so cleanup must
+    // check this before calling it, not just .catch() the call.
+    let started = false;
+    scanner.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: 250 },
+      (decodedText) => {
+        // Pause immediately so the same frame's repeated decode calls don't
+        // fire this ticket through processScan more than once.
+        scanner.pause(true);
+        processScan(decodedText).finally(() => { if (!cancelled) setCameraOn(false); });
+      },
+      () => {} // per-frame "no QR found" - not an error, ignore
+    ).then(() => { started = true; }).catch(() => {
+      if (!cancelled) {
+        setCameraError('Could not access the camera. Check browser camera permissions, or use the field below.');
+        setCameraOn(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+      if (started) {
+        try { scanner.stop().then(() => scanner.clear()).catch(() => {}); } catch { /* already stopped */ }
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cameraOn]);
 
   const inputCls = "h-14 px-4 bg-white border-2 border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-1 focus:ring-[#C43E00]/20 outline-none text-lg font-mono w-full";
 
@@ -55,11 +105,21 @@ export default function AdminScanTicket() {
           ))}
         </div>
 
+        <button
+          onClick={() => setCameraOn(on => !on)}
+          className={`w-full h-12 rounded-full text-sm font-medium mb-3 inline-flex items-center justify-center gap-2 ${cameraOn ? 'bg-red-100 text-red-800 hover:bg-red-200' : 'bg-[#621B00] text-white hover:bg-[#621B00]/90'}`}
+          data-testid="scan-camera-toggle"
+        >
+          {cameraOn ? <><CameraOff className="h-4 w-4" /> Stop Camera</> : <><Camera className="h-4 w-4" /> Scan with Camera</>}
+        </button>
+
+        {cameraOn && <div id={QR_READER_ID} className="mb-4 rounded-lg overflow-hidden border border-[#E6DCCA]" data-testid="scan-camera-view" />}
+        {cameraError && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4" data-testid="scan-camera-error">{cameraError}</p>}
+
         <form onSubmit={submitScan} className="mb-6">
-          <label className="block text-sm font-medium text-[#5D4037] mb-1">Scan or enter ticket number</label>
+          <label className="block text-sm font-medium text-[#5D4037] mb-1">Or enter ticket number manually</label>
           <input
             ref={inputRef}
-            autoFocus
             className={inputCls}
             value={code}
             onChange={e => setCode(e.target.value)}
