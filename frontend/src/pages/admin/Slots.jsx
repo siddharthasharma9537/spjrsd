@@ -3,6 +3,7 @@ import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
 import DateInput from '@/components/ui/date-input';
 import { Plus, Pencil, Trash2, X } from 'lucide-react';
+import { sortByPriority } from '@/lib/sevaSamagri';
 
 export default function AdminSlots() {
   const [slots, setSlots] = useState([]);
@@ -21,7 +22,7 @@ export default function AdminSlots() {
       api.get('/day-profiles')
     ]).then(([s, sv, p]) => {
       setSlots(s.data);
-      setSevas(sv.data);
+      setSevas(sortByPriority(sv.data));
       setProfiles(p.data);
       setLoading(false);
     });

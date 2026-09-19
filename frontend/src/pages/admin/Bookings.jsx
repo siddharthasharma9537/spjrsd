@@ -5,6 +5,7 @@ import DateInput from '@/components/ui/date-input';
 import { Search, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasPermission } from '@/lib/permissions';
+import { sortByPriority } from '@/lib/sevaSamagri';
 
 export default function AdminBookings() {
   const { user } = useAuth();
@@ -34,7 +35,7 @@ export default function AdminBookings() {
       api.get('/sevas?active_only=false')
     ]).then(([b, s]) => {
       setBookings(b.data);
-      setSevas(s.data);
+      setSevas(sortByPriority(s.data));
       setLoading(false);
     });
   };

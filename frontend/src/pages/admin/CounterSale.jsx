@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { hasPermission } from '@/lib/permissions';
 import { Flame, Printer, Plus, IndianRupee, WifiOff, RefreshCw, AlertTriangle, Gift } from 'lucide-react';
 import TicketQRCode from '@/components/TicketQRCode';
+import { sortByPriority } from '@/lib/sevaSamagri';
 
 const inputCls = "h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-1 focus:ring-[#C43E00]/20 outline-none text-sm text-[#2D1B0E] w-full";
 const today = new Date().toISOString().split('T')[0];
@@ -151,8 +152,9 @@ export default function AdminCounterSale() {
 
   useEffect(() => {
     api.get('/sevas?active_only=true').then(r => {
-      setSevas(r.data);
-      localStorage.setItem(SEVAS_CACHE_KEY, JSON.stringify(r.data));
+      const sorted = sortByPriority(r.data);
+      setSevas(sorted);
+      localStorage.setItem(SEVAS_CACHE_KEY, JSON.stringify(sorted));
     }).catch(() => {
       setIsOffline(true);
       try { setSevas(JSON.parse(localStorage.getItem(SEVAS_CACHE_KEY)) || []); } catch { /* nothing cached yet */ }

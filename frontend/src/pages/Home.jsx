@@ -9,6 +9,7 @@ import api from '@/lib/api';
 import { useT } from "@/contexts/LanguageContext";
 import { Flame, BookOpen, Heart, ChevronRight, Camera, Newspaper, BedDouble, HandCoins, Tv, IndianRupee, Clock, Users, CalendarDays, Radio } from 'lucide-react';
 import { BOOKINGS_PAUSED } from '@/lib/bookingStatus';
+import { sortByPriority } from '@/lib/sevaSamagri';
 
 export default function Home() {
   const { t, te, heading } = useT();
@@ -21,7 +22,7 @@ export default function Home() {
   useEffect(() => {
     api.get('/news').then(r => setNews(r.data.slice(0, 5))).catch(() => {});
     api.get('/gallery?media_type=PHOTO').then(r => setGallery(r.data.slice(0, 6))).catch(() => api.get('/gallery').then(r => setGallery(r.data.filter(g => !g.media_type || g.media_type === 'PHOTO').slice(0, 6))).catch(() => {}));
-    api.get('/sevas').then(r => setSevas(r.data.slice(0, 4))).catch(() => {});
+    api.get('/sevas').then(r => setSevas(sortByPriority(r.data).slice(0, 4))).catch(() => {});
     api.get('/visitor-stats').then(r => setVisitors(r.data)).catch(err => console.error('Failed to fetch visitor stats:', err));
     api.get('/live-blog').then(r => setLiveBlogPosts(r.data.slice(0, 3))).catch(() => {});
   }, []);

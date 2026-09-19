@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
 import { Plus, Pencil, Trash2, X } from 'lucide-react';
+import { sortByPriority } from '@/lib/sevaSamagri';
 
 export default function AdminSevas() {
   const [sevas, setSevas] = useState([]);
@@ -11,7 +12,7 @@ export default function AdminSevas() {
   const blankForm = { name_english: '', name_telugu: '', description: '', description_telugu: '', base_price: 0, duration_minutes: 30, is_online_bookable: true, max_per_slot_default: 20, max_persons_per_ticket: 4, special_instructions: '', location_categories: [], active_flag: true, prasadam_eligible: false, prasadam_items: [] };
   const [form, setForm] = useState(blankForm);
 
-  const load = () => api.get('/sevas?active_only=false').then(r => { setSevas(r.data); setLoading(false); });
+  const load = () => api.get('/sevas?active_only=false').then(r => { setSevas(sortByPriority(r.data)); setLoading(false); });
   useEffect(() => { load(); }, []);
 
   const resetForm = () => {

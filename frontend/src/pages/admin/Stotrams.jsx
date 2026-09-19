@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
 import { Plus, Pencil, Trash2, X } from 'lucide-react';
+import { sortByPriority } from '@/lib/sevaSamagri';
 
 const EMPTY = { title: '', title_telugu: '', text_telugu: '', deity: 'Shiva', seva_id: '', display_order: 0, active_flag: true };
 
@@ -16,7 +17,7 @@ export default function AdminStotrams() {
   const load = () => api.get('/stotrams?active_only=false').then(r => { setItems(r.data); setLoading(false); });
   useEffect(() => {
     load();
-    api.get('/sevas').then(r => setSevas(r.data)).catch(() => setSevas([]));
+    api.get('/sevas').then(r => setSevas(sortByPriority(r.data))).catch(() => setSevas([]));
   }, []);
 
   const resetForm = () => { setForm(EMPTY); setEditing(null); setShowForm(false); };

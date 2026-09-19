@@ -9,6 +9,7 @@ import LoadState from "@/components/LoadState";
 import { useT } from "@/contexts/LanguageContext";
 import { Zap, Flame, IndianRupee, ChevronRight, Clock } from 'lucide-react';
 import { BOOKINGS_PAUSED } from '@/lib/bookingStatus';
+import { sortByPriority } from '@/lib/sevaSamagri';
 
 export default function QuickBooking() {
   const { t, heading } = useT();
@@ -19,7 +20,7 @@ export default function QuickBooking() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get('/sevas').then(r => setSevas(r.data)).catch(() => setLoadError(true)).finally(() => setLoading(false));
+    api.get('/sevas').then(r => setSevas(sortByPriority(r.data))).catch(() => setLoadError(true)).finally(() => setLoading(false));
   }, []);
 
   return (
