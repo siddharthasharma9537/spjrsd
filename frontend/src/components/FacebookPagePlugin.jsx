@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { useT } from '@/contexts/LanguageContext';
 
 const PAGE_URL = 'https://www.facebook.com/CheruvugattuTemple/';
 
@@ -19,6 +20,7 @@ function formatFollowerCount(count) {
    the boxy, unstyleable Facebook Page Plugin iframe with a badge that
    matches the site's own design instead of Facebook's fixed white one. */
 export default function FacebookPagePlugin() {
+  const { t } = useT();
   const [stats, setStats] = useState(null);
 
   useEffect(() => {
@@ -36,7 +38,7 @@ export default function FacebookPagePlugin() {
       )}
       <div className="min-w-0 flex-1">
         <p className="text-xs text-[#2D1B0E] truncate">{stats?.name || 'Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanams'}</p>
-        <p className="text-[10px] text-[#5D4037]">{followerText ? `${followerText} followers` : ' '}</p>
+        <p className="text-[10px] text-[#5D4037]">{followerText ? t(`${followerText} followers`, `${followerText} ఫాలోవర్లు`) : ' '}</p>
       </div>
       <a
         href={PAGE_URL}
@@ -46,7 +48,7 @@ export default function FacebookPagePlugin() {
         data-testid="facebook-follow-button"
       >
         <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><path fill="#fff" d={FACEBOOK_LOGO_PATH} /></svg>
-        Follow
+        {t('Follow', 'ఫాలో')}
       </a>
     </div>
   );
