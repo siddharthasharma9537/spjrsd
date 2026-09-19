@@ -1559,6 +1559,38 @@ async def counters_today_summary(user=Depends(require_permission("bookings:recon
         "grand_ticket_count": len(todays_bookings),
     }
 
+# Drill-down from the Counter Reports grid: one counter, one day, past or
+# present. Same "own counter or bust" scoping as today-summary above, just
+# checked explicitly here since counter_id is now caller-supplied.
+@api_router.get("/admin/counters/{counter_id}/bookings")
+async def counter_bookings_for_date(counter_id: str, date: Optional[str] = None, user=Depends(require_permission("bookings:reconcile"))):
+    account = await db.user_accounts.find_one({"id": user["sub"]}, {"_id": 0})
+    own_counter_id = account.get("counter_id") if account else None
+    if own_counter_id and own_counter_id != counter_id:
+        raise HTTPException(status_code=403, detail="Not authorized for this counter")
+
+    counter_doc = await db.counters.find_one({"id": counter_id}, {"_id": 0})
+    if not counter_doc:
+        raise HTTPException(status_code=404, detail="Counter not found")
+
+    target_date = date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", target_date):
+        raise HTTPException(status_code=400, detail="date must be in YYYY-MM-DD format")
+
+    bookings = await db.bookings.find({
+        "channel": "counter",
+        "counter_id": counter_id,
+        "booking_date_time": {"$regex": f"^{target_date}"},
+    }, {"_id": 0}).sort("booking_date_time", -1).to_list(2000)
+
+    return {
+        "counter": {"id": counter_id, "name": counter_doc["name"]},
+        "date": target_date,
+        "bookings": bookings,
+        "total_amount": sum(b.get("amount", 0) for b in bookings),
+        "ticket_count": len(bookings),
+    }
+
 @api_router.get("/bookings/my")
 async def get_my_bookings(user=Depends(get_current_devotee)):
     return await db.bookings.find({"devotee_id": user["sub"]}, {"_id": 0}).sort("booking_date_time", -1).to_list(100)
