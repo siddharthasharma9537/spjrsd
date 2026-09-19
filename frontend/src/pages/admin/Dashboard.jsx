@@ -1,9 +1,17 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { Users, BookOpen, Flame, IndianRupee, CalendarCheck, HandCoins, BedDouble, Newspaper, Eye } from 'lucide-react';
 
 export default function AdminDashboard() {
+  const { user } = useAuth();
+  // A counter-linked account only ever gets counter-scoped booking/revenue
+  // figures back from /admin/stats (see admin_stats in the backend) -
+  // devotees, sevas, donations, accommodation and visitors aren't a
+  // per-counter concept at all, so those cards would just always read 0
+  // rather than mean anything for this login.
+  const isCounterAccount = !!user?.counter_id;
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -12,7 +20,7 @@ export default function AdminDashboard() {
     api.get('/admin/stats').then(r => setStats(r.data)).catch(() => setLoadError(true)).finally(() => setLoading(false));
   }, []);
 
-  const cards = stats ? [
+  const allCards = stats ? [
     { icon: Users, label: 'Total Devotees', value: stats.total_devotees, color: 'text-[#C43E00]', bg: 'bg-[#C43E00]/10' },
     { icon: BookOpen, label: 'Total Bookings', value: stats.total_bookings, color: 'text-[#621B00]', bg: 'bg-[#621B00]/10' },
     { icon: CalendarCheck, label: "Today's Bookings", value: stats.today_bookings, color: 'text-[#D4AF37]', bg: 'bg-[#D4AF37]/10' },
@@ -24,6 +32,8 @@ export default function AdminDashboard() {
     { icon: Users, label: 'Total Visitors', value: stats.total_visitors?.toLocaleString(), color: 'text-[#C43E00]', bg: 'bg-[#C43E00]/10' },
     { icon: Eye, label: "Today's Visitors", value: stats.todays_visitors?.toLocaleString(), color: 'text-[#D4AF37]', bg: 'bg-[#D4AF37]/10' },
   ] : [];
+  const counterOnlyLabels = ['Total Bookings', "Today's Bookings", 'Seva Revenue'];
+  const cards = isCounterAccount ? allCards.filter(c => counterOnlyLabels.includes(c.label)) : allCards;
 
   return (
     <AdminLayout title="Dashboard">
