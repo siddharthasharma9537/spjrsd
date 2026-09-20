@@ -37,23 +37,25 @@ function LangToggle({ className = '' }) {
 }
 
 const navGroups = [
-  { label: 'About', labelTe: 'గురించి', to: '/about' },
-  { label: 'Temples', labelTe: 'ఆలయాలు', to: '/temples' },
-  { label: 'Panchangam', labelTe: 'పంచాంగం', to: '/panchangam' },
-  { label: 'Stotrams', labelTe: 'స్తోత్రాలు', to: '/stotrams' },
-  { label: 'Sevas & Darshanam', labelTe: 'సేవలు & దర్శనం', children: [
+  { label: 'About', labelTe: 'గురించి', children: [
+    { to: '/about', label: 'History of Temple', labelTe: 'ఆలయ చరిత్ర' },
+    { to: '/parvathi-devi-temple', label: 'Sri Parvathi Devi Temple', labelTe: 'శ్రీ పార్వతీ దేవి ఆలయం' },
+    { to: '/temples', label: 'Associated Temples', labelTe: 'అనుబంధ ఆలయములు' },
+    { to: '/about/administration', label: 'Temple Administration', labelTe: 'ఆలయ నిర్వహణ' },
+  ]},
+  { label: 'Sevas & Booking', labelTe: 'సేవలు & బుకింగ్', children: [
     { to: '/sevas', label: 'Pratyaksha Seva', labelTe: 'ప్రత్యక్ష సేవ' },
     { to: '/paroksha-seva', label: 'Paroksha Seva', labelTe: 'పరోక్ష సేవ' },
-    { to: '/aashirvachanam', label: 'Personalized Aashirvachanam', labelTe: 'వ్యక్తిగత ఆశీర్వచనం' },
+    { to: '/booking/quick', label: 'Quick Booking', labelTe: 'త్వరిత బుకింగ్' },
+    { to: '/accommodation', label: 'Accommodation', labelTe: 'వసతి' },
+  ]},
+  { label: 'Devotional Resources', labelTe: 'ఆధ్యాత్మిక వనరులు', children: [
+    { to: '/panchangam', label: 'Panchangam', labelTe: 'పంచాంగం' },
+    { to: '/stotrams', label: 'Stotrams', labelTe: 'స్తోత్రాలు' },
   ]},
   { label: 'Donations', labelTe: 'విరాళాలు', children: [
     { to: '/donations', label: 'e-Hundi', labelTe: 'ఇ-హుండీ' },
     { to: '/donations/annaprasadam', label: 'AnnaPrasadam', labelTe: 'అన్నప్రసాదం' },
-  ]},
-  { label: 'Booking', labelTe: 'బుకింగ్', children: [
-    { to: '/booking/quick', label: 'Quick Booking', labelTe: 'త్వరిత బుకింగ్' },
-    { to: '/sevas', label: 'Seva Booking', labelTe: 'సేవ బుకింగ్' },
-    { to: '/accommodation', label: 'Accommodation', labelTe: 'వసతి' },
   ]},
   { label: 'Media', labelTe: 'మీడియా', children: [
     { to: '/news', label: 'News & Events', labelTe: 'వార్తలు & కార్యక్రమాలు' },
@@ -66,6 +68,7 @@ const navGroups = [
     { to: '/support/contact', label: 'Contact Us', labelTe: 'సంప్రదించండి' },
     { to: '/support/faq', label: 'FAQ', labelTe: 'తరచుగా అడిగే ప్రశ్నలు' },
     { to: '/volunteer', label: 'Volunteer', labelTe: 'స్వచ్ఛంద సేవ' },
+    { to: '/support/how-to-reach', label: 'How to Reach', labelTe: 'ఎలా చేరుకోవాలి' },
   ]},
 ];
 

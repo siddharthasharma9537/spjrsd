@@ -271,7 +271,7 @@ export default function Home() {
               { to: '/booking/quick', label: 'Quick Booking', labelTe: 'త్వరిత బుకింగ్' },
               { to: '/my-bookings', label: 'My Bookings', labelTe: 'నా బుకింగ్‌లు' },
               { to: '/volunteer', label: 'Volunteer', labelTe: 'వాలంటీర్' },
-              { to: '/about', label: 'How to Reach', labelTe: 'ఎలా చేరుకోవాలి' },
+              { to: '/support/how-to-reach', label: 'How to Reach', labelTe: 'ఎలా చేరుకోవాలి' },
             ].map((l, i) => (
               <Link key={i} to={l.to} className="bg-white border border-[#E6DCCA] rounded-xl p-4 text-center hover:border-[#D4AF37]/50 hover:shadow-md transition-all">
                 <p className="text-sm font-medium text-[#2D1B0E]">{t(l.label, l.labelTe)}</p>

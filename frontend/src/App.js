@@ -24,6 +24,9 @@ import Accommodation from "@/pages/Accommodation";
 import AccommodationBooking from "@/pages/AccommodationBooking";
 import AboutTemple from "@/pages/AboutTemple";
 import Temples from "@/pages/Temples";
+import ParvathiDeviTemple from "@/pages/ParvathiDeviTemple";
+import TempleAdministration from "@/pages/TempleAdministration";
+import HowToReach from "@/pages/HowToReach";
 import Gallery from "@/pages/Gallery";
 import TicketLookup from "@/pages/TicketLookup";
 import NewsPage from "@/pages/NewsPage";
@@ -86,8 +89,10 @@ function ProtectedAdmin({ children }) {
    pages; matched longest-prefix-first so nested paths win. */
 const ROUTE_META = [
   ['/admin', { title: 'Staff Area', noIndex: true }],
-  ['/about', { title: 'Sthala Puranam & Temple History', description: 'The legend of the 108th Parashurama Linga at Cheruvugattu, temple deities, Arogya Kshetram, Amavasya Jatara, festivals and how to reach the temple.' }],
-  ['/temples', { title: 'Temples of the Kshetram', description: 'Every temple of Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam - the hilltop shrines, Sri Parvathi Devi Temple, Sri Narasimha Swamy Temple, and Sri Swamy Vari Padalu at Yellareddigudem.' }],
+  ['/about/administration', { title: 'Temple Administration', description: 'The Executive Officer and Dharmakartha Mandali (Board of Trustees) of Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu.' }],
+  ['/about', { title: 'Sthala Puranam & Temple History', description: 'The legend of the 108th Parashurama Linga at Cheruvugattu, spiritual significance, Arogya Kshetram, Amavasya Jatara and major festivals.' }],
+  ['/parvathi-devi-temple', { title: 'Sri Parvathi Devi Temple', description: 'Sri Bhramarambha Devi (Sri Parvathi Devi) and the parivara devatas of her temple complex at the foot of the hill, Cheruvugattu.' }],
+  ['/temples', { title: 'Associated Temples', description: 'The hilltop shrines of Ikshwadri, Sri Narasimha Swamy Temple, and Sri Swamy Vari Padalu at Yellareddigudem.' }],
   ['/sevas', { title: 'Seva Booking', description: 'Book Abhishekam, Kalyanam, Archana and other sevas online at Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu.' }],
   ['/paroksha-seva', { title: 'Paroksha Seva', description: 'Book a seva remotely and have it performed in your name at the temple, without travelling to Cheruvugattu.' }],
   ['/donations/annaprasadam', { title: 'AnnaPrasadam Donation', description: 'Sponsor Annadanam for pilgrims at Cheruvugattu temple. Permanent Nitya Annadanam scheme from Rs. 1,116. 80G receipt issued.' }],
@@ -105,6 +110,7 @@ const ROUTE_META = [
   ['/gallery', { title: 'Photo Gallery', description: 'Photographs of the temple, festivals and Brahmotsavams at Cheruvugattu.' }],
   ['/support/contact', { title: 'Contact Us', description: 'Temple address, Executive Officer contact number, office hours and enquiry form.' }],
   ['/support/faq', { title: 'Frequently Asked Questions', description: 'Answers about seva booking, donations, 80G receipts, accommodation and temple timings.' }],
+  ['/support/how-to-reach', { title: 'How to Reach', description: 'Location, temple timings, and road/rail/air directions to Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu.' }],
   ['/volunteer', { title: 'Volunteer', description: 'Register to volunteer at Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu.' }],
   ['/aashirvachanam', { title: 'Personalized Aashirvachanam', description: 'Sign up for a personalized blessing email from the temple on your birthday or wedding anniversary, every year.' }],
   ['/login', { title: 'Devotee Login', noIndex: true }],
@@ -173,6 +179,9 @@ function App() {
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/about" element={<AboutTemple />} />
           <Route path="/temples" element={<Temples />} />
+          <Route path="/parvathi-devi-temple" element={<ParvathiDeviTemple />} />
+          <Route path="/about/administration" element={<TempleAdministration />} />
+          <Route path="/support/how-to-reach" element={<HowToReach />} />
           <Route path="/sevas" element={<SevaList />} />
           <Route path="/sevas/pratyaksha" element={<SevaList />} />
           <Route path="/sevas/paroksha" element={<SevaList paroksha />} />

@@ -1,48 +1,9 @@
 import TopStrip from '@/components/TopStrip';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { MapPin, Clock, Phone, Calendar } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLanguage } from '@/contexts/LanguageContext';
-
-/* Parivara devatas, grouped by their actual location - the foot-of-hill group
-   (Sri Parvathi Devi Temple complex) and the hilltop group. Confirmed against
-   the temple's own hand-drawn layout maps; do not merge these back into one
-   undifferentiated list. */
-const PARIVARA_HILL = [
-  { img: '/Assets/Anjaneya_Swamy_1.webp', en: 'Sri Anjaneya Swamy', te: 'శ్రీ ఆంజనేయ స్వామి' },
-];
-const PARIVARA_FOOTHILL = [
-  { img: '/Assets/Mallikharjuna_Swamy_Down_Hill_1.webp', en: 'Sri Mallikarjuna Swamy', te: 'శ్రీ మల్లిఖార్జున స్వామి' },
-  { img: '/Assets/Ganapati_Swamy_Down_Hill.webp', en: 'Sri Ganapati', te: 'శ్రీ గణపతి' },
-  { img: '/Assets/Subrahmanya_Swamy_Down_Hill.webp', en: 'Sri Subrahmanya Swamy', te: 'శ్రీ సుబ్రహ్మణ్య స్వామి' },
-  { img: '/Assets/Veerabhadra_Swamy_Down_Hill.webp', en: 'Sri Veerabhadra Swamy', te: 'శ్రీ వీరభద్ర స్వామి' },
-  { img: '/Assets/Bhadrakali_Ammavaru_Down_Hill.webp', en: 'Sri Bhadrakali Devi', te: 'శ్రీ భద్రకాళీ దేవి' },
-];
-
-/* The Executive Officer is a government appointee who oversees the temple
-   administration, not a member of the Dharmakartha Mandali - shown as its
-   own entry, separate from the trustee board below. */
-const EXECUTIVE_OFFICER = { nameEn: 'Sri S. Mohan Babu', nameTe: 'శ్రీ ఎస్. మోహన్ బాబు గారు', roleEn: 'Assistant Commissioner & Executive Officer', roleTe: 'అసిస్టెంట్ కమీషనర్ & కార్యనిర్వహణాధికారి' };
-
-/* Transcribed from the Dharmakartha Mandali board at the temple office. */
-const TRUST_BOARD = [
-  { nameEn: 'Sri Varala Ramesh', nameTe: 'శ్రీ వారాల రమేష్ గారు', roleEn: 'Chairman', roleTe: 'చైర్మన్' },
-  { nameEn: 'Sri Kommu Sreenu', nameTe: 'శ్రీ కొమ్ము శ్రీను గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
-  { nameEn: 'Sri Mandula Narsimha', nameTe: 'శ్రీ మందుల నర్సింహ్మా గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
-  { nameEn: 'Sri Ranga Sravan Kumar', nameTe: 'శ్రీ రంగా శ్రవణ్ కుమార్ గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
-  { nameEn: 'Smt. Nalla Anitha', nameTe: 'శ్రీమతి నల్ల అనిత గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
-  { nameEn: 'Sri Pala Mahesh', nameTe: 'శ్రీ పాల మహేష్ గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
-  { nameEn: 'Sri Veeravelli Raghunadh', nameTe: 'శ్రీ వీరవెల్లి రఘునాధ్ గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
-  { nameEn: 'Sri Marri Lingaswamy', nameTe: 'శ్రీ మర్రి లింగస్వామి గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
-  { nameEn: 'Sri Gaddaguti Yadayya', nameTe: 'శ్రీ గద్దగూటి యాదయ్య గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
-  { nameEn: 'Sri Regatte Srinivas Reddy', nameTe: 'శ్రీ రేగట్టె శ్రీనివాస్ రెడ్డి గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
-  { nameEn: 'Sri Prajnapuram Satyanarayana', nameTe: 'శ్రీ ప్రజ్ఞాపురం సత్యనారాయణ గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
-  { nameEn: 'Sri Idukulla Sampath', nameTe: 'శ్రీ ఇడుకుళ్ళ సంపత్ గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
-  { nameEn: 'Sri Kammalapalli Mallesh', nameTe: 'శ్రీ కమ్మలపల్లి మల్లేష్ గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
-  { nameEn: 'Sri Gouridevi Lakshmayya', nameTe: 'శ్రీ గౌరిదేవి లక్ష్మయ్య గారు', roleEn: 'Trustee', roleTe: 'ధర్మకర్త' },
-  { nameEn: 'Dr. P. Ramalingeshwara Sharma', nameTe: 'డా. పి. రామలింగేశ్వర శర్మ గారు', roleEn: 'Ex-Officio Member & Pradhana Archaka', roleTe: 'ఎక్స్ అఫీషియో సభ్యులు & ప్రధాన అర్చకులు' },
-];
 
 /* Photographs from the annual Brahmotsavams. */
 const BRAHMOTSAVAM = [
@@ -67,43 +28,6 @@ const CONTENT = {
       'ఈ దేవస్థాన ప్రాంగణమునందు అనేక ఉపాలయములు, మండపములు కలవు. ప్రతిదానికి చారిత్రక, పౌరాణిక ప్రాముఖ్యత కలదు. ఈ పవిత్ర గిరి ధ్యానమునకు, ప్రార్థనకు అనుకూలమైన ప్రశాంత వాతావరణమును కలిగియున్నది.',
     ],
   },
-  admin: {
-    en: [
-      'Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam is located in Cheruvugattu village, Narketpally Mandal, Nalgonda District, on the Narketpally-Addanki road, about 4 km from Narketpally (on the Hyderabad-Vijayawada National Highway) and 15 km from Nalgonda town. Believed to date back to the Treta Yuga, it is one of Telangana\'s most prominent Shaiva pilgrimage centres.',
-      'The temple was published under Section 6(a) and registered under Section 43 of the Telangana Charitable and Hindu Religious Institutions and Endowments Act 30/87. It ranks among the state\'s prominent temples with Assistant Commissioner status, and is administered by an Executive Officer appointed by the Government of Telangana.',
-    ],
-    te: [
-      'శ్రీ పార్వతీ జడల రామలింగేశ్వర స్వామివారి దేవస్థానము నల్లగొండ జిల్లా నార్కట్‌పల్లి మండలములోని చెరువుగట్టు గ్రామంలో వుంది. ఈ క్షేత్రము హైదరాబాదు - విజయవాడ జాతీయ రహదారిపై గల నార్కట్‌పల్లికి 4 కి.మీ. దూరంలో నార్కట్‌పల్లి - అద్దంకి రహదారిపై ఉండి, నల్లగొండ పట్టణానికి 15 కి.మీ. దూరంలో వుంది. త్రేతాయుగం నాటిదని భావిస్తున్న ఈ పుణ్యక్షేత్రము తెలంగాణ రాష్ట్రములోని ప్రముఖ శైవ పుణ్యక్షేత్రంగా విరాజిల్లుతూ, భక్తుల పాలిట కొంగుబంగారంగా మారింది.',
-      'రాష్ట్ర దేవాదాయ ధర్మాదాయ శాఖ చట్టం 30/87 నందలి సెక్షన్ 6(ఎ) ప్రకారం పబ్లికేషన్ కాబడి, సెక్షన్ 43 ప్రకారం దేవాదాయ ధర్మాదాయ శాఖ నందు రిజిష్టర్ కాబడి, రాష్ట్రంలోని అనేక ప్రముఖ దేవస్థానములతో పాటు అసిస్టెంటు కమీషనరు హోదా కలిగిన దేవాలయంగా ఉండి, తెలంగాణ ప్రభుత్వం చేత నియామకం చేయబడిన సహాయ కమీషనరుచే కార్యనిర్వహణాధికారిగా ఈ దేవస్థాన పరిపాలన నిర్వహింపబడుతోంది.',
-    ],
-  },
-  deities: [
-    {
-      titleEn: 'At the foot of the hill (గట్టు క్రింద)', titleTe: 'గట్టు క్రింద',
-      img: '/Assets/Parvati_Devi_1.webp', alt: 'Sri Parvathi Devi adorned in silk and garlands',
-      en: 'Sri Bhramarambha Devi (Sri Parvathi Devi), with Sri Mallikarjuna Swamy — a manifestation of the Swamy\'s own Shivalingam — as her consort. Sri Ganapati and Sri Subrahmanya Swamy are worshipped in the connecting Antharaalayam, and Sri Bhadrakali sametha Veerabhadra Swamy in an adjoining shrine of the same complex.',
-      te: 'కొండ క్రింద ఆలయములో శ్రీ భ్రమరాంబ దేవి (శ్రీ పార్వతీ అమ్మవారు) కొలువై యుండగా, ఆమె సఖునిగా శ్రీ స్వామివారి శివలింగ స్వరూపమే అయిన శ్రీ మల్లిఖార్జున స్వామి కొలువైయున్నారు. అంతరాళయంలో శ్రీ గణపతి, శ్రీ సుబ్రహ్మణ్య స్వామి, అదే ప్రాంగణంలోని ఉపాలయంలో శ్రీ భద్రకాళీ సమేత వీరభద్ర స్వామి కొలువైయున్నారు.',
-    },
-    {
-      titleEn: 'Atop the hill (గట్టు మీద)', titleTe: 'గట్టు మీద',
-      img: '/Assets/Sri_Swamy_Varu_1.webp', alt: 'Sri Jadala Ramalingeshwara Swamy adorned for puja',
-      en: 'Sri Ramalingeshwara Swamy, with Sri Anjaneya Swamy and Sri Renuka Yellamma as neighbouring shrines along the hilltop, and Sri Kalabhairava Swamy as Kshetrapalaka (guardian deity) at the entrance of the steps path.',
-      te: 'గట్టుమీద శ్రీ స్వామివారికి సమీపముననే శ్రీ ఆంజనేయ స్వామివారు, శ్రీ రేణుకా ఎల్లమ్మ అమ్మవారు ఆలయములు కలవు. మెట్ల మార్గపు ప్రవేశద్వారము వద్ద క్షేత్రపాలకుడుగా శ్రీ కాలభైరవ స్వామివారు కొలువైయున్నారు.',
-    },
-    {
-      titleEn: 'Moodu Gundlu (మూడు గుండ్లు)', titleTe: 'మూడు గుండ్లు',
-      img: '/Assets/Mudu_Gundlu_Shivalingam_6.webp', alt: 'The Moodu Gundlu Shivalingam beneath a five-hooded naga canopy',
-      en: 'The revered Urdhva Lingam is situated atop three sacred rock pools (Moodu Gundlu). Devotees believe that climbing to worship here removes sins and hardships.',
-      te: 'అతి ప్రశస్తమైన మూడు గుండ్లపై ఊర్ధ్వలింగము కొలువైయుండి భక్తుల మనోభీష్టాలను నెరవేరుస్తుంది. మూడుగుండ్లు ఎక్కి శ్రీ స్వామివారిని దర్శించుకోవడం ద్వారా సమస్త పాపభీతి, కష్టాలు తొలగిపోతాయని నమ్మకం.',
-    },
-    {
-      /* No photograph of the Gogarbha pond yet - deliberately left imageless
-         rather than captioning a lingam photo as the kolanu. */
-      titleEn: 'Gogarbha Kolanu (గోగర్భ కొలను)', titleTe: 'గోగర్భ కొలను',
-      en: 'A sacred pond next to the Koneru, used for the Swamy\'s daily morning abhishekam. Devotees carry this holy water home and sprinkle it on their farmland for a good harvest.',
-      te: 'కోనేరు ప్రక్కన గోగర్భ కొలను కలదు. ఇందలి జలముతో ప్రతిరోజు శ్రీ స్వామివారి ప్రాతఃకాల అభిషేకము చేయుదురు. అట్టి జలమును భక్తులు తమ స్వగ్రామములకు తీసుకువెళ్ళి పంటపొలములలో చల్లినచో పంటలు బాగా పండునని వారి ప్రగాఢ విశ్వాసం.',
-    },
-  ],
   arogya: {
     en: [
       'It is a deep-rooted belief that devotees suffering from ill health, who observe Mandala or Ardha Mandala Deeksha in the temple premises and partake of the daily theertha-prasadam in the Swamy\'s presence, are cured and return home to live healthily with their families. For this reason, Cheruvugattu is revered as an "Arogya Kshetram", with many devotees staying near the temple for months at a stretch.',
@@ -155,25 +79,6 @@ const CONTENT = {
     { name: 'Sri Swamy Vari Vaarshika Brahmotsavams', nameTe: 'వార్షిక బ్రహ్మోత్సవములు', desc: 'Five days of Kalyanotsavams from Magha Shudda Saptami to Dwadasi, with about 5 lakh devotees, Teppotsavam, and Agnigundalu.', descTe: 'మాఘశుద్ధ సప్తమి నుండి ద్వాదశి వరకు ఐదురోజులపాటు కళ్యాణోత్సవాలు. సుమారు ఐదులక్షల మంది పాల్గొంటారు. తెప్పోత్సవం, అగ్నిగుండాలు విశేషం.' },
     { name: 'Maha Shivaratri', nameTe: 'మహాశివరాత్రి', desc: 'Rudrabhishekams, Laksha Bilwarchana, and all-night jagarana by devotees.', descTe: 'రుద్రాభిషేకములు, లక్షబిల్వార్చన, భక్తులచే జాగరణ.' },
   ],
-  reach: {
-    locationEn: 'Cheruvugattu, Narketpally Mandal, Nalgonda District, Telangana, India',
-    locationTe: 'చెరువుగట్టు, నార్కట్‌పల్లి మండలం, నల్లగొండ జిల్లా, తెలంగాణ',
-    timingsEn: ['Morning: 5:00 AM - 1:00 PM', 'Evening: 3:00 PM - 7:00 PM'],
-    timingsTe: ['ఉదయం: 5:00 - 1:00', 'సాయంత్రం: 3:00 - 7:00'],
-    adminEn: ['Telangana Endowments Department', 'Sri S. Mohan Babu, Executive Officer', '+91 94910 00701'],
-    adminTe: ['తెలంగాణ దేవాదాయ ధర్మాదాయ శాఖ', 'శ్రీ ఎస్. మోహన్ బాబు, కార్యనిర్వహణాధికారి', '+91 94910 00701'],
-    modes: [
-      { labelEn: 'By Road', labelTe: 'రోడ్డు మార్గము',
-        en: '4 km from Narketpally on the Narketpally-Addanki road (Narketpally lies on the Hyderabad-Vijayawada National Highway), and about 15 km from Nalgonda town.',
-        te: 'హైదరాబాదు - విజయవాడ జాతీయ రహదారిపై గల నార్కట్‌పల్లి నుండి నార్కట్‌పల్లి - అద్దంకి రహదారిపై 4 కి.మీ. దూరంలో, నల్లగొండ పట్టణానికి 15 కి.మీ. దూరంలో కలదు.' },
-      { labelEn: 'By Rail', labelTe: 'రైలు మార్గము',
-        en: 'Nearest railway station is Nalgonda. Auto-rickshaws and buses available from the station.',
-        te: 'సమీప రైల్వే స్టేషన్ నల్లగొండ. స్టేషన్ నుండి ఆటోలు, బస్సు సౌకర్యము కలదు.' },
-      { labelEn: 'By Air', labelTe: 'విమాన మార్గము',
-        en: 'Nearest airport is Rajiv Gandhi International Airport, Hyderabad (approx. 150 km).',
-        te: 'సమీప విమానాశ్రయం రాజీవ్ గాంధీ అంతర్జాతీయ విమానాశ్రయం, హైదరాబాదు (సుమారు 150 కి.మీ.).' },
-    ],
-  },
 };
 
 export default function AboutTemple() {
@@ -202,53 +107,93 @@ export default function AboutTemple() {
 
       <div className="max-w-4xl mx-auto px-4 py-10 space-y-10">
 
-        {/* UPDATED: History Section with Parashurama Legend (Tabs) */}
+        {/* History Section with Parashurama Legend (Tabs). Heading kept to the
+            same text-xl scale as every other section below - the hero above
+            already carries the page-level title, so this doesn't need to
+            repeat it at hero size. */}
         <section id="history" className="scroll-mt-24">
-          <div className="text-center mb-10">
-            <h2 className={`${headingFont} text-3xl md:text-4xl text-[#621B00] mb-2`}>
-              {te ? 'ఆలయ చరిత్ర: 108వ పరశురామ లింగం' : 'Temple History: The 108th Parashurama Linga'}
-            </h2>
-            <div className="w-24 h-1 bg-[#D4AF37] mx-auto rounded-full"></div>
-          </div>
-
           <Tabs value={tab} onValueChange={onTabChange} className="w-full">
-            <div className="flex justify-center mb-10">
-              <TabsList className="bg-[#FDFBF7] border border-[#E6DCCA] p-1 h-14 rounded-xl shadow-sm">
-                <TabsTrigger value="english" className="px-10 font-english-heading text-lg rounded-lg data-[state=active]:bg-[#621B00] data-[state=active]:text-white">English</TabsTrigger>
-                <TabsTrigger value="telugu" className="px-10 font-telugu-heading text-lg rounded-lg data-[state=active]:bg-[#621B00] data-[state=active]:text-white">తెలుగు</TabsTrigger>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div>
+                <h2 className={`${headingFont} text-xl text-[#621B00] mb-1`}>
+                  {te ? 'ఆలయ చరిత్ర: 108వ పరశురామ లింగం' : 'Temple History: The 108th Parashurama Linga'}
+                </h2>
+                <p className="font-telugu-heading text-base text-[#8D6E63]">స్థల పురాణము</p>
+              </div>
+              <TabsList className="bg-[#FDFBF7] border border-[#E6DCCA] p-1 h-12 rounded-xl shadow-sm shrink-0">
+                <TabsTrigger value="english" className="px-6 font-english-heading rounded-lg data-[state=active]:bg-[#621B00] data-[state=active]:text-white">English</TabsTrigger>
+                <TabsTrigger value="telugu" className="px-6 font-telugu-heading rounded-lg data-[state=active]:bg-[#621B00] data-[state=active]:text-white">తెలుగు</TabsTrigger>
               </TabsList>
             </div>
 
             <TabsContent value="english" className="mt-0">
-              <div className="max-w-4xl mx-auto bg-white border border-[#E6DCCA] rounded-[2rem] p-8 md:p-14 shadow-sm">
+              <div className="max-w-4xl mx-auto bg-white border border-[#E6DCCA] rounded-xl p-6 md:p-10 shadow-sm">
                 <div className="text-[#5D4037] text-base md:text-lg leading-relaxed md:leading-loose space-y-6">
                   
-                  {/* Same verbatim Sthala Puranam text as the Telugu tab - shloka plus
-                      two labeled segments. The shloka itself stays in Sanskrit/Telugu
-                      script even here rather than being translated/paraphrased into
-                      English prose - a shloka is recited, not read as a description. */}
+                  {/* Expanded Sthala Puranam - dhyana shloka (with transliteration
+                      and translation), the Poorva Vruttam origin story, and the
+                      Ikshvadri Mahatmyam broken into labeled sub-segments. Mirrors
+                      the Telugu tab paragraph-for-paragraph. */}
                   <div className="text-center bg-[#FDFBF7] border border-[#E6DCCA]/50 rounded-2xl p-6 md:p-8">
-                    <p className="font-english-heading text-sm tracking-wide text-[#C43E00] uppercase mb-3">The Shloka</p>
+                    <p className="font-english-heading text-sm tracking-wide text-[#C43E00] uppercase mb-3">Dhyāna Śloka</p>
                     <p className="italic text-[#621B00] leading-loose">
                       శ్లో॥ శ్రీమద్భార్గవరామనిర్మితమహాదివ్యాలయేసంస్థితం<br />
                       నీహారాచలకన్యకార్థవపుషంబాలేందురేఖాధరం |<br />
                       బ్రహ్మేంద్రాచ్యుతసేవ్యపాదజలజంసద్భక్తకల్పధృమం<br />
                       సేవేసుందరఇక్షుశైలనిలయం శ్రీరామలింగంభజే ॥
                     </p>
-                  </div>
-
-                  <div>
-                    <p className="font-english-heading text-sm tracking-wide text-[#C43E00] uppercase mb-2">Introduction</p>
-                    <p className="text-lg md:text-xl text-[#621B00]">
-                      In the Treta Yuga, there lived an immensely powerful emperor named <strong>Kartavirya Arjuna</strong>. He was extraordinarily strong and possessed a thousand arms. One day, he went hunting in the forest with his entire retinue. Tired from the hunt, the king arrived at the nearby hermitage of the sage-king Jamadagni to rest. Sage Jamadagni, with the help of his divine wish-fulfilling cow <strong>Shabala</strong>, was able to arrange a sumptuous feast with all six flavours for the emperor's entire retinue within a very short time. Delighted by this, Kartavirya Arjuna asked the sage to give him the wish-fulfilling cow. Jamadagni advised him, saying, "O King! By the power of its penance, this cow stays on its own accord only with sages; it cannot be kept by force by anyone." Ignoring these words, the emperor ordered his soldiers to forcibly bring the cow and its calf to his kingdom. Having no other option, Jamadagni went to the cow and prayed, "O Mother! I am unable to protect you. Protect yourself, and thereby protect me too." Then, from a hair on the cow's body, a warrior fully equipped with weapons emerged and, in an instant, destroyed Kartavirya Arjuna's entire army. Unable to contain his anger, Kartavirya Arjuna came to wage war against Jamadagni, whereupon the sage's son, <strong>Parashurama</strong>, defeated him. Kartavirya Arjuna, burning with the desire for revenge, waited for a time when Parashurama was away, attacked the hermitage, and beheaded Sage Jamadagni. When Parashurama returned to the hermitage and learned of this, he flew into a towering rage, attacked Kartavirya Arjuna's kingdom, severed his thousand arms, and slew him. Even then, his anger unabated, Parashurama circled the earth twenty-one times, slaying every Kshatriya he encountered, and donated the entire earth as a gift to the foremost of Brahmins, Kashyapa Prajapati, the mind-born son of Brahma. At the sacred ford of Shamantapanchaka, he offered tarpana (libations) to his father Jamadagni with that Kshatriya blood. Thereafter, for the welfare of the universe and wishing the world to flourish in peace and happiness, he consecrated <strong>Shiva Lingas at 108 sacred sites</strong>, pouring the power of his penance — accumulated over hundreds of thousands of years — into each Shiva Linga he installed at every site, thereby establishing peace throughout the universe.
+                    <p className="text-sm text-[#8D6E63] italic leading-relaxed mt-4">
+                      Śrīmad-bhārgavarāma-nirmita-mahā-divyālayē saṁsthitam<br />
+                      Nīhārācala-kanyakārdha-vapuṣaṁ bālēndu-rēkhā-dharam |<br />
+                      Brahmēndrācyuta-sēvya-pāda-jalajaṁ sadbhakta-kalpadrumam<br />
+                      Sēvē sundara-ikṣuśaila-nilayaṁ śrī-rāmaliṅgaṁ bhajē ॥
+                    </p>
+                    <p className="text-sm text-[#5D4037] border-t border-[#E6DCCA] mt-4 pt-4 text-left">
+                      "I bow to Lord Sri Ramalingeshwara, enshrined in the magnificent divine temple established by Sri Bhargava Rama (Parashurama). He shares half His divine form with the daughter of the snowy mountain (Goddess Parvathi) and adorns the crescent moon upon His brow. His lotus feet are venerated by Brahma, Indra, and Achyuta (Vishnu), and He stands as the wish-fulfilling tree (Kalpavriksha) to true devotees. I worship Him, the presiding deity residing upon the sacred, enchanting hill of Ikshvadri."
                     </p>
                   </div>
 
                   <div>
-                    <p className="font-english-heading text-sm tracking-wide text-[#C43E00] uppercase mb-2">The Main Legend</p>
-                    <p>
-                      Of the 108 Shiva Lingas consecrated by Parashurama, the last was installed at the <strong>Cheruvugattu kshetram</strong>. Even after performing penance here with unwavering devotion for hundreds of thousands of years, Shiva did not appear before him. Enraged, Parashurama struck the Shiva Linga he had installed with his axe (<em>Parashu</em>). Lord Shiva then appeared and declared, "For all these years you have performed penance and pleased me; this kshetram shall shine as one of the most renowned holy places. From here until the end of Kali Yuga, I shall remain and fulfil the long-cherished desires of my devotees," and with this promise, vanished. Since that day, this kshetram has flourished, growing more glorious day by day, gaining fame as an illustrious Shaiva kshetram, and shining as a place of great sanctity for devotees. In this Devasthanam, the temple of Sri Parvathi Devi lies at the foot of the hill (Gattu). In the temple at the foot of the hill, Sri Parvathi Devi is enshrined, with Sri Mallikarjuna Swamy, Subrahmanya Swamy, and Sri Bhadrakali Veerabhadra Swamy as attendant deities. Atop the hill, Sri Swamy's attendant deities are Sri Vighneshwara Swamy, Sri Anjaneya Swamy, and Sri Yellamma Devi, with Kalabhairava Swamy as the Kshetrapalaka (guardian deity); and it is believed that the revered Urdhva Linga atop the three sacred rock pools (Moodu Gundlu), along with the Gogarbha pond beside the Koneru, fulfil the heartfelt wishes of devotees. In this kshetram, <strong>Sri Swamy is worshipped by devotees as the Arogyapradata</strong> (bestower of health).
-                    </p>
+                    <p className="font-english-heading text-xl md:text-2xl tracking-wide text-[#C43E00] uppercase mb-3">The Sacred Origins &middot; Poorva Vruttam</p>
+                    <div className="space-y-4 text-lg md:text-xl text-[#621B00]">
+                      <p>In the Treta Yuga, there lived an immensely powerful emperor named <strong>Kartavirya Arjuna</strong>. He was extraordinarily strong and possessed a thousand arms. One day, he went hunting in the forest with his entire retinue. Tired from the hunt, the king arrived at the nearby hermitage of the sage-king Jamadagni to rest. Sage Jamadagni, with the help of his divine wish-fulfilling cow <strong>Shabala</strong>, was able to arrange a sumptuous feast with all six flavours for the emperor's entire retinue within a very short time.</p>
+                      <p>Delighted by this, Kartavirya Arjuna asked the sage to give him the wish-fulfilling cow. Jamadagni advised him, saying, "O King! By the power of its penance, this cow stays on its own accord only with sages; it cannot be kept by force by anyone." Ignoring these words, the emperor ordered his soldiers to forcibly bring the cow and its calf to his kingdom. Having no other option, Jamadagni went to the cow and prayed, "O Mother! I am unable to protect you. Protect yourself, and thereby protect me too." Then, from a hair on the cow's body, a warrior fully equipped with weapons emerged and, in an instant, destroyed Kartavirya Arjuna's entire army.</p>
+                      <p>Unable to contain his anger, Kartavirya Arjuna came to wage war against Jamadagni, whereupon the sage's son, <strong>Parashurama</strong>, defeated him. Kartavirya Arjuna, burning with the desire for revenge, waited for a time when Parashurama was away, attacked the hermitage, and beheaded Sage Jamadagni.</p>
+                      <p>When Parashurama returned to the hermitage and learned of this, he flew into a towering rage, attacked Kartavirya Arjuna's kingdom, severed his thousand arms, and slew him. Even then, his anger unabated, Parashurama circled the earth twenty-one times, slaying every Kshatriya he encountered, and donated the entire earth as a gift to the foremost of Brahmins, Kashyapa Prajapati, the mind-born son of Brahma. At the sacred ford of Shamantapanchaka, he offered tarpana (libations) to his father Jamadagni with that Kshatriya blood.</p>
+                      <p>Thereafter, for the welfare of the universe and wishing the world to flourish in peace and happiness, he consecrated <strong>Shiva Lingas at 108 sacred sites</strong>, pouring the power of his penance — accumulated over hundreds of thousands of years — into each Shiva Linga he installed at every site, thereby establishing peace throughout the universe.</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="font-english-heading text-xl md:text-2xl tracking-wide text-[#C43E00] uppercase mb-3">The Divine Glory of Ikshvadri &middot; Ikshvadri Māhātmyam</p>
+                    <div className="space-y-4 text-lg md:text-xl text-[#621B00]">
+                      <p>The 108th and culminating Shiva Linga consecrated by Parashurama is enshrined at the holy <strong>Cheruvugattu kshetram</strong>, historically known as Ikshvadri.</p>
+
+                      <div>
+                        <p className="font-english-heading text-lg md:text-xl font-semibold text-[#8B3A1A] mb-1">The Consecration of the Shiva Linga & Divine Penance</p>
+                        <p>In accordance with the sacred truth "Śivāya Viṣṇu-rūpāya Śiva-rūpāya Viṣṇavē" — affirming that Lord Shiva and Lord Vishnu are one and the same — <strong>Sri Bhargava Rama, better known as Parashurama,</strong> is the divine avatar of Lord Vishnu, descended to cleanse the earth of adharma. Thus, it was Lord Vishnu Himself, in the form of Parashurama, who consecrated this sacred, <strong>west-facing Shiva Linga</strong> atop the holy hill and engaged in rigorous austerities across ages, seeking to infuse the Linga with the supreme fruits of his penance for universal harmony.</p>
+                      </div>
+
+                      <div>
+                        <p className="font-english-heading text-lg md:text-xl font-semibold text-[#8B3A1A] mb-1">The Divine Manifestation & The Sacred Markings</p>
+                        <p>Despite performing penance here with steadfast devotion for hundreds of thousands of years, Lord Shiva did not initially appear. In a surge of devotional despair and righteous wrath, Parashurama struck the consecrated Shiva Linga with his sacred battle-axe (<em>Parashu</em>). Immediately, Lord Shiva manifested before him in a brilliant, radiant form with His divine matted locks (<em>Jadalu</em>) loosened and flowing. Appeased by such unyielding austerity, Lord Shiva declared, "For all these years you have performed penance and pleased me; this kshetram shall shine as one of the most renowned holy places. From here until the end of Kali Yuga, I shall remain and fulfil the long-cherished desires of my devotees," and with this solemn benediction, merged back into the sacred Shiva Linga. Unlike typical Shiva Lingas that possess a smooth, rounded summit, the crown of this divine Linga bears a distinct crescent moon-shaped cleft caused by the strike of Parashurama's axe, while the posterior surface exhibits a unique, uneven texture mirroring the Lord's flowing matted locks — giving the deity the venerated name <strong>Sri Jadala Ramalingeshwara Swamy</strong>.</p>
+                      </div>
+
+                      <div>
+                        <p className="font-english-heading text-lg md:text-xl font-semibold text-[#8B3A1A] mb-1">Parivara Devatas Atop the Hill</p>
+                        <p>Ascending the sacred hill, the path passes the Koneru and Gogarbhamu to <strong>Sri Kalabhairava Swamy</strong> — the vigilant Kshetrapalaka (guardian deity) of the kshetram — before reaching the entrance of the Main Temple Complex, where <strong>Sri Maha Ganapathi</strong> is enshrined. After darshan of the principal deity, the path passes <strong>Sri Anjaneya Swamy</strong> and <strong>Sri Renuka Yellamma Devi</strong> on the way to Moodu Gundlu, the three sacred rock pools crowned by the revered <strong>Sri Urdhva Lingam</strong>; beside its exit path are enshrined <strong>Sri Parashurama Lingam</strong> and, next to it, <strong>Sri Atma Lingam</strong>. Devotees firmly believe these sacred spots fulfil heartfelt wishes and earnest prayers.</p>
+                      </div>
+
+                      <div>
+                        <p className="font-english-heading text-lg md:text-xl font-semibold text-[#8B3A1A] mb-1">Foot of the Hill</p>
+                        <p>The temple of Sri Parvathi Devi is enshrined at the base of the hill, accompanied by Sri Mallikarjuna Swamy, Subrahmanya Swamy, and Sri Bhadrakali Sametha Veerabhadra Swamy as attendant deities.</p>
+                      </div>
+
+                      <div>
+                        <p className="font-english-heading text-lg md:text-xl font-semibold text-[#8B3A1A] mb-1">Arogyapradata &middot; The Divine Physician</p>
+                        <p>Echoing the sacred proclamation of the Sri Rudram — the supreme Vedic hymn which extols Lord Shiva as <em>"Prathamo Daivyo Bhishak"</em> (the foremost and primordial divine physician) — <strong>Sri Parvathi Jadala Ramalingeshwara Swamy is worshipped by millions of pilgrims as Arogyapradata</strong> (the bestower of health), dispelling physical ailments, mental distress, and karmic afflictions.</p>
+                      </div>
+                    </div>
                   </div>
 
                   <hr className="my-12 border-[#E6DCCA]" />
@@ -279,37 +224,68 @@ export default function AboutTemple() {
             </TabsContent>
 
             <TabsContent value="telugu" className="mt-0">
-              <div className="max-w-4xl mx-auto bg-white border border-[#E6DCCA] rounded-[2rem] p-8 md:p-14 shadow-sm">
+              <div className="max-w-4xl mx-auto bg-white border border-[#E6DCCA] rounded-xl p-6 md:p-10 shadow-sm">
                 <div className="font-telugu-body text-[#5D4037] text-base md:text-lg leading-relaxed md:leading-loose space-y-6">
                   
-                  {/* No CSS drop cap here: ::first-letter splits a Telugu akshara
-                      (త్రే + తాయుగమున) and breaks the word. Lead-in sizing instead.
-                      Verbatim Sthala Puranam text from the Devasthanam's own
-                      handout, given as one invocatory shloka plus two prose
-                      paragraphs - kept as two labeled segments rather than
-                      broken up further, since that's how the source reads. */}
+                  {/* Expanded Sthala Puranam - shloka (with translation), Poorva
+                      Vruttam origin story, and Ikshvadri Mahatmyam broken into
+                      labeled sub-segments. Mirrors the English tab paragraph-for-
+                      paragraph. No CSS drop cap: ::first-letter splits a Telugu
+                      akshara (త్రే + తాయుగమున) and breaks the word. */}
                   <div className="text-center bg-[#FDFBF7] border border-[#E6DCCA]/50 rounded-2xl p-6 md:p-8">
-                    <p className="font-telugu-heading text-sm text-[#C43E00] mb-3">శ్లోకం</p>
+                    <p className="font-telugu-heading text-sm text-[#C43E00] mb-3">ధ్యాన శ్లోకం</p>
                     <p className="italic text-[#621B00] leading-loose">
                       శ్లో॥ శ్రీమద్భార్గవరామనిర్మితమహాదివ్యాలయేసంస్థితం<br />
                       నీహారాచలకన్యకార్థవపుషంబాలేందురేఖాధరం |<br />
                       బ్రహ్మేంద్రాచ్యుతసేవ్యపాదజలజంసద్భక్తకల్పధృమం<br />
                       సేవేసుందరఇక్షుశైలనిలయం శ్రీరామలింగంభజే ॥
                     </p>
-                  </div>
-
-                  <div>
-                    <p className="font-telugu-heading text-sm text-[#C43E00] mb-2">పరిచయం</p>
-                    <p className="text-lg md:text-xl text-[#621B00]">
-                      త్రేతాయుగంలో కార్తవీర్యార్జునుడు అనే మహాపరాక్రమశాలియైన చక్రవర్తి ఉండేవాడు. అతడు మహా బలవంతుడు. అతడికి వేయిచేతులు వుండేవి. అతడు ఒకరోజు తన సమస్త పరివారంతో కలిసి వేటకై అడవికి వెళ్ళాడు. వేటలో అలసిపోయిన రాజు విశ్రమించడానికై సమీపంలో గల జమదగ్ని మహారాజు ఆశ్రమానికి చేరుకున్నాడు. అప్పుడు జమదగ్ని మహర్షి తన వద్ద గల 'శబల' అనే హోమధేనువు సహాయంతో ఆ చక్రవర్తి యొక్క సమస్త పరివారానికి షడ్రసోపేతమైన విందును అతికొద్ది సమయంలో సమకూర్చగలిగాడు. అందుకు సంతోషించిన కార్తవీర్యార్జునుడు తనకు ఆ హోమధేనువును తనకిమ్మని మహర్షిని కోరాడు. అప్పుడు జమదగ్ని "ఓ మహరాజా! ఈ హోమధేనువు తప:ప్రభావం వలన మహర్షుల వద్ద తనంతట తానుగా ఉంటుంది కాని, బలవంతంగా ఎవరివద్దా ఉంచుకొనుట సాధ్యంకాదు" అని హితబోధ చేసాడు. ఆ మాటలు పట్టించుకోని చక్రవర్తి హోమధేనువును, దాని దూడను బలవంతంగా తన రాజ్యానికి తీసుకురమ్మని తన సైనికులను ఆజ్ఞాపించాడు. చేసేదేమి లేక జమదగ్ని మహర్షి ఆ గోవు వద్దకు వెళ్ళి, 'తల్లీ! నేను నిన్ను రక్షించలేకపోతున్నాను. నిన్ను నీవే రక్షించుకుని, నన్ను కూడా రక్షించు' అని ప్రార్ధించాడు. అప్పుడా హోమధేనువు శరీరము నుండి రోమమున (వెంట్రుక) సైనికుడు సమస్త ఆయుధాలతో ఆవిర్భవించి, కార్తవీర్యార్జునుని సైన్యానంతటినీ క్షణకాలంలో సంహరించారు. కోపం పట్టలేని కార్తవీర్యార్జునుడు జమదగ్ని మహర్షి పైకి యుద్ధానికి రాగా, మహర్షి కుమారుడు పరుశురాముడు కార్తవీర్యార్జునుడిని ఓడించాడు. ప్రతీకారంతో రగిలిపోతున్న కార్తవీర్యార్జునుడు పరశురాముడు లేని సమయం చూసి ఆశ్రమం పైకి దండెత్తి వెళ్ళి, జమదగ్ని మహర్షి తలను ఖండించి సంహరించాడు. ఆశ్రమానికి తిరిగి వచ్చిన పరశురాముడు ఈ విషయం తెలసుకుని మహోకోపోద్రేకుడై కార్తవీర్యార్జునుని రాజ్యంపై దండెత్తి అతడి వేయిచేతును ఖండించి, అతడిని సంహరించాడు. అయినా కోపం తగ్గని పరశురాముడు 21 మార్లు అలా భూప్రదక్షిణం చేసి క్షత్రియుడనేవాడు కనబడితే సంహరించి, భూమండలాన్నంతటినీ బ్రాహ్మణ శ్రేష్ఠుడు, బ్రహ్మ మానసపుత్రడైన కశ్యప ప్రజాపతికి దానదక్షిణగా సమర్పించి, శమంతపంచక తీర్ధంలో ఆ క్షత్రియ రక్తంతో తన తండ్రి అయిన జమదగ్నికి పితృతర్పణ చేసాడు. ఆ తర్వాత విశ్వకళ్యాణార్ధం కోసం, లోకం సుఖశాంతులతో వర్ధిల్లాలని భావించి, 108 పవిత్ర క్షేత్రాలలో శివలింగ ప్రతిష్ఠ చేసి, కొన్ని లక్షల సంవత్సరాల తన తపఃశ్శక్తిని ప్రతి క్షేత్రంలోను తాను ప్రతిష్ఠించిన శివలింగానికి ధారపోసి విశ్వశాంతిని నెలకొల్పాడు.
+                    <p className="text-sm text-[#5D4037] border-t border-[#E6DCCA] mt-4 pt-4 text-left">
+                      తాత్పర్యం: శ్రీ భార్గవరామునిచే (పరశురాముడు) ప్రతిష్ఠితమైన పరమ పవిత్ర దివ్యక్షేత్రమున కొలువై, హిమవంతుని పుత్రికయైన జగన్మాత పార్వతీదేవిని తన వామార్ధ భాగమున ధరించి, ఫాలభాగమున బాలచంద్రుని అలంకరించినవాడును; బ్రహ్మ, ఇంద్రుడు, శ్రీమహావిష్ణువులచే పూజింపబడే పాదపద్మములు కలవాడును; సద్భక్తుల పాలిట కొంగుబంగారమై సర్వకోరికలు తీర్చే కల్పవృక్షమైనవాడును; మనోహరమైన ఇక్షుశైలమున (చెరువుగట్టు) నివాసముండే శ్రీ రామలింగేశ్వర స్వామిని భక్తిశ్రద్ధలతో ప్రార్థిస్తున్నాను.
                     </p>
                   </div>
 
                   <div>
-                    <p className="font-telugu-heading text-sm text-[#C43E00] mb-2">ముఖ్య గాథ</p>
-                    <p>
-                      పరశురాముడు ప్రతిష్ఠించిన 108 శివలింగాల్లో ఆఖరిది చెరువుగట్టు క్షేత్రంలో ప్రతిష్ఠించి ఈ స్థలంలోనే తపోనిష్ఠతో ఎన్నో లక్షల సంవత్సరాలు తపస్సు చేసినా, శివుడు ప్రత్యక్షం కానందున ఆగ్రహించి తాను ప్రతిష్టించిన శివలింగంపై తన పరశువుతో కొట్టాడు. అప్పుడు పరమశివుడు ప్రత్యక్షమై 'ఇన్నాళ్లు నువ్వు తపస్సు చేసి నన్ను మెప్పించిన ఈ క్షేత్రం సుప్రసిద్ధ క్షేత్రాలలో ఒకటై ప్రకాశిస్తుందని, ఇక్కడినుండి కలియుగాంతం వరకు నేను నిలిచియుండి భక్తుల యొక్క చిరకాల వాంఛలను నెరవేరుస్తుంటాను" అని వాగ్దానం చేసి అంతర్థానమయ్యాడు. నాటినుండి ఈ క్షేత్రం దినదిన ప్రవర్ధమానంగా విరాజిల్లుతూ సుప్రసిద్ధ శైవక్షేత్రంగా పేరుపొంది, భక్తులపాలిట మహిమాన్వితక్షేత్రంగా వెలుగొందుతుంది. ఈ దేవస్థానమునందు పార్వతీ అమ్మవారి ఆలయం గట్టు (కొండ) క్రింద కలదు. కొండ క్రింద ఆలయములో శ్రీ పార్వతీ అమ్మవారు కొలువై, పరివార దేవతలుగా, శ్రీ మల్లిఖార్జున స్వామి, సుబ్రహ్మణ్య స్వామి, శ్రీ భద్రకాళీ వీరభద్రస్వామి దేవతలు పరివార దేవతలుగా కొలువైయున్నారు. గట్టుమీద శ్రీ స్వామివారికి పరివార దేవతలుగా శ్రీ విఘ్నేశ్వర స్వామి వారు, శ్రీ ఆంజనేయ స్వామి వారు, శ్రీ ఎల్లమ్మ అమ్మవారు మరియు క్షేత్రపాలకుడుగా కాలభైరవ స్వామివారు మరియు అతి ప్రశస్త్యమైన మూడు గుండ్లపై ఊర్ధ్వలింగము మరియు కోనేరు ప్రక్కన గోగర్భకొలను కొలువైయుండి భక్తుల మనోభీష్టాలను నెరవేరుస్తున్నారని ప్రతీతి. ఈ క్షేత్రంలో శ్రీ స్వామివారు ఆరోగ్యప్రదాతగా భక్తుల చేత పూజింపబడుచున్నారు.
-                    </p>
+                    <p className="font-telugu-heading text-xl md:text-2xl text-[#C43E00] mb-3">పూర్వవృత్తం</p>
+                    <div className="space-y-4 text-lg md:text-xl text-[#621B00]">
+                      <p>త్రేతాయుగంలో వేయి బాహువులు కలిగి, అజేయమైన పరాక్రమంతో చక్రవర్తి కార్తవీర్యార్జునుడు రాజ్యపాలన సాగించాడు. ఒకనాడు అతడు సమస్త సేనాపరివారంతో కలిసి అరణ్యానికి వేటకు వెళ్ళి, అలసట తీర్చుకోవడానికై సమీపంలోని జమదగ్ని మహర్షి ఆశ్రమాన్ని ఆశ్రయించాడు. మహర్షి తన వద్దనున్న దివ్య హోమధేనువు 'శబల' అనుగ్రహంతో, క్షణాల వ్యవధిలోనే రాజపరివారమంతటికీ షడ్రసోపేతమైన విందును అత్యంత వైభవంగా సమకూర్చాడు.</p>
+                      <p>ఆ ధేనువు మహిమకు సంభ్రమాశ్చర్యాలు చెందిన కార్తవీర్యార్జునుడు దానిని తనకు ఇవ్వవలసిందిగా కోరాడు. తపోమహిమతో వర్ధిల్లే దివ్యధేనువు కేవలం ఋషుల వద్ద మాత్రమే స్వేచ్ఛగా ఉండగలదని, దానిని ఎవరూ బలవంతంగా స్వాధీనం చేసుకోలేరని జమదగ్ని హితవు పలికాడు. దురహంకారంతో ఆ మాటలను పెడచెవిన పెట్టిన రాజు, ధేనువును మరియు దాని దూడను బలవంతంగా బంధించి తెమ్మని తన సైన్యాన్ని ఆదేశించాడు. అశక్తుడైన జమదగ్ని మహర్షి ఆ గోమాతను శరణువేడుతూ, "తల్లీ! నిన్ను రక్షించే శక్తి నాకు లేదు. నిన్ను నీవే రక్షించుకుని, నన్ను కూడా రక్షించు" అని ప్రార్థించాడు. వెంటనే ఆ హోమధేనువు రోమకూపం నుండి సర్వాయుధ సంపన్నుడైన దివ్యయోధుడు ఉద్భవించి, కార్తవీర్యార్జునుని సైన్యాన్ని క్షణమాత్రంలో తుదముట్టించాడు.</p>
+                      <p>తీవ్ర క్రోధంతో కార్తవీర్యార్జునుడు ఆశ్రమంపై యుద్ధానికి రాగా, జమదగ్ని కుమారుడైన పరశురాముడు అతడిని సమర్థవంతంగా ఎదుర్కొని ఓడించాడు. ప్రతీకారేచ్ఛతో రగిలిపోతున్న రాజు, పరశురాముడు ఆశ్రమంలో లేని సమయం చూసి దండెత్తి, తపోనిష్ఠలోనున్న జమదగ్ని మహర్షి శిరస్సును ఖండించి సంహరించాడు.</p>
+                      <p>ఆశ్రమానికి తిరిగివచ్చిన పరశురాముడు ఈ ఘోరాన్ని చూసి మహోదగ్రుడై కార్తవీర్యార్జునుని రాజ్యంపై విరుచుకుపడి, అతడి వేయి బాహువులను నరికి సంహరించాడు. అంతటితో ఆగక ఇరవై ఒక్క మార్లు భూప్రదక్షిణ చేసి దుష్ట క్షత్రియులను నిర్మూలించాడు. ఆ సమస్త భూమండలాన్ని బ్రహ్మ మానసపుత్రుడైన కశ్యప ప్రజాపతికి దానమిచ్చి, శమంతపంచక తీర్థంలో ఆ క్షత్రియ రక్తంతో తన పితృదేవుడైన జమదగ్నికి పితృతర్పణ గావించాడు.</p>
+                      <p>అనంతరం విశ్వశాంతిని, లోకకళ్యాణాన్ని కాంక్షిస్తూ — జరిగిన రక్తపాతానికి ప్రాయశ్చిత్తంగా — భారతావనిలోని 108 పవిత్ర పుణ్యక్షేత్రాలలో శివలింగాలను ప్రతిష్ఠించాడు. తాను కొన్ని లక్షల సంవత్సరాలుగా సంపాదించిన అపార తపోశక్తినంతటినీ ఒక్కొక్క లింగంలో నింపి, సర్వలోకాలకు శాంతిభద్రతలను నెలకొల్పాడు.</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="font-telugu-heading text-xl md:text-2xl text-[#C43E00] mb-3">ఇక్ష్వాద్రి మాహాత్మ్యం</p>
+                    <div className="space-y-4 text-lg md:text-xl text-[#621B00]">
+                      <p>పరశురాముడు ప్రతిష్ఠించిన 108 శివలింగాలలో అత్యంత విశిష్టమైన చివరి లింగమే ఈ <strong>చెరువుగట్టు క్షేత్రం</strong> (ఇక్ష్వాద్రి).</p>
+
+                      <div>
+                        <p className="font-telugu-heading text-lg md:text-xl font-semibold text-[#8B3A1A] mb-1">శివలింగ ప్రతిష్ఠాపన & తపోనిష్ఠ</p>
+                        <p>"శివాయ విష్ణురూపాయ శివరూపాయ విష్ణవే" అన్న ఆర్యోక్తి ప్రకారం శివుడూ, విష్ణువూ వేర్వేరు కాదు — ఒక్కరే. భూలోకంలో అధర్మాన్ని రూపుమాపి ధర్మాన్ని నిలబెట్టడానికి అవతరించిన సాక్షాత్తు శ్రీమహావిష్ణువు యొక్క దివ్యావతారమే పరశురాముడు. అలా శ్రీహరియే స్వయంగా పరశురాముని రూపంలో ఈ పుణ్యగిరిపై <strong>పశ్చిమాభిముఖంగా</strong> పరమ పవిత్ర శివలింగాన్ని ప్రతిష్ఠించి, లోకకళ్యాణార్థం యుగాల తరబడి కఠోర తపస్సును ఆచరించాడు.</p>
+                      </div>
+
+                      <div>
+                        <p className="font-telugu-heading text-lg md:text-xl font-semibold text-[#8B3A1A] mb-1">దివ్య సాక్షాత్కారము & శ్రీ జడల రామలింగేశ్వర స్వామి వారి ఆవిర్భావ విశేషం</p>
+                        <p>ఈ పుణ్యగిరిపై పరశురాముడు లక్షలాది సంవత్సరాలు అచంచల నిష్ఠతో తపస్సు ఆచరించినప్పటికీ శివుడు ప్రత్యక్షం కాలేదు. భక్తి పారవశ్యంతో కూడిన ఆవేదనతో, ఆగ్రహోదగ్రుడైన పరశురాముడు తాను ప్రతిష్ఠించిన శివలింగాన్ని తన పరశువుతో (గండ్రగొడ్డలి) బలంగా తాకించాడు. ఆ క్షణమే పరమశివుడు విరబోసిన జటామకుటంతో, పరమ తేజోవంతమైన రూపంలో సాక్షాత్కరించాడు. ఆ నిశ్చల భక్తికి మెచ్చిన భోళాశంకరుడు, "ఇన్ని సంవత్సరాలుగా నీవు చేసిన కఠోర తపస్సుకు సంతుష్టుడనయ్యాను. ఈ క్షేత్రం అత్యంత ప్రసిద్ధ పుణ్యక్షేత్రంగా వెలుగొందుతుంది. కలియుగాంతం వరకు నేనిక్కడే వెలసి, నా భక్తుల చిరకాల వాంఛితాలను తీరుస్తాను" అని వరమిచ్చి ఆ లింగమూర్తిలో అంతర్ధానమయ్యాడు. సాధారణంగా శివలింగాల పైభాగం నునుపుగా అండాకారంలో ఉంటుంది. కానీ ఇక్కడ పరశురాముని గండ్రగొడ్డలి తాకిడి వలన లింగ శిరోభాగంపై అర్ధచంద్రాకారపు గాటు ఏర్పడగా, వెనుకభాగంలో స్వామివారి విరబోసిన జటలు విలసిల్లినట్లు ఎగుడుదిగుడుగా అద్భుతమైన దివ్య ఆకృతి సంతరించుకుంది. అందుకే ఈ క్షేత్రేశ్వరునికి <strong>"శ్రీ జడల రామలింగేశ్వర స్వామి"</strong> అనే పరమ పవిత్ర నామధేయం సార్థకమైంది.</p>
+                      </div>
+
+                      <div>
+                        <p className="font-telugu-heading text-lg md:text-xl font-semibold text-[#8B3A1A] mb-1">గట్టు పైన కొలువైన ఇతర పరివార దేవతలు</p>
+                        <p>గట్టు ఎక్కు మార్గములో కోనేరు, గోగర్భం దాటి <strong>శ్రీ కాలభైరవ స్వామి</strong> కొలువైయుండగా, క్షేత్రపాలకునిగా ఆయనే గట్టుకు కాపలా. అటుపిమ్మట భక్తులు ప్రధాన ఆలయ సముదాయ ప్రవేశద్వారమునకు చేరుకొందురు, అక్కడ <strong>శ్రీ మహాగణపతి</strong> కొలువైయున్నారు. ప్రధాన దేవుని దర్శనానంతరం, మార్గము <strong>శ్రీ ఆంజనేయ స్వామి</strong>, <strong>శ్రీ రేణుకా ఎల్లమ్మ దేవి</strong> ఆలయములు దాటి మూడు గుండ్లకు చేరుకొనును. మూడు గుండ్ల శిఖరాగ్రమున పరమ పవిత్రమైన <strong>శ్రీ ఊర్ధ్వ లింగము</strong> కొలువై ఉండగా, మూడు గుండ్ల నిష్క్రమణ మార్గము ప్రక్కన <strong>శ్రీ పరశురామ లింగము</strong> మరియు దాని పక్కనే <strong>శ్రీ ఆత్మ లింగము</strong> కొలువైయున్నాయి. ఈ దివ్య ప్రదేశాలు భక్తుల సమస్త మనోభీష్టాలను నెరవేర్చే మహిమాన్విత స్థలాలుగా విశేష పూజలందుకుంటున్నాయి.</p>
+                      </div>
+
+                      <div>
+                        <p className="font-telugu-heading text-lg md:text-xl font-semibold text-[#8B3A1A] mb-1">గిరి దిగువ భాగం</p>
+                        <p>కొండ దిగువన శ్రీ పార్వతీ దేవి స్వయంభువుగా కొలువై ఉండగా, శ్రీ మల్లికార్జున స్వామి, సుబ్రహ్మణ్య స్వామి, శ్రీ భద్రకాళీ సమేత వీరభద్ర స్వామివార్లు పరివార దేవతలుగా భక్తులకు దర్శనమిస్తున్నారు.</p>
+                      </div>
+
+                      <div>
+                        <p className="font-telugu-heading text-lg md:text-xl font-semibold text-[#8B3A1A] mb-1">ఆరోగ్యప్రదాత &middot; దివ్య వైద్యుడు</p>
+                        <p>వేదవాఙ్మయంలో అత్యంత ఉత్కృష్టమైన శ్రీరుద్ర నమకంలో పరమశివుడిని <em>"ప్రథమో దైవ్యో భిషక్"</em> (దేవతలందరిలో ప్రథముడైన దివ్య వైద్యుడు) అని కీర్తించిన రీతిగా — ఇక్కడికి విచ్చేసే భక్తుల సకల శారీరక, మానసిక రుగ్మతలను, గ్రహదోషాలను నివారించే పరమ దివ్యవైద్యునిగా <strong>శ్రీ పార్వతీ జడల రామలింగేశ్వర స్వామి "ఆరోగ్యప్రదాత"గా</strong> కోట్లాది భక్తులచే నిత్యం పూజింపబడుతున్నారు.</p>
+                      </div>
+                    </div>
                   </div>
 
                   <hr className="my-12 border-[#E6DCCA]" />
@@ -342,67 +318,11 @@ export default function AboutTemple() {
         </section>
 
         {/* Significance */}
-        <section className="bg-[#D4AF37]/10 border border-[#D4AF37]/20 rounded-xl p-6 mt-10">
+        <section className="bg-[#D4AF37]/10 border border-[#D4AF37]/20 rounded-xl p-6">
           <h2 className="font-english-heading text-xl text-[#621B00] mb-1">Spiritual Significance</h2>
           <p className="font-telugu-heading text-base text-[#8D6E63] mb-4">ఆధ్యాత్మిక ప్రాముఖ్యత</p>
           <div className={`text-sm text-[#5D4037] leading-relaxed space-y-3 ${bodyFont}`}>
             {(te ? CONTENT.significance.te : CONTENT.significance.en).map((p, i) => <p key={i}>{p}</p>)}
-          </div>
-        </section>
-
-        {/* Deities of the Temple */}
-        <section className="bg-white border border-[#E6DCCA] rounded-xl p-6">
-          <h2 className="font-english-heading text-xl text-[#621B00] mb-1">Deities of the Temple</h2>
-          <p className="font-telugu-heading text-base text-[#8D6E63] mb-4">దేవస్థానంలో దేవతలు</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-[#5D4037]">
-            {CONTENT.deities.map((d, i) => (
-              <div key={i}>
-                {d.img && (
-                  <div className="aspect-[4/3] rounded-xl overflow-hidden mb-3 bg-[#FDFBF7] border border-[#E6DCCA]">
-                    <img src={d.img} alt={d.alt} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" loading="lazy" />
-                  </div>
-                )}
-                <p className={`font-medium text-[#2D1B0E] mb-2 ${te ? 'font-telugu-heading' : ''}`}>{te ? d.titleTe : d.titleEn}</p>
-                <p className={`leading-relaxed ${bodyFont}`}>{te ? d.te : d.en}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Parivara devatas, split by their actual location on the hill vs. at its foot */}
-          <div className="mt-8">
-            <p className={`text-sm font-medium text-[#2D1B0E] mb-3 ${te ? 'font-telugu-heading' : ''}`}>
-              {te ? 'పరివార దేవతలు — గట్టుమీద' : 'Parivara Devatas — Atop the Hill'}
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              {PARIVARA_HILL.map((p, i) => (
-                <figure key={i}>
-                  <div className="aspect-square rounded-xl overflow-hidden bg-[#FDFBF7] border border-[#E6DCCA]">
-                    <img src={p.img} alt={p.en} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" loading="lazy" />
-                  </div>
-                  <figcaption className={`mt-1.5 text-center text-xs text-[#8D6E63] ${te ? 'font-telugu-body' : ''}`}>
-                    {te ? p.te : p.en}
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-8">
-            <p className={`text-sm font-medium text-[#2D1B0E] mb-3 ${te ? 'font-telugu-heading' : ''}`}>
-              {te ? 'పరివార దేవతలు — గట్టు క్రింద' : 'Parivara Devatas — At the Foot of the Hill'}
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              {PARIVARA_FOOTHILL.map((p, i) => (
-                <figure key={i}>
-                  <div className="aspect-square rounded-xl overflow-hidden bg-[#FDFBF7] border border-[#E6DCCA]">
-                    <img src={p.img} alt={p.en} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" loading="lazy" />
-                  </div>
-                  <figcaption className={`mt-1.5 text-center text-xs text-[#8D6E63] ${te ? 'font-telugu-body' : ''}`}>
-                    {te ? p.te : p.en}
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
           </div>
         </section>
 
@@ -477,84 +397,6 @@ export default function AboutTemple() {
           </div>
         </section>
 
-        {/* How to Reach */}
-        <section id="timings" className="bg-white border border-[#E6DCCA] rounded-xl p-6 scroll-mt-24">
-          <h2 className="font-english-heading text-xl text-[#621B00] mb-1">How to Reach</h2>
-          <p className="font-telugu-heading text-base text-[#8D6E63] mb-4">ఎలా చేరుకోవాలి</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className={`space-y-3 text-sm text-[#5D4037] ${bodyFont}`}>
-              <div className="flex items-start gap-3">
-                <MapPin className="h-5 w-5 text-[#C43E00] shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium text-[#2D1B0E]">{te ? 'ప్రదేశము' : 'Location'}</p>
-                  <p>{te ? CONTENT.reach.locationTe : CONTENT.reach.locationEn}</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <Clock className="h-5 w-5 text-[#C43E00] shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium text-[#2D1B0E]">{te ? 'ఆలయ సమయములు' : 'Temple Timings'}</p>
-                  {(te ? CONTENT.reach.timingsTe : CONTENT.reach.timingsEn).map((l, i) => <p key={i}>{l}</p>)}
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <Phone className="h-5 w-5 text-[#C43E00] shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium text-[#2D1B0E]">{te ? 'పరిపాలన' : 'Administration'}</p>
-                  {(te ? CONTENT.reach.adminTe : CONTENT.reach.adminEn).map((l, i) => <p key={i}>{l}</p>)}
-                </div>
-              </div>
-            </div>
-            <div className={`text-sm text-[#5D4037] space-y-2 ${bodyFont}`}>
-              {CONTENT.reach.modes.map((m, i) => (
-                <p key={i}><strong>{te ? m.labelTe : m.labelEn}:</strong> {te ? m.te : m.en}</p>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Temple Administration & Location */}
-        <section id="administration" className="bg-white border border-[#E6DCCA] rounded-xl p-6 scroll-mt-24">
-          <h2 className="font-english-heading text-xl text-[#621B00] mb-1">Temple & Administration</h2>
-          <p className="font-telugu-heading text-base text-[#8D6E63] mb-4">దేవస్థానం - పరిపాలన</p>
-          <div className={`text-sm text-[#5D4037] leading-relaxed space-y-3 ${bodyFont}`}>
-            {(te ? CONTENT.admin.te : CONTENT.admin.en).map((p, i) => <p key={i}>{p}</p>)}
-          </div>
-
-          {/* Executive Officer - a government appointee overseeing the temple's
-              administration, kept apart from the Dharmakartha Mandali below. */}
-          <div className="mt-6 pt-6 border-t border-[#E6DCCA]">
-            <p className={`text-sm font-medium text-[#2D1B0E] mb-3 ${te ? 'font-telugu-heading' : ''}`}>
-              {te ? 'పరిపాలన' : 'Administration'}
-            </p>
-            <div className="flex flex-col gap-1 text-sm text-[#5D4037]">
-              <span className={te ? 'font-telugu-body' : ''}>{te ? EXECUTIVE_OFFICER.nameTe : EXECUTIVE_OFFICER.nameEn}</span>
-              <span className={`text-xs shrink-0 px-2 py-0.5 rounded-full w-fit text-[#8D6E63] ${te ? 'font-telugu-body' : ''}`}>
-                {te ? EXECUTIVE_OFFICER.roleTe : EXECUTIVE_OFFICER.roleEn}
-              </span>
-            </div>
-          </div>
-
-          {/* Dharmakartha Mandali - transcribed from the board at the temple office */}
-          <div className="mt-6 pt-6 border-t border-[#E6DCCA]">
-            <p className={`text-sm font-medium text-[#2D1B0E] mb-3 ${te ? 'font-telugu-heading' : ''}`}>
-              {te ? 'ధర్మకర్తల మండలి' : 'Dharmakartha Mandali (Board of Trustees)'}
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-[#5D4037]">
-              {TRUST_BOARD.map((m, i) => {
-                const isLast = i === TRUST_BOARD.length - 1;
-                return (
-                  <div key={i} className={`flex ${isLast ? 'flex-col sm:col-span-2' : 'items-baseline justify-between'} gap-1 sm:gap-3 py-1 border-b border-[#E6DCCA]/60`}>
-                    <span className={te ? 'font-telugu-body' : ''}>{i + 1}. {te ? m.nameTe : m.nameEn}</span>
-                    <span className={`text-xs shrink-0 px-2 py-0.5 rounded-full w-fit text-[#8D6E63] ${te ? 'font-telugu-body' : ''}`}>
-                      {te ? m.roleTe : m.roleEn}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
       </div>
 
       <Footer />

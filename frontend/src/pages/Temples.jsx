@@ -5,9 +5,10 @@ import { useT } from '@/contexts/LanguageContext';
 import { MapPin } from 'lucide-react';
 
 /* Locations confirmed against the temple's own hand-drawn layout maps
-   (hilltop sequence + access routes, and the Parvathi Devi Temple chamber
-   plan). Keep this in sync with AboutTemple.jsx's deities/PARIVARA content
-   if either changes. */
+   (hilltop sequence + access routes). Sri Parvathi Devi Temple has its own
+   page (ParvathiDeviTemple.jsx) - keep this in sync with that and with
+   VirtualYatra.jsx's HILLTOP_ROUTE if any changes; all three describe the
+   same walking order. */
 
 export default function Temples() {
   const { t, heading } = useT();
@@ -20,7 +21,7 @@ export default function Temples() {
       <div className="temple-gradient text-white py-12 md:py-20">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <h1 className={`${heading} wordmark-outline text-2xl md:text-4xl mb-2`} data-testid="temples-title">
-            {t('Temples of the Kshetram', 'క్షేత్రంలోని ఆలయములు')}
+            {t('Associated Temples', 'అనుబంధ ఆలయములు')}
           </h1>
           <p className="text-[#FFE0B2]/70 text-sm">
             {t('Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu', 'శ్రీ పార్వతీ జడల రామలింగేశ్వర స్వామి దేవస్థానం, చెరువుగట్టు')}
@@ -49,34 +50,37 @@ export default function Temples() {
               </p>
               <p className="leading-relaxed">
                 {t(
-                  'Sri Kalabhairava Swamy Temple stands right at the base of the steps — as Kshetrapalaka, he is the guardian of the hill\'s entrance. From there the path passes Sri Renuka Yellamma, then Sri Anjaneya Swamy, before reaching the Main Temple.',
-                  'మెట్ల మార్గపు మొదట్లోనే శ్రీ కాలభైరవ స్వామి ఆలయము కలదు — క్షేత్రపాలకుడుగా ఆయనే గట్టు ప్రవేశద్వారమునకు కాపలా. అటుపిమ్మట శ్రీ రేణుకా ఎల్లమ్మ, తదుపరి శ్రీ ఆంజనేయ స్వామి ఆలయములు దాటి ప్రధాన ఆలయమునకు చేరుకొందురు.'
+                  'From the Steps Path entrance (Vimana Gopuram), the path ends at the Koneru and Gogarbhamu, near which stands Sri Kalabhairava Swamy Temple — as Kshetrapalaka, he is the guardian of the hill. From there devotees reach the Main Temple Complex\'s entrance, where Sri Maha Ganapathi is stationed, before the Main Temple entrance itself.',
+                  'మెట్ల మార్గ ప్రవేశము (విమాన గోపురం) నుండి, మార్గము కోనేరు మరియు గోగర్భం వద్ద ముగియును. వాటికి సమీపమున శ్రీ కాలభైరవ స్వామి ఆలయము కలదు — క్షేత్రపాలకుడుగా ఆయనే గట్టుకు కాపలా. అటుపిమ్మట భక్తులు ప్రధాన ఆలయ సముదాయ ప్రవేశద్వారమునకు చేరుకొందురు, అక్కడ శ్రీ మహా గణపతి కొలువైయుండగా, తదుపరి ప్రధాన ఆలయ ప్రవేశము కలదు.'
                 )}
               </p>
             </div>
             <div className="bg-[#FDFBF7] border border-[#E6DCCA] rounded-lg p-4">
               <p className={`font-medium text-[#2D1B0E] mb-2`}>
-                {t('At the Main Temple entrance', 'ప్రధాన ఆలయ ప్రవేశద్వారము వద్ద')}
+                {t('After darshan of the Principal Deity', 'ప్రధాన దేవుని దర్శనం తరువాత')}
               </p>
               <p className="leading-relaxed">
                 {t(
-                  'Sri Ganapati is stationed right at the Main Temple\'s entrance. Nearby, on the west side of the temple, are Mudu Gundlu and the Kalyana Mandapam.',
-                  'ప్రధాన ఆలయ ప్రవేశద్వారము వద్దనే శ్రీ గణపతి కొలువైయున్నారు. ఆలయమునకు పశ్చిమాన మూడుగుండ్లు, కళ్యాణ మండపము కలవు.'
+                  'Exiting the Main Temple, the path passes Sri Anjaneya Swamy and then Sri Renuka Yellamma Devi on the way to Mudu Gundlu. West of the temple stand the Kalyana Mandapam and, beside Mudu Gundlu\'s exit path, Sri Parashurama Lingamu and Sri Aatma Lingamu.',
+                  'ప్రధాన ఆలయము నుండి నిష్క్రమించిన తరువాత, మార్గము శ్రీ ఆంజనేయ స్వామి, తదుపరి శ్రీ రేణుకా ఎల్లమ్మ దేవి ఆలయములు దాటి మూడుగుండ్లకు చేరుకొనును. ఆలయమునకు పశ్చిమాన కళ్యాణ మండపము, మూడుగుండ్ల నిష్క్రమణ మార్గము ప్రక్కన శ్రీ పరశురామ లింగము, శ్రీ ఆత్మ లింగము కలవు.'
                 )}
               </p>
             </div>
           </div>
 
-          {/* Shrines along the hill, in the order a devotee encounters them */}
+          {/* Shrines along the hill, in the order a devotee encounters them -
+              confirmed directly against the temple's own route; kept in sync
+              with VirtualYatra.jsx's HILLTOP_ROUTE. */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
             {[
-              { img: '/Assets/Steps_Way_Entrance.webp', en: 'Steps Path entrance', te: 'మెట్ల మార్గ ప్రవేశము' },
+              { img: '/Assets/Vimana_Gopuram_Steps_Entrance.webp', en: 'Steps Path entrance (Vimana Gopuram)', te: 'మెట్ల మార్గ ప్రవేశము (విమాన గోపురం)' },
+              { img: '/Assets/Sri_Swamy_Vari_Pushkarini_1.webp', en: 'Koneru', te: 'కోనేరు' },
               { img: '/Assets/Sri_Kalabhairava_Swamy.webp', en: 'Sri Kalabhairava Swamy', te: 'శ్రీ కాలభైరవ స్వామి' },
-              { img: '/Assets/Sri__Renuka_Yellmma_Temple_Back_View.webp', en: 'Sri Renuka Yellamma Temple', te: 'శ్రీ రేణుకా ఎల్లమ్మ ఆలయం' },
-              { img: '/Assets/Sri_Anjaneya_Swamy_Temple.webp', en: 'Sri Anjaneya Swamy Temple', te: 'శ్రీ ఆంజనేయ స్వామి ఆలయం' },
+              { img: '/Assets/Main_Temple_Gopuram.webp', en: 'Main Temple Complex entrance', te: 'ప్రధాన ఆలయ సముదాయ ప్రవేశం' },
+              { img: '/Assets/Maha_Ganapati_Statue.webp', en: 'Sri Maha Ganapathi', te: 'శ్రీ మహా గణపతి' },
               { img: '/Assets/Main_Temple_Entrance.webp', en: 'Main Temple entrance', te: 'ప్రధాన ఆలయ ప్రవేశము' },
-              { img: '/Assets/Main_Temple_Gopuram.webp', en: 'Main Temple Gopuram', te: 'ప్రధాన ఆలయ గోపురం' },
-              { img: '/Assets/Sri_Swamy_Vari_Pushkarini_1.webp', en: 'Swamy Vari Pushkarini', te: 'స్వామివారి పుష్కరిణి' },
+              { img: '/Assets/Sri_Anjaneya_Swamy_Temple.webp', en: 'Sri Anjaneya Swamy Temple', te: 'శ్రీ ఆంజనేయ స్వామి ఆలయం' },
+              { img: '/Assets/Sri__Renuka_Yellmma_Temple_Back_View.webp', en: 'Sri Renuka Yellamma Temple', te: 'శ్రీ రేణుకా ఎల్లమ్మ ఆలయం' },
               { img: '/Assets/Sri_Swamy_Vari_Padalu_Area.webp', en: 'Swamy Vari Padalu', te: 'స్వామివారి పాదాలు' },
             ].map((s, i) => (
               <figure key={i}>
@@ -97,6 +101,13 @@ export default function Temples() {
               <p className="leading-relaxed">
                 {t('At the true summit of the hill, above the Main Temple.', 'గట్టు యొక్క అత్యున్నత శిఖరమున, ప్రధాన ఆలయమునకు పైభాగమున కలదు.')}
               </p>
+              <p className="font-medium text-[#2D1B0E] mt-4 mb-1">{t('Sri Parashurama Lingamu & Sri Aatma Lingamu', 'శ్రీ పరశురామ లింగము & శ్రీ ఆత్మ లింగము')}</p>
+              <p className="leading-relaxed">
+                {t(
+                  'Beside the exit path of Mudu Gundlu — Sri Aatma Lingamu stands next to Sri Parashurama Lingamu.',
+                  'మూడు గుండ్ల నిష్క్రమణ మార్గము ప్రక్కన శ్రీ పరశురామ లింగము, దాని పక్కనే శ్రీ ఆత్మ లింగము కలవు.'
+                )}
+              </p>
             </div>
             <div>
               <div className="aspect-[4/3] rounded-xl overflow-hidden mb-3 bg-[#FDFBF7] border border-[#E6DCCA]">
@@ -106,11 +117,11 @@ export default function Temples() {
               <p className="leading-relaxed">
                 {t('South of Mudu Gundlu, near the Main Temple entrance and the walkway from the parking area.', 'మూడుగుండ్లకు దక్షిణాన, ప్రధాన ఆలయ ప్రవేశద్వారము మరియు పార్కింగ్ నుండి వచ్చు నడక మార్గమునకు సమీపమున కలదు.')}
               </p>
-              <p className="font-medium text-[#2D1B0E] mt-4 mb-1">{t('Swamy Vari Pushkarini & Gowgarbham', 'స్వామివారి పుష్కరిణి & గోగర్భం')}</p>
+              <p className="font-medium text-[#2D1B0E] mt-4 mb-1">{t('Koneru & Gogarbhamu', 'కోనేరు & గోగర్భం')}</p>
               <p className="leading-relaxed">
                 {t(
-                  'Near the top of the Steps Path stands the Pushkarini, the temple\'s sacred tank, with Gowgarbham adjoining it.',
-                  'మెట్ల మార్గపు పైభాగమున పుష్కరిణి కలదు, దాని ప్రక్కనే గోగర్భం కలదు.'
+                  'At the top of the Steps Path stands the Koneru, the temple\'s sacred tank, with Gogarbhamu adjoining it.',
+                  'మెట్ల మార్గపు పైభాగమున కోనేరు కలదు, దాని ప్రక్కనే గోగర్భం కలదు.'
                 )}
               </p>
               <p className="font-medium text-[#2D1B0E] mt-4 mb-1">{t('Swamy Vari Padalu (Hilltop)', 'స్వామివారి పాదాలు (గట్టుపైన)')}</p>
@@ -122,39 +133,6 @@ export default function Temples() {
               </p>
             </div>
           </div>
-        </section>
-
-        {/* Sri Parvathi Devi Temple */}
-        <section className="bg-white border border-[#E6DCCA] rounded-xl p-6">
-          <h2 className={`${heading} text-xl text-[#621B00] mb-1`}>{t('Sri Parvathi Devi Temple', 'శ్రీ పార్వతీ దేవి ఆలయం')}</h2>
-          <p className="text-xs text-[#8D6E63] mb-4 flex items-center gap-1"><MapPin className="h-3 w-3" /> {t('At the foot of the hill', 'గట్టు క్రింద')}</p>
-
-          <div className="aspect-[16/9] rounded-xl overflow-hidden mb-3 bg-[#FDFBF7] border border-[#E6DCCA]">
-            <img src="/Assets/Parvati_Devi_Temple_Panoramic_View_Down_Hill.webp" alt="Sri Parvathi Devi Temple at the foot of the hill" className="w-full h-full object-cover" loading="lazy" />
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-            {[
-              { img: '/Assets/Sri_Parvati_Devi_Temple_Arial_View.webp', en: 'Aerial view of the complex', te: 'ఆలయ ప్రాంగణ వైమానిక దృశ్యం' },
-              { img: '/Assets/Sri_Parvati_Devi_Temple_Inside_View.webp', en: 'Inside the complex', te: 'ఆలయ లోపలి దృశ్యం' },
-              { img: '/Assets/Parvati_Devi_1.webp', en: 'Sri Bhramarambha Devi', te: 'శ్రీ భ్రమరాంబ దేవి' },
-              { img: '/Assets/Mallikharjuna_Swamy_Down_Hill_1.webp', en: 'Sri Mallikarjuna Swamy', te: 'శ్రీ మల్లిఖార్జున స్వామి' },
-            ].map((s, i) => (
-              <figure key={i}>
-                <div className="aspect-square rounded-xl overflow-hidden bg-[#FDFBF7] border border-[#E6DCCA]">
-                  <img src={s.img} alt={s.en} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" loading="lazy" />
-                </div>
-                <figcaption className="mt-1.5 text-center text-xs text-[#8D6E63]">{t(s.en, s.te)}</figcaption>
-              </figure>
-            ))}
-          </div>
-
-          <p className="text-sm text-[#5D4037] leading-relaxed mb-4">
-            {t(
-              'The Main Entrance faces east, near the Dhwaja Sthambam. Inside, an internal entrance leads to a cluster of interconnected shrine chambers — Sri Bhramarambha Devi (Sri Parvathi Devi) and, connected to her by internal doorways through the Antharaalayam, Sri Mallikarjuna Swamy (a manifestation of the Swamy\'s own Shivalingam) and Sri Veerabhadra Swamy sametha Bhadrakali Devi. Sri Ganapati and Sri Subrahmanya Swamy are worshipped within the Antharaalayam itself. A circumambulation path (Pradakshina) runs around the whole cluster within the compound, ending at the exit on the south side.',
-              'ప్రధాన ప్రవేశద్వారము తూర్పు ముఖముగా, ధ్వజస్తంభమునకు సమీపమున కలదు. లోపల అంతర ప్రవేశద్వారము గుండా పరస్పరము తలుపులతో అనుసంధానించబడిన ఆలయ మందిరముల సముదాయమునకు చేరుకొందురు — శ్రీ భ్రమరాంబ దేవి (శ్రీ పార్వతీ అమ్మవారు), అంతరాళయము గుండా ఆమెతో అనుసంధానించబడిన శ్రీ మల్లిఖార్జున స్వామి (శ్రీ స్వామివారి శివలింగ స్వరూపమే), మరియు శ్రీ వీరభద్ర స్వామి సమేత భద్రకాళీ దేవి. అంతరాళయమునందే శ్రీ గణపతి, శ్రీ సుబ్రహ్మణ్య స్వామి కొలువైయున్నారు. ఈ సముదాయము చుట్టూ ప్రాంగణమునందు ప్రదక్షిణ మార్గము కలదు, ఇది దక్షిణదిశన నిష్క్రమణ ద్వారము వద్ద ముగియును.'
-            )}
-          </p>
         </section>
 
         {/* Sri Narasimha Swamy Temple */}

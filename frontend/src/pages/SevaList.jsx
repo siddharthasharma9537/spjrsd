@@ -7,7 +7,7 @@ import Footer from '@/components/Footer';
 import api from '@/lib/api';
 import LoadState from "@/components/LoadState";
 import { useT } from "@/contexts/LanguageContext";
-import { Clock, IndianRupee, ChevronRight, Globe } from 'lucide-react';
+import { Clock, IndianRupee, ChevronRight, Globe, Gift } from 'lucide-react';
 import { BOOKINGS_PAUSED } from '@/lib/bookingStatus';
 import { sortByPriority } from '@/lib/sevaSamagri';
 
@@ -90,6 +90,24 @@ export default function SevaList({ paroksha = false }) {
               </div>
             ))}
           </div>
+        )}
+
+        {/* Not a bookable seva on the schedule below - a standing yearly
+            subscription, so it gets a callout here rather than its own card
+            in the grid above. */}
+        {!paroksha && (
+          <Link
+            to="/aashirvachanam"
+            className="mt-8 flex items-center gap-3 bg-[#D4AF37]/10 border border-[#D4AF37]/20 rounded-xl p-5 hover:bg-[#D4AF37]/20 transition-colors"
+            data-testid="sevas-aashirvachanam-promo"
+          >
+            <Gift className="h-6 w-6 text-[#621B00] shrink-0" />
+            <div className="flex-1">
+              <p className="font-medium text-[#2D1B0E] text-sm">{t('Personalized Aashirvachanam', 'వ్యక్తిగత ఆశీర్వచనం')}</p>
+              <p className="text-xs text-[#8D6E63]">{t('Get a personalized blessing from the temple every year on your birthday or wedding anniversary', 'ప్రతి సంవత్సరం మీ పుట్టినరోజు లేదా వివాహ వార్షికోత్సవం రోజున దేవస్థానం నుండి వ్యక్తిగత ఆశీర్వచనం పొందండి')}</p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-[#C43E00] shrink-0" />
+          </Link>
         )}
       </div>
     </div>

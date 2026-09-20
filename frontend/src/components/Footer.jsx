@@ -34,20 +34,27 @@ export default function Footer() {
     'About': {
       te: 'గురించి',
       links: [
-        { to: '/about#history', label: 'History', labelTe: 'చరిత్ర' },
-        { to: '/about#administration', label: 'Temple Management', labelTe: 'ఆలయ నిర్వహణ' },
-        { to: '/about#festivals', label: 'Festivals', labelTe: 'పండుగలు' },
-        { to: '/about#timings', label: 'Timings', labelTe: 'సమయాలు' },
+        { to: '/about', label: 'History of Temple', labelTe: 'ఆలయ చరిత్ర' },
+        { to: '/parvathi-devi-temple', label: 'Sri Parvathi Devi Temple', labelTe: 'శ్రీ పార్వతీ దేవి ఆలయం' },
+        { to: '/temples', label: 'Associated Temples', labelTe: 'అనుబంధ ఆలయములు' },
+        { to: '/about/administration', label: 'Temple Administration', labelTe: 'ఆలయ నిర్వహణ' },
       ],
     },
-    'Sevas': {
-      te: 'సేవలు',
+    'Sevas & Booking': {
+      te: 'సేవలు & బుకింగ్',
       links: [
         { to: '/sevas', label: 'Pratyaksha Seva', labelTe: 'ప్రత్యక్ష సేవ' },
         { to: '/paroksha-seva', label: 'Paroksha Seva', labelTe: 'పరోక్ష సేవ' },
-        { to: '/aashirvachanam', label: 'Personalized Aashirvachanam', labelTe: 'వ్యక్తిగత ఆశీర్వచనం' },
-        { to: '/stotrams', label: 'Stotrams', labelTe: 'స్తోత్రాలు' },
+        { to: '/booking/quick', label: 'Quick Booking', labelTe: 'త్వరిత బుకింగ్' },
+        { to: '/accommodation', label: 'Accommodation', labelTe: 'వసతి' },
         { to: '/print-ticket', label: 'Print a Ticket', labelTe: 'టికెట్ ప్రింట్ చేయండి' },
+      ],
+    },
+    'Devotional Resources': {
+      te: 'ఆధ్యాత్మిక వనరులు',
+      links: [
+        { to: '/panchangam', label: 'Panchangam', labelTe: 'పంచాంగం' },
+        { to: '/stotrams', label: 'Stotrams', labelTe: 'స్తోత్రాలు' },
       ],
     },
     'Donations': {
@@ -55,14 +62,6 @@ export default function Footer() {
       links: [
         { to: '/donations', label: 'e-Hundi', labelTe: 'ఇ-హుండీ' },
         { to: '/donations/annaprasadam', label: 'Annadanam', labelTe: 'అన్నదానం' },
-      ],
-    },
-    'Online Booking': {
-      te: 'ఆన్‌లైన్ బుకింగ్',
-      links: [
-        { to: '/booking/quick', label: 'Quick Booking', labelTe: 'త్వరిత బుకింగ్' },
-        { to: '/sevas', label: 'Seva Booking', labelTe: 'సేవ బుకింగ్' },
-        { to: '/accommodation', label: 'Accommodation', labelTe: 'వసతి' },
       ],
     },
     'Media Room': {
@@ -80,6 +79,7 @@ export default function Footer() {
         { to: '/support/contact', label: 'Contact Us', labelTe: 'సంప్రదించండి' },
         { to: '/support/faq', label: 'FAQ', labelTe: 'తరచుగా అడిగే ప్రశ్నలు' },
         { to: '/volunteer', label: 'Volunteer', labelTe: 'స్వచ్ఛంద సేవ' },
+        { to: '/support/how-to-reach', label: 'How to Reach', labelTe: 'ఎలా చేరుకోవాలి' },
       ],
     },
   };
