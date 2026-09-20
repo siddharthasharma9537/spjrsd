@@ -12,6 +12,11 @@ Answers are grounded in a snapshot of live Mongo content assembled fresh on
 every call (see _fetch_context) rather than a fixed/cached prompt, so a
 change an admin makes in the dashboard (a new seva price, a new panchangam
 entry) is reflected on the very next question - there is no reindexing step.
+That snapshot only covers panchangam/festival data for today plus the next 60
+days (a hard window would keep growing the prompt forever otherwise); for a
+date or festival further out, the model calls the lookup_panchangam tool
+(passed directly as a Gemini automatic-function-calling tool - see ask())
+instead of guessing.
 
 Sthala Puranam (the temple's history) is NOT included below: it currently
 only exists as hardcoded JSX in frontend/src/pages/AboutTemple.jsx, not in
@@ -23,7 +28,8 @@ page's markup. Move it into a database collection (e.g. a singleton
 
 import logging
 import os
-from datetime import datetime, timezone
+import re
+from datetime import datetime, timedelta, timezone
 
 from google import genai
 from google.genai import types
@@ -52,9 +58,13 @@ and general spiritual questions. Reply in the same language the devotee
 writes in (English or Telugu); if unsure, default to English.
 
 Ground every factual answer - especially prices, timings, and dates - only in
-the CONTEXT block below. If something isn't in it, say plainly that you don't
-have that information and suggest the devotee call the temple office or check
-{SITE}, rather than guessing or estimating.
+the CONTEXT block below or in a lookup_panchangam tool call, never guess or
+estimate. The CONTEXT's panchangam/festival data only covers today plus the
+next 60 days; for a date or festival outside that window, call
+lookup_panchangam instead of saying you don't have the information. Only
+after a lookup_panchangam call also finds nothing should you tell the devotee
+you don't have that information and suggest they call the temple office or
+check {SITE}.
 
 You must NEVER say a seva has been booked, a donation has been made, or an
 accommodation has been reserved - you have no ability to do any of these.
@@ -69,6 +79,12 @@ Keep answers short and conversational - this is a chat, not an essay."""
 async def _fetch_context() -> str:
     """Assemble a compact text snapshot of the live content to ground on."""
     today = datetime.now(timezone.utc).date().isoformat()
+    # A count-based cap here can starve out the very day a devotee is asking
+    # about: a dense festival season (e.g. Navaratri has a named observance
+    # almost every day) can fill a small cap before reaching the festival at
+    # the end of it, like Vijaya Dashami. Bounding by date range instead - the
+    # to_list cap just guards against a data-entry mistake filling every day.
+    horizon = (datetime.now(timezone.utc).date() + timedelta(days=60)).isoformat()
 
     sevas = await db.sevas.find(
         {"active_flag": True},
@@ -85,9 +101,9 @@ async def _fetch_context() -> str:
     panchangam_today = await db.panchangam.find_one({"date": today}, {"_id": 0})
 
     upcoming_special_days = await db.panchangam.find(
-        {"date": {"$gte": today}, "special_note": {"$nin": [None, ""]}},
+        {"date": {"$gte": today, "$lte": horizon}, "special_note": {"$nin": [None, ""]}},
         {"_id": 0, "date": 1, "special_note": 1, "special_note_telugu": 1},
-    ).sort("date", 1).to_list(10)
+    ).sort("date", 1).to_list(60)
 
     recent_news = await db.news.find(
         {"active_flag": True},
@@ -159,6 +175,54 @@ async def _fetch_context() -> str:
     return "\n".join(lines)
 
 
+def _format_panchangam_doc(date: str, doc: dict) -> str:
+    lines = [f"Panchangam for {date}:"]
+    for key in ("vaaram", "masa", "paksha", "tithi", "nakshatra", "yoga", "karana",
+                "sunrise", "sunset", "rahu_kalam", "yamagandam", "gulika_kalam"):
+        value = doc.get(key)
+        if value:
+            lines.append(f"- {key}: {value}")
+    if doc.get("special_note"):
+        lines.append(f"- special note: {doc['special_note']} ({doc.get('special_note_telugu', '')})")
+    return "\n".join(lines)
+
+
+# Passed directly as a tool to Gemini (see ask() below) - the SDK builds the
+# function-calling schema from this signature and docstring, and calls it
+# itself when the model decides it needs a date/festival outside the 60-day
+# window already in CONTEXT. Plain str params with "" defaults rather than
+# Optional[str], since automatic function calling schema inference is least
+# error-prone with simple signatures.
+async def lookup_panchangam(date: str = "", keyword: str = "") -> str:
+    """Look up panchangam or festival/special-day details for a date or
+    occasion not already covered by the CONTEXT block (which only covers
+    today plus the next 60 days). Provide exactly one of the two arguments.
+
+    Args:
+        date: An exact date to look up, in YYYY-MM-DD format.
+        keyword: A festival or occasion name to search for, e.g. "Ugadi" or "Diwali".
+    """
+    if date:
+        doc = await db.panchangam.find_one({"date": date}, {"_id": 0})
+        if not doc:
+            return f"No panchangam entry found for {date}."
+        return _format_panchangam_doc(date, doc)
+
+    if keyword:
+        pattern = re.compile(re.escape(keyword), re.IGNORECASE)
+        docs = await db.panchangam.find(
+            {"$or": [{"special_note": pattern}, {"special_note_telugu": pattern}]},
+            {"_id": 0, "date": 1, "special_note": 1, "special_note_telugu": 1},
+        ).sort("date", 1).to_list(20)
+        if not docs:
+            return f"No panchangam entries found matching '{keyword}'."
+        return "\n".join(
+            f"- {d['date']}: {d.get('special_note')} ({d.get('special_note_telugu', '')})" for d in docs
+        )
+
+    return "Provide either a date (YYYY-MM-DD) or a keyword to search for."
+
+
 async def ask(message: str, history: list[dict] | None = None) -> str:
     """Answer one devotee message, grounded in live temple data.
 
@@ -191,6 +255,7 @@ async def ask(message: str, history: list[dict] | None = None) -> str:
             config=types.GenerateContentConfig(
                 system_instruction=f"{SYSTEM_PROMPT}\n\nCONTEXT:\n{context}",
                 max_output_tokens=MAX_TOKENS,
+                tools=[lookup_panchangam],
             ),
         )
     except APIError as exc:
