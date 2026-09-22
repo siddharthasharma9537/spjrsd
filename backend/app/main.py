@@ -2841,9 +2841,17 @@ async def _build_panchangam_digest():
     return subject, "".join(parts)
 
 @api_router.post("/cron/panchangam-digest")
-async def cron_send_panchangam_digest(request: Request):
+async def cron_send_panchangam_digest(request: Request, test_email: Optional[str] = None):
     if not CRON_SECRET or request.headers.get("X-Cron-Secret") != CRON_SECRET:
         raise HTTPException(status_code=401, detail="Invalid or missing cron secret")
+
+    # test_email sends the real, current digest content to a single address only,
+    # bypassing the newsletter list entirely - for previewing what subscribers
+    # would actually receive without emailing them.
+    if test_email:
+        subject, message = await _build_panchangam_digest()
+        await send_email_via_msg91([{"email": test_email}], subject=subject, message=message)
+        return {"message": "Test digest sent", "sent": 1, "to": test_email, "subject": subject}
 
     subscribers = await db.newsletter.find({}, {"_id": 0, "email": 1}).to_list(None)
     if not subscribers:
