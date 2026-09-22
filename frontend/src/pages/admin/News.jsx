@@ -8,14 +8,14 @@ export default function AdminNews() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ title: '', title_telugu: '', content: '', content_telugu: '', is_important: false, active_flag: true });
+  const [form, setForm] = useState({ title: '', title_telugu: '', content: '', content_telugu: '', is_important: false, active_flag: true, event_date: '' });
 
   const load = () => api.get('/news?active_only=false').then(r => { setItems(r.data); setLoading(false); });
   useEffect(() => { load(); }, []);
 
-  const resetForm = () => { setForm({ title: '', title_telugu: '', content: '', content_telugu: '', is_important: false, active_flag: true }); setEditing(null); setShowForm(false); };
+  const resetForm = () => { setForm({ title: '', title_telugu: '', content: '', content_telugu: '', is_important: false, active_flag: true, event_date: '' }); setEditing(null); setShowForm(false); };
 
-  const handleEdit = (n) => { setForm({ title: n.title, title_telugu: n.title_telugu || '', content: n.content, content_telugu: n.content_telugu || '', is_important: n.is_important, active_flag: n.active_flag }); setEditing(n.id); setShowForm(true); };
+  const handleEdit = (n) => { setForm({ title: n.title, title_telugu: n.title_telugu || '', content: n.content, content_telugu: n.content_telugu || '', is_important: n.is_important, active_flag: n.active_flag, event_date: n.event_date || '' }); setEditing(n.id); setShowForm(true); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -46,6 +46,11 @@ export default function AdminNews() {
             </div>
             <div><label className="block text-xs font-medium text-[#5D4037] mb-1">Content (English)</label><textarea className={`${inputCls} h-24 py-2`} value={form.content} onChange={e => setForm({...form, content: e.target.value})} required /></div>
             <div><label className="block text-xs font-medium text-[#5D4037] mb-1">Content (Telugu)</label><textarea className={`${inputCls} h-24 py-2`} value={form.content_telugu} onChange={e => setForm({...form, content_telugu: e.target.value})} /></div>
+            <div>
+              <label className="block text-xs font-medium text-[#5D4037] mb-1">Event date (optional)</label>
+              <input type="date" className={inputCls} value={form.event_date} onChange={e => setForm({...form, event_date: e.target.value})} />
+              <p className="text-xs text-[#8D6E63] mt-1">The date this announcement is ABOUT (e.g. a festival day) - not when it's posted. Once this date passes, the item auto-hides from the site and weekly digest, even if left Active. Leave blank for announcements with no expiry (e.g. Paroksha Seva).</p>
+            </div>
             <div className="flex gap-4">
               <label className="flex items-center gap-2 text-sm text-[#5D4037]"><input type="checkbox" checked={form.is_important} onChange={e => setForm({...form, is_important: e.target.checked})} /> Important</label>
               <label className="flex items-center gap-2 text-sm text-[#5D4037]"><input type="checkbox" checked={form.active_flag} onChange={e => setForm({...form, active_flag: e.target.checked})} /> Active</label>

@@ -569,6 +569,11 @@ class NewsCreate(BaseModel):
     content_telugu: Optional[str] = ""
     is_important: bool = False
     active_flag: bool = True
+    # The date this announcement is ABOUT (e.g. a festival day), not when it was
+    # posted. Once this date is in the past, the item is auto-excluded from the
+    # public news list and the weekly digest even if active_flag is still true -
+    # so a "Tomorrow is the main day" announcement can't outlive its own event.
+    event_date: Optional[str] = None
 
 class NewsUpdate(BaseModel):
     title: Optional[str] = None
@@ -577,6 +582,7 @@ class NewsUpdate(BaseModel):
     content_telugu: Optional[str] = None
     is_important: Optional[bool] = None
     active_flag: Optional[bool] = None
+    event_date: Optional[str] = None
 
 class GalleryCreate(BaseModel):
     title: str
@@ -1988,7 +1994,11 @@ async def update_acc_booking_status(booking_id: str, data: BookingStatusUpdate, 
 @api_router.get("/news")
 async def list_news(active_only: bool = True):
     query = {"active_flag": True} if active_only else {}
-    return await db.news.find(query, {"_id": 0}).sort("created_at", -1).to_list(50)
+    items = await db.news.find(query, {"_id": 0}).sort("created_at", -1).to_list(50)
+    if active_only:
+        today = datetime.now(IST).date().isoformat()
+        items = [n for n in items if not n.get("event_date") or n["event_date"] >= today]
+    return items
 
 @api_router.get("/news/{news_id}")
 async def get_news(news_id: str):
@@ -2749,7 +2759,8 @@ async def _build_panchangam_digest():
         if segments:
             special_days.append({"date": d["date"], "note": ", ".join(segments)})
 
-    news_items = await db.news.find({"active_flag": True}, {"_id": 0, "title": 1}).sort("created_at", -1).to_list(5)
+    news_items = await db.news.find({"active_flag": True}, {"_id": 0, "title": 1, "event_date": 1}).sort("created_at", -1).to_list(10)
+    news_items = [n for n in news_items if not n.get("event_date") or n["event_date"] >= today.isoformat()][:5]
 
     # Inline-styled HTML matching the site's own maroon/gold palette, with the
     # real temple deity image (already hosted on the live site) as the header
