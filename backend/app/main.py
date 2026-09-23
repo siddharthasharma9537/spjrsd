@@ -99,11 +99,22 @@ api_router = APIRouter(prefix="/api")
 # Capability manifest for the SoHum/Vani API contract (see
 # github.com/SoHum-Digital-Services/sohum-contracts,
 # docs/SOHUM_VANI_CONTRACT.md) -- lets a cross-product assistant discover
-# this API's actions without hardcoding them. Read-only for now: booking
-# a seva (POST /api/bookings) marks payment_status "Paid" unconditionally,
-# since this temple uses manual UPI payment reconciled by staff rather than
-# an integrated gateway -- an agent-initiated booking needs a real payment-
-# verification decision before it's added here as a write action.
+# this API's actions without hardcoding them.
+#
+# book_seva is listed with status "blocked_on_auth" and no live
+# propose/confirm endpoints -- it's documentation of the intended design,
+# not a callable action yet. POST /api/bookings requires an authenticated
+# devotee (get_current_devotee, a Darshan-issued JWT); there's no SoHum-
+# wide shared identity yet, so Vani has no way to obtain a given person's
+# Darshan session to book on their behalf. Design, once unblocked: propose
+# returns the seva/slot summary plus the UPI payment details (this temple
+# uses manual UPI payment reconciled by staff, not a gateway -- the
+# website's own booking flow already marks payment_status "Paid" on
+# submission without verifying the transfer landed, so confirm would
+# inherit that same trust level, not a new one) with
+# requires_payment_confirmation=true and explicit text that payment is
+# not verified automatically; confirm calls the existing POST
+# /api/bookings, inheriting its slot-quota race protection for free.
 DARSHAN_MANIFEST = {
     "product": "darshan",
     "version": "1.0",
@@ -145,6 +156,31 @@ DARSHAN_MANIFEST = {
             "method": "GET",
             "path": "/api/slots/available",
             "params": {"seva_id": "string", "date": "string (YYYY-MM-DD)"},
+        },
+        {
+            "name": "book_seva",
+            "kind": "write",
+            "status": "blocked_on_auth",
+            "blocked_reason": (
+                "Requires an authenticated devotee (Darshan-issued JWT via "
+                "get_current_devotee). No SoHum-wide shared identity exists "
+                "yet for Vani to obtain a given person's Darshan session. "
+                "Not callable until that's resolved."
+            ),
+            "description": "Book a seva for a devotee at a specific slot",
+            "propose": {"method": "POST", "path": "/api/bookings/propose"},
+            "confirm": {"method": "POST", "path": "/api/bookings/confirm"},
+            "params": {
+                "seva_id": "string",
+                "slot_id": "string",
+                "for_date": "string (YYYY-MM-DD)",
+                "number_of_persons": "integer (optional, default 1)",
+                "gotram": "string",
+                "is_paroksha": "boolean (optional, default false)",
+                "nakshatra": "string (optional)",
+                "rashi": "string (optional)",
+            },
+            "requires_payment_confirmation": True,
         },
     ],
 }
