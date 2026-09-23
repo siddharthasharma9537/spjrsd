@@ -95,6 +95,66 @@ app.add_middleware(
     allow_headers=["*"],
 )
 api_router = APIRouter(prefix="/api")
+
+# Capability manifest for the SoHum/Vani API contract (see
+# github.com/SoHum-Digital-Services/sohum-contracts,
+# docs/SOHUM_VANI_CONTRACT.md) -- lets a cross-product assistant discover
+# this API's actions without hardcoding them. Read-only for now: booking
+# a seva (POST /api/bookings) marks payment_status "Paid" unconditionally,
+# since this temple uses manual UPI payment reconciled by staff rather than
+# an integrated gateway -- an agent-initiated booking needs a real payment-
+# verification decision before it's added here as a write action.
+DARSHAN_MANIFEST = {
+    "product": "darshan",
+    "version": "1.0",
+    "actions": [
+        {
+            "name": "list_sevas",
+            "kind": "read",
+            "description": "List sevas offered by the temple",
+            "method": "GET",
+            "path": "/api/sevas",
+            "params": {
+                "active_only": "boolean (optional, default true)",
+                "paroksha": "boolean (optional) -- filter to remote/proxy-performable sevas",
+            },
+        },
+        {
+            "name": "get_seva",
+            "kind": "read",
+            "description": "Get a single seva's details (price, duration, prasadam entitlement, etc.)",
+            "method": "GET",
+            "path": "/api/sevas/{seva_id}",
+            "params": {"seva_id": "string"},
+        },
+        {
+            "name": "list_schedule_slots",
+            "kind": "read",
+            "description": "List schedule slots, optionally filtered by seva or day profile",
+            "method": "GET",
+            "path": "/api/schedule-slots",
+            "params": {
+                "seva_id": "string (optional)",
+                "profile_id": "string (optional)",
+            },
+        },
+        {
+            "name": "get_available_slots",
+            "kind": "read",
+            "description": "Get open (non-full) slots for a seva on a given date",
+            "method": "GET",
+            "path": "/api/slots/available",
+            "params": {"seva_id": "string", "date": "string (YYYY-MM-DD)"},
+        },
+    ],
+}
+
+
+@api_router.get("/manifest")
+async def manifest() -> dict:
+    return DARSHAN_MANIFEST
+
+
 security = HTTPBearer(auto_error=False)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
