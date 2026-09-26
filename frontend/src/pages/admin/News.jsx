@@ -58,8 +58,8 @@ export default function AdminNews() {
             {!editing && (
               <div>
                 <div className="flex gap-4">
-                  <label className="flex items-center gap-2 text-sm text-[#5D4037]"><input type="checkbox" checked={form.post_to_google} onChange={e => setForm({...form, post_to_google: e.target.checked})} data-testid="news-post-google" /> Also post to Google Business Profile</label>
-                  <label className="flex items-center gap-2 text-sm text-[#5D4037]"><input type="checkbox" checked={form.post_to_facebook} onChange={e => setForm({...form, post_to_facebook: e.target.checked})} data-testid="news-post-facebook" /> Also post to Facebook</label>
+                  <label className="flex items-center gap-2 text-sm text-[#5D4037]"><input type="checkbox" checked={form.post_to_google} onChange={e => setForm({...form, post_to_google: e.target.checked})} data-testid="news-post-google" /> Google Business Page</label>
+                  <label className="flex items-center gap-2 text-sm text-[#5D4037]"><input type="checkbox" checked={form.post_to_facebook} onChange={e => setForm({...form, post_to_facebook: e.target.checked})} data-testid="news-post-facebook" /> Facebook Post</label>
                 </div>
                 <p className="text-xs text-[#8D6E63] mt-1">Sent when the news is created, and only if it is Active. Editing later does not re-post, and deleting here does not remove the Google or Facebook copy.</p>
               </div>
