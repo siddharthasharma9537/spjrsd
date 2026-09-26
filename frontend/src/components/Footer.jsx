@@ -178,6 +178,7 @@ export default function Footer() {
           <div className="flex gap-3 mt-2 sm:mt-0">
             <Link to="/support/contact" className="hover:text-[#D4AF37]">{t('Contact', 'సంప్రదించండి')}</Link>
             <Link to="/support/faq" className="hover:text-[#D4AF37]">{t('FAQ', 'తరచుగా అడిగే ప్రశ్నలు')}</Link>
+            <Link to="/privacy" className="hover:text-[#D4AF37]">{t('Privacy', 'గోప్యతా విధానం')}</Link>
           </div>
         </div>
       </div>

@@ -40,6 +40,7 @@ import LiveBlogDetail from "@/pages/LiveBlogDetail";
 import VideoGallery from "@/pages/VideoGallery";
 import ContactUs from "@/pages/ContactUs";
 import FAQ from "@/pages/FAQ";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
 import Volunteer from "@/pages/Volunteer";
 import Aashirvachanam from "@/pages/Aashirvachanam";
 import QuickBooking from "@/pages/QuickBooking";
@@ -110,6 +111,7 @@ const ROUTE_META = [
   ['/gallery', { title: 'Photo Gallery', description: 'Photographs of the temple, festivals and Brahmotsavams at Cheruvugattu.' }],
   ['/support/contact', { title: 'Contact Us', description: 'Temple address, Executive Officer contact number, office hours and enquiry form.' }],
   ['/support/faq', { title: 'Frequently Asked Questions', description: 'Answers about seva booking, donations, 80G receipts, accommodation and temple timings.' }],
+  ['/privacy', { title: 'Privacy Policy', description: 'What personal information the Cheruvugattu temple website and WhatsApp service collect, how it is used, and how to contact us.' }],
   ['/support/how-to-reach', { title: 'How to Reach', description: 'Location, temple timings, and road/rail/air directions to Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu.' }],
   ['/volunteer', { title: 'Volunteer', description: 'Register to volunteer at Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu.' }],
   ['/aashirvachanam', { title: 'Personalized Aashirvachanam', description: 'Sign up for a personalized blessing email from the temple on your birthday or wedding anniversary, every year.' }],
@@ -207,6 +209,7 @@ function App() {
           <Route path="/print-ticket" element={<TicketLookup />} />
           <Route path="/support/contact" element={<ContactUs />} />
           <Route path="/support/faq" element={<FAQ />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/support/helpdesk" element={<ContactUs />} />
           <Route path="/volunteer" element={<Volunteer />} />
           <Route path="/aashirvachanam" element={<Aashirvachanam />} />
