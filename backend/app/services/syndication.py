@@ -60,6 +60,10 @@ GBP_REFRESH_TOKEN = os.environ.get('GBP_REFRESH_TOKEN')
 
 TIMEOUT_SECONDS = 10
 
+# Google rejects a post summary over 1,500 characters; Facebook's limit is far
+# higher, so only the Google copy is shortened.
+GBP_SUMMARY_LIMIT = 1500
+
 FACEBOOK_STATS_CACHE_SECONDS = 12 * 60 * 60
 _facebook_stats_cache = {'fetched_at': 0, 'data': None}
 
@@ -163,7 +167,19 @@ def _gbp_access_token():
     return response.json()['access_token']
 
 
+def _truncate(text, limit):
+    """Shorten text to `limit` characters at a word boundary, ending in an ellipsis."""
+    if len(text) <= limit:
+        return text
+    cut = text[:limit - 1]
+    space = cut.rfind(' ')
+    if space > limit // 2:
+        cut = cut[:space]
+    return cut.rstrip() + '…'
+
+
 def _post_to_google_business_profile(message, link):
+    message = _truncate(message, GBP_SUMMARY_LIMIT)
     access_token = _gbp_access_token()
     response = requests.post(
         f'https://mybusiness.googleapis.com/v4/accounts/{GBP_ACCOUNT_ID}/locations/{GBP_LOCATION_ID}/localPosts',
