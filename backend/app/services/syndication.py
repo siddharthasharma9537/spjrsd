@@ -26,6 +26,26 @@ import requests
 
 logger = logging.getLogger(__name__)
 
+
+def _safe_error(exc):
+    """Describe a failed request without leaking its URL.
+
+    requests puts the full URL, query string included, in its exception text,
+    and the Facebook stats call carries the Page access token there - so an
+    unfiltered `%s` of the exception (or logger.exception's traceback) wrote
+    a live token into the logs. The response body is what actually says why
+    it failed (e.g. Google's invalid_grant), and it carries no secrets.
+    """
+    response = getattr(exc, 'response', None)
+    if response is None:
+        return type(exc).__name__
+    try:
+        body = response.json()
+    except ValueError:
+        body = response.text
+    return f'HTTP {response.status_code}: {str(body)[:300]}'
+
+
 SITE_URL = os.environ.get('SITE_URL', 'https://cheruvugattu.online').rstrip('/')
 
 FB_PAGE_ID = os.environ.get('FB_PAGE_ID')
@@ -101,8 +121,8 @@ def get_facebook_page_stats():
             'followers_count': payload.get('followers_count'),
             'picture_url': (payload.get('picture') or {}).get('data', {}).get('url'),
         }
-    except Exception:
-        logger.exception('Failed to fetch Facebook page stats')
+    except Exception as exc:
+        logger.error('Failed to fetch Facebook page stats: %s', _safe_error(exc))
         return _facebook_stats_cache['data']
 
     _facebook_stats_cache['fetched_at'] = time.time()
@@ -183,7 +203,7 @@ def publish(item, path='/news'):
                 post_id = _post_to_facebook(message, link)
             logger.info('Mirrored %s to Facebook post %s', item.get('id'), post_id)
         except requests.RequestException as exc:
-            logger.error('Facebook syndication failed for %s: %s', item.get('id'), exc)
+            logger.error('Facebook syndication failed for %s: %s', item.get('id'), _safe_error(exc))
     else:
         logger.info('Facebook syndication is not configured; skipping %s', item.get('id'))
 
@@ -192,6 +212,6 @@ def publish(item, path='/news'):
             post_name = _post_to_google_business_profile(message, link)
             logger.info('Mirrored %s to Google Business Profile post %s', item.get('id'), post_name)
         except requests.RequestException as exc:
-            logger.error('Google Business Profile syndication failed for %s: %s', item.get('id'), exc)
+            logger.error('Google Business Profile syndication failed for %s: %s', item.get('id'), _safe_error(exc))
     else:
         logger.info('Google Business Profile syndication is not configured; skipping %s', item.get('id'))
