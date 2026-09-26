@@ -670,6 +670,10 @@ class NewsCreate(BaseModel):
     # public news list and the weekly digest even if active_flag is still true -
     # so a "Tomorrow is the main day" announcement can't outlive its own event.
     event_date: Optional[str] = None
+    # Per-post choice of which outside channels to mirror to. Not stored on the
+    # news item - they only steer the one-off syndication at creation time.
+    post_to_google: bool = True
+    post_to_facebook: bool = True
 
 class NewsUpdate(BaseModel):
     title: Optional[str] = None
@@ -2105,13 +2109,16 @@ async def get_news(news_id: str):
 
 @api_router.post("/admin/news")
 async def create_news(data: NewsCreate, background_tasks: BackgroundTasks, user=Depends(require_permission("news:create"))):
-    item = {"id": str(uuid.uuid4()), **data.model_dump(), "created_at": datetime.now(timezone.utc).isoformat()}
+    item = {"id": str(uuid.uuid4()), **data.model_dump(exclude={"post_to_google", "post_to_facebook"}), "created_at": datetime.now(timezone.utc).isoformat()}
     await db.news.insert_one(item)
     result = {k: v for k, v in item.items() if k != "_id"}
     # Mirror to the temple's other channels after the response is sent, so a slow
     # or failing channel never delays or breaks publishing here.
     if item.get("active_flag"):
-        background_tasks.add_task(syndication.publish, result, f"/news/{item['id']}")
+        background_tasks.add_task(
+            syndication.publish, result, f"/news/{item['id']}",
+            facebook=data.post_to_facebook, google=data.post_to_google,
+        )
     return result
 
 @api_router.put("/admin/news/{news_id}")

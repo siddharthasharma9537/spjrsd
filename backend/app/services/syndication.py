@@ -196,11 +196,12 @@ def _post_to_google_business_profile(message, link):
     return response.json().get('name')
 
 
-def publish(item, path='/news'):
+def publish(item, path='/news', facebook=True, google=True):
     """Mirror one news or live blog item to every configured channel.
 
     `path` is the site path the mirrored post links back to - the item's own
-    detail page, e.g. '/news/{id}' or '/live-blog/{id}'. Safe to call from a
+    detail page, e.g. '/news/{id}' or '/live-blog/{id}'. `facebook` and `google`
+    let the admin opt a single post out of a channel. Safe to call from a
     background task: it raises nothing.
     """
     message = render(item)
@@ -211,7 +212,9 @@ def publish(item, path='/news'):
     link = f'{SITE_URL}{path}'
     image_url = (item.get('image_url') or '').strip()
 
-    if FB_PAGE_ID and FB_PAGE_TOKEN:
+    if not facebook:
+        logger.info('Facebook syndication switched off for %s; skipping', item.get('id'))
+    elif FB_PAGE_ID and FB_PAGE_TOKEN:
         try:
             if image_url:
                 post_id = _post_photo_to_facebook(image_url, message, link)
@@ -223,7 +226,9 @@ def publish(item, path='/news'):
     else:
         logger.info('Facebook syndication is not configured; skipping %s', item.get('id'))
 
-    if GBP_ACCOUNT_ID and GBP_LOCATION_ID and GBP_CLIENT_ID and GBP_CLIENT_SECRET and GBP_REFRESH_TOKEN:
+    if not google:
+        logger.info('Google Business Profile syndication switched off for %s; skipping', item.get('id'))
+    elif GBP_ACCOUNT_ID and GBP_LOCATION_ID and GBP_CLIENT_ID and GBP_CLIENT_SECRET and GBP_REFRESH_TOKEN:
         try:
             post_name = _post_to_google_business_profile(message, link)
             logger.info('Mirrored %s to Google Business Profile post %s', item.get('id'), post_name)

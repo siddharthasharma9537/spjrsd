@@ -8,12 +8,12 @@ export default function AdminNews() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ title: '', title_telugu: '', content: '', content_telugu: '', is_important: false, active_flag: true, event_date: '' });
+  const [form, setForm] = useState({ title: '', title_telugu: '', content: '', content_telugu: '', is_important: false, active_flag: true, event_date: '', post_to_google: true, post_to_facebook: true });
 
   const load = () => api.get('/news?active_only=false').then(r => { setItems(r.data); setLoading(false); });
   useEffect(() => { load(); }, []);
 
-  const resetForm = () => { setForm({ title: '', title_telugu: '', content: '', content_telugu: '', is_important: false, active_flag: true, event_date: '' }); setEditing(null); setShowForm(false); };
+  const resetForm = () => { setForm({ title: '', title_telugu: '', content: '', content_telugu: '', is_important: false, active_flag: true, event_date: '', post_to_google: true, post_to_facebook: true }); setEditing(null); setShowForm(false); };
 
   const handleEdit = (n) => { setForm({ title: n.title, title_telugu: n.title_telugu || '', content: n.content, content_telugu: n.content_telugu || '', is_important: n.is_important, active_flag: n.active_flag, event_date: n.event_date || '' }); setEditing(n.id); setShowForm(true); };
 
@@ -55,6 +55,15 @@ export default function AdminNews() {
               <label className="flex items-center gap-2 text-sm text-[#5D4037]"><input type="checkbox" checked={form.is_important} onChange={e => setForm({...form, is_important: e.target.checked})} /> Important</label>
               <label className="flex items-center gap-2 text-sm text-[#5D4037]"><input type="checkbox" checked={form.active_flag} onChange={e => setForm({...form, active_flag: e.target.checked})} /> Active</label>
             </div>
+            {!editing && (
+              <div>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 text-sm text-[#5D4037]"><input type="checkbox" checked={form.post_to_google} onChange={e => setForm({...form, post_to_google: e.target.checked})} data-testid="news-post-google" /> Also post to Google Business Profile</label>
+                  <label className="flex items-center gap-2 text-sm text-[#5D4037]"><input type="checkbox" checked={form.post_to_facebook} onChange={e => setForm({...form, post_to_facebook: e.target.checked})} data-testid="news-post-facebook" /> Also post to Facebook</label>
+                </div>
+                <p className="text-xs text-[#8D6E63] mt-1">Sent when the news is created, and only if it is Active. Editing later does not re-post, and deleting here does not remove the Google or Facebook copy.</p>
+              </div>
+            )}
             <div className="flex justify-end gap-3">
               <button type="button" onClick={resetForm} className="px-6 py-2 text-sm border border-[#E6DCCA] rounded-full">Cancel</button>
               <button type="submit" className="px-6 py-2 bg-[#C43E00] text-white text-sm rounded-full" data-testid="news-submit-btn">{editing ? 'Update' : 'Create'}</button>
