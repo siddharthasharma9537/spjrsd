@@ -14,6 +14,8 @@ from typing import List, Optional
 import uuid
 import secrets
 import hashlib
+import hmac
+import time
 import bcrypt
 import jwt
 import requests
@@ -1496,7 +1498,10 @@ async def delete_schedule_slot(slot_id: str, user=Depends(require_permission("sl
 # ==================== BOOKING ROUTES ====================
 @api_router.post("/bookings")
 async def create_booking(data: BookingCreate, user=Depends(get_current_devotee)):
-    devotee = await db.devotees.find_one({"id": user["sub"]}, {"_id": 0, "password_hash": 0})
+    return await _create_online_booking(user["sub"], data)
+
+async def _create_online_booking(devotee_id: str, data: BookingCreate, idempotency_key: Optional[str] = None):
+    devotee = await db.devotees.find_one({"id": devotee_id}, {"_id": 0, "password_hash": 0})
     if not devotee or not devotee.get("email_verified"):
         raise HTTPException(status_code=403, detail="Please verify your email before booking a seva. Check your inbox, or request a new verification link.")
     seva = await db.sevas.find_one({"id": data.seva_id}, {"_id": 0})
@@ -1510,7 +1515,7 @@ async def create_booking(data: BookingCreate, user=Depends(get_current_devotee))
     booking = {
         "id": str(uuid.uuid4()),
         "booking_number": f"SPJRS-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{str(uuid.uuid4())[:6].upper()}",
-        "devotee_id": user["sub"], "devotee_name": devotee.get("name", ""),
+        "devotee_id": devotee_id, "devotee_name": devotee.get("name", ""),
         "devotee_mobile": devotee.get("mobile", ""),
         "seva_id": data.seva_id, "seva_name_english": seva.get("name_english", ""),
         "seva_name_telugu": seva.get("name_telugu", ""),
@@ -1532,6 +1537,8 @@ async def create_booking(data: BookingCreate, user=Depends(get_current_devotee))
         "prasadam_items": seva.get("prasadam_items", []),
         "prasadam_redeemed": False, "prasadam_redeemed_at": None,
     }
+    if idempotency_key:
+        booking["idempotency_key"] = idempotency_key
     # Reserve atomically: insert first, then check this booking's rank among all
     # non-cancelled bookings for the same slot+date, ordered by _id (MongoDB's
     # ObjectIds are strictly, globally ordered - a fresh one per insert, never
@@ -1549,6 +1556,45 @@ async def create_booking(data: BookingCreate, user=Depends(get_current_devotee))
         await db.bookings.delete_one({"_id": insert_result.inserted_id})
         raise HTTPException(status_code=400, detail="No slots available")
     return {k: v for k, v in booking.items() if k != "_id"}
+
+# Gateway-only booking, used by the SoHum Darshan gateway (see
+# github.com/siddharthasharma9537/darshan-gateway). The gateway has already
+# authenticated the person via SoHum's shared identity and linked them to
+# this devotee_id; it authenticates to us with an HMAC of the request body
+# using GATEWAY_SERVICE_SECRET. That secret can book as any devotee but
+# can't read profiles or mint devotee sessions. Disabled when unset.
+GATEWAY_SERVICE_SECRET = os.environ.get('GATEWAY_SERVICE_SECRET')
+GATEWAY_MAX_SKEW_SECONDS = 300
+
+class GatewayBookingCreate(BookingCreate):
+    devotee_id: str
+    idempotency_key: str
+
+def _gateway_signature_ok(body: bytes, ts: str, signature: str) -> bool:
+    if not GATEWAY_SERVICE_SECRET:
+        return False
+    try:
+        if abs(time.time() - int(ts)) > GATEWAY_MAX_SKEW_SECONDS:
+            return False
+    except (TypeError, ValueError):
+        return False
+    expected = hmac.new(GATEWAY_SERVICE_SECRET.encode(), ts.encode() + b"." + body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature or "")
+
+@api_router.post("/service/bookings")
+async def create_gateway_booking(request: Request):
+    body = await request.body()
+    if not _gateway_signature_ok(body, request.headers.get("X-Gateway-Timestamp", ""), request.headers.get("X-Gateway-Signature", "")):
+        raise HTTPException(status_code=401, detail="Invalid gateway signature")
+    try:
+        data = GatewayBookingCreate.model_validate_json(body)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid booking payload")
+    existing = await db.bookings.find_one(
+        {"devotee_id": data.devotee_id, "idempotency_key": data.idempotency_key}, {"_id": 0})
+    if existing:
+        return existing
+    return await _create_online_booking(data.devotee_id, data, data.idempotency_key)
 
 @api_router.post("/admin/bookings/counter")
 async def create_counter_booking(data: CounterBookingCreate, user=Depends(require_permission("bookings:create"))):
