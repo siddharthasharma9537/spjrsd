@@ -97,6 +97,15 @@ Set `REACT_APP_GOOGLE_CLIENT_ID` (and any API base URL override) in `frontend/.e
 - Almost everything lives in `backend/app/main.py` — it's large but not yet split into per-feature routers (only WhatsApp, contact, volunteer, and live-stream have their own route modules).
 - Facebook and Google Business Profile syndication are additive channels: publishing a News or Live Blog post always saves to the site regardless of whether either channel is configured, and each channel's failure is logged without affecting the other.
 
+## Panchangam data
+
+The panchangam pages, the homepage widget, the weekly digest and the chat assistant all read the MongoDB collection `panchangam` (one entry per date). The entries come from the SoHum Surya Siddhanta Ganitha Panchangam engine (repo `siddharthasharma9537/Panchangam`, folder `integrations/`), which builds them in this collection's own format and uploads them:
+
+- **Once a year**, about two months before Ugadi, the engine generates the coming Telugu year, it is compared with the printed book, and it is uploaded (`upload` first as a dry run, on a staging copy, then with `--apply`). Existing dates are left alone, so edits made in the admin Panchangam screen are kept.
+- **Keep it ahead of today.** The date picker reaches 365 days ahead (dates with no entry show "not available yet") and the homepage widget disappears when today has no entry. The engine's `check` command warns when fewer than 90 days remain.
+- The first upload covers 1 Jan 2026 to 6 Apr 2027; the next is the Telugu year starting in spring 2027.
+- The weekly digest lists every day that has a special note, so the engine leaves recurring days (Ekadashi, Amavasya and so on) out of it.
+
 ## Project planning docs
 
 This codebase is organized under two named initiatives, documented in full under `docs/`:
