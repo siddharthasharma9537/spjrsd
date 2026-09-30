@@ -101,7 +101,7 @@ Set `REACT_APP_GOOGLE_CLIENT_ID` (and any API base URL override) in `frontend/.e
 
 The panchangam pages, the homepage widget, the weekly digest and the chat assistant all read the MongoDB collection `panchangam` (one entry per date). The entries come from the SoHum Surya Siddhanta Ganitha Panchangam engine (repo `siddharthasharma9537/Panchangam`, folder `integrations/`), which builds them in this collection's own format and uploads them:
 
-- **Once a year**, about two months before Ugadi, the engine generates the coming Telugu year, it is compared with the printed book, and it is uploaded (`upload` first as a dry run, on a staging copy, then with `--apply`). Existing dates are left alone, so edits made in the admin Panchangam screen are kept.
+- **The engine is the only source.** Nothing is typed in or imported at the temple: the admin Panchangam screen only lists the entries, and the create, update, delete and bulk-import routes return 410. **Once a year**, about two months before Ugadi, the engine generates the coming Telugu year and syncs it (`upload --overwrite`, first as a dry run on a staging copy, then with `--apply`). The sync replaces every field of each date, so a wrong value is corrected by fixing the engine, not the database.
 - **Keep it ahead of today.** The date picker reaches 365 days ahead (dates with no entry show "not available yet") and the homepage widget disappears when today has no entry. The engine's `check` command warns when fewer than 90 days remain.
 - The first upload covers 1 Jan 2026 to 6 Apr 2027; the next is the Telugu year starting in spring 2027.
 - The weekly digest lists every day that has a special note, so the engine leaves recurring days (Ekadashi, Amavasya and so on) out of it.
