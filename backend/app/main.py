@@ -3,7 +3,6 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 import os
-import io
 import re
 import asyncio
 import logging
@@ -19,8 +18,6 @@ import time
 import bcrypt
 import jwt
 import requests
-import pandas as pd
-from pymongo import UpdateOne
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 from app.routes import volunteer
@@ -763,63 +760,6 @@ class ContactMessage(BaseModel):
     mobile: Optional[str] = ""
     subject: str
     message: str
-
-class PanchangamCreate(BaseModel):
-    date: str  # YYYY-MM-DD
-    vaaram: Optional[str] = ""
-    vaaram_telugu: Optional[str] = ""
-    masa: Optional[str] = ""
-    masa_telugu: Optional[str] = ""
-    paksha: Optional[str] = ""
-    paksha_telugu: Optional[str] = ""
-    tithi: str
-    tithi_telugu: Optional[str] = ""
-    tithi_timing: Optional[str] = ""
-    nakshatra: str
-    nakshatra_telugu: Optional[str] = ""
-    nakshatra_timing: Optional[str] = ""
-    yoga: Optional[str] = ""
-    yoga_telugu: Optional[str] = ""
-    karana: Optional[str] = ""
-    karana_telugu: Optional[str] = ""
-    sunrise: Optional[str] = ""
-    sunset: Optional[str] = ""
-    rahu_kalam: Optional[str] = ""
-    yamagandam: Optional[str] = ""
-    gulika_kalam: Optional[str] = ""
-    abhijit_muhurtam: Optional[str] = ""
-    varjyam: Optional[str] = ""
-    durmuhurtham: Optional[str] = ""
-    special_note: Optional[str] = ""
-    special_note_telugu: Optional[str] = ""
-
-class PanchangamUpdate(BaseModel):
-    vaaram: Optional[str] = None
-    vaaram_telugu: Optional[str] = None
-    masa: Optional[str] = None
-    masa_telugu: Optional[str] = None
-    paksha: Optional[str] = None
-    paksha_telugu: Optional[str] = None
-    tithi: Optional[str] = None
-    tithi_telugu: Optional[str] = None
-    tithi_timing: Optional[str] = None
-    nakshatra: Optional[str] = None
-    nakshatra_telugu: Optional[str] = None
-    nakshatra_timing: Optional[str] = None
-    yoga: Optional[str] = None
-    yoga_telugu: Optional[str] = None
-    karana: Optional[str] = None
-    karana_telugu: Optional[str] = None
-    sunrise: Optional[str] = None
-    sunset: Optional[str] = None
-    rahu_kalam: Optional[str] = None
-    yamagandam: Optional[str] = None
-    gulika_kalam: Optional[str] = None
-    abhijit_muhurtam: Optional[str] = None
-    varjyam: Optional[str] = None
-    durmuhurtham: Optional[str] = None
-    special_note: Optional[str] = None
-    special_note_telugu: Optional[str] = None
 
 class LiveBlogPostCreate(BaseModel):
     event_name: str
@@ -2192,7 +2132,7 @@ async def get_todays_panchangam():
     item = await db.panchangam.find_one({"date": today}, {"_id": 0})
     if not item:
         raise HTTPException(status_code=404, detail="Panchangam not available for today")
-    return _enrich_panchangam_item(item)
+    return item
 
 _PURNIMA_NAMES = {"purnima", "pournami", "paurnami", "poornima", "purnami"}
 _AMAVASYA_NAMES = {"amavasya", "amavasye", "amavasi", "amavaasya"}
@@ -2235,148 +2175,23 @@ async def get_panchangam_by_date(date: str):
     item = await db.panchangam.find_one({"date": date}, {"_id": 0})
     if not item:
         raise HTTPException(status_code=404, detail="Panchangam not available for this date")
-    return _enrich_panchangam_item(item)
+    return item
 
 @api_router.get("/admin/panchangam")
 async def admin_list_panchangam(user=Depends(require_permission("panchangam:view"))):
     items = await db.panchangam.find({}, {"_id": 0}).sort("date", -1).to_list(1000)
-    return [_enrich_panchangam_item(item) for item in items]
+    return items
+
+# The panchangam is synced from the SoHum panchangam engine (integrations/temple_export.py in that repo), one Telugu year at a time.
+# It is the only source: nothing is entered or imported here, so the write routes are closed.
+_PANCHANGAM_ENGINE_ONLY = "Panchangam data is synced from the SoHum panchangam engine and cannot be edited or imported here"
 
 @api_router.post("/admin/panchangam")
-async def create_panchangam(data: PanchangamCreate, user=Depends(require_permission("panchangam:create"))):
-    existing = await db.panchangam.find_one({"date": data.date})
-    if existing:
-        raise HTTPException(status_code=400, detail="Panchangam already exists for this date")
-    item = {"id": str(uuid.uuid4()), **data.model_dump(), "created_at": datetime.now(timezone.utc).isoformat()}
-    await db.panchangam.insert_one(item)
-    return {k: v for k, v in item.items() if k != "_id"}
-
-@api_router.put("/admin/panchangam/{item_id}")
-async def update_panchangam(item_id: str, data: PanchangamUpdate, user=Depends(require_permission("panchangam:edit"))):
-    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
-    if not update_data:
-        raise HTTPException(status_code=400, detail="No fields to update")
-    result = await db.panchangam.update_one({"id": item_id}, {"$set": update_data})
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Panchangam entry not found")
-    return await db.panchangam.find_one({"id": item_id}, {"_id": 0})
-
-@api_router.delete("/admin/panchangam/{item_id}")
-async def delete_panchangam(item_id: str, user=Depends(require_permission("panchangam:delete"))):
-    result = await db.panchangam.delete_one({"id": item_id})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Panchangam entry not found")
-    return {"message": "Panchangam entry deleted"}
-
-_WEEKDAY_TELUGU = {
-    "Sunday": "ఆదివారం", "Monday": "సోమవారం", "Tuesday": "మంగళవారం", "Wednesday": "బుధవారం",
-    "Thursday": "గురువారం", "Friday": "శుక్రవారం", "Saturday": "శనివారం"
-}
-_PAKSHA_TELUGU = {"Shukla": "శుక్ల పక్షం", "Bahula": "బహుళ పక్షం", "Krishna": "బహుళ పక్షం"}
-
-# Keyed on a normalized (lowercased, "masam"/"masamu" suffix stripped) form of
-# whatever romanized name ends up in the masa field, since the bulk-import
-# source spreadsheet only carries one (romanized) spelling per month, not a
-# native-script one. Several common spelling variants are listed per month.
-_MASA_TELUGU = {
-    "chaitra": "చైత్రము", "chaitramu": "చైత్రము",
-    "vaisakha": "వైశాఖము", "vaisakhamu": "వైశాఖము", "vaishakha": "వైశాఖము", "vaishakhamu": "వైశాఖము",
-    "jyeshta": "జ్యేష్ఠము", "jyeshtamu": "జ్యేష్ఠము", "jyeshtha": "జ్యేష్ఠము", "jesta": "జ్యేష్ఠము",
-    "ashadha": "ఆషాఢము", "ashadhamu": "ఆషాఢము", "asadha": "ఆషాఢము",
-    "sravana": "శ్రావణము", "sravanamu": "శ్రావణము", "shravana": "శ్రావణము", "shravanamu": "శ్రావణము",
-    "bhadrapada": "భాద్రపదము", "bhadrapadamu": "భాద్రపదము",
-    "asvayuja": "ఆశ్వయుజము", "asvayujamu": "ఆశ్వయుజము", "aswayuja": "ఆశ్వయుజము", "ashwayuja": "ఆశ్వయుజము",
-    "karthika": "కార్తీకము", "karthikamu": "కార్తీకము", "kartika": "కార్తీకము", "kartikamu": "కార్తీకము",
-    "margasira": "మార్గశిరము", "margasiramu": "మార్గశిరము", "margashira": "మార్గశిరము", "margashiramu": "మార్గశిరము",
-    "pushya": "పుష్యము", "pushyamu": "పుష్యము",
-    "magha": "మాఘము", "maghamu": "మాఘము",
-    "phalguna": "ఫాల్గుణము", "phalgunamu": "ఫాల్గుణము",
-}
-
-def _normalize_masa_key(masa: str) -> str:
-    key = (masa or "").strip().lower()
-    for suffix in (" masamu", " masam", "masamu", "masam"):
-        if key.endswith(suffix):
-            return key[: -len(suffix)].strip()
-    return key
-
-def _enrich_panchangam_item(item):
-    """Backfills masa_telugu on read for entries imported before this field
-    existed, so old data displays correctly without needing a re-import."""
-    if item and not item.get("masa_telugu") and item.get("masa"):
-        item["masa_telugu"] = _MASA_TELUGU.get(_normalize_masa_key(item["masa"]), "")
-    return item
-
-def _clean_cell(v) -> str:
-    if v is None or (isinstance(v, float) and pd.isna(v)):
-        return ""
-    return str(v).strip()
-
 @api_router.post("/admin/panchangam/bulk-import")
-async def bulk_import_panchangam(file: UploadFile = File(...), user=Depends(require_permission("panchangam:create"))):
-    filename = (file.filename or "").lower()
-    if not filename.endswith((".xlsx", ".xls", ".csv")):
-        raise HTTPException(status_code=400, detail="Upload an Excel (.xlsx/.xls) or CSV file")
-    contents = await file.read()
-    try:
-        df = pd.read_csv(io.BytesIO(contents)) if filename.endswith(".csv") else pd.read_excel(io.BytesIO(contents))
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Could not read file: {e}")
-
-    if "gregorian_date" not in df.columns or "tithi_tithi_name_english" not in df.columns or "nakshatra_nakshatra_name_english" not in df.columns:
-        raise HTTPException(status_code=400, detail="File is missing required columns (gregorian_date, tithi_tithi_name_english, nakshatra_nakshatra_name_english)")
-
-    errors = []
-    operations = []
-    for idx, row in df.iterrows():
-        row_num = idx + 2  # 1-indexed + header row
-        try:
-            date_val = _clean_cell(row.get("gregorian_date"))
-            if not date_val:
-                errors.append(f"Row {row_num}: missing date")
-                continue
-            date_val = str(pd.to_datetime(date_val).date())
-            weekday = _clean_cell(row.get("weekday"))
-            paksha = _clean_cell(row.get("pakshamu"))
-            notes = [_clean_cell(row.get("festivals_or_notes")), _clean_cell(row.get("symbols_detected"))]
-            doc = {
-                "date": date_val,
-                "vaaram": weekday, "vaaram_telugu": _WEEKDAY_TELUGU.get(weekday, ""),
-                "masa": _clean_cell(row.get("telugu_masamu")),
-                "masa_telugu": _MASA_TELUGU.get(_normalize_masa_key(_clean_cell(row.get("telugu_masamu")))) or "",
-                "paksha": paksha, "paksha_telugu": _PAKSHA_TELUGU.get(paksha, ""),
-                "tithi": _clean_cell(row.get("tithi_tithi_name_english")),
-                "tithi_telugu": _clean_cell(row.get("tithi_tithi_name_telugu")),
-                "tithi_timing": _clean_cell(row.get("tithi_source_text")),
-                "nakshatra": _clean_cell(row.get("nakshatra_nakshatra_name_english")),
-                "nakshatra_telugu": _clean_cell(row.get("nakshatra_nakshatra_name_telugu")),
-                "nakshatra_timing": _clean_cell(row.get("nakshatra_source_text")),
-                "varjyam": _clean_cell(row.get("varjyam_source_text")),
-                "durmuhurtham": _clean_cell(row.get("durmuhurtham_source_text")),
-                "sunrise": _clean_cell(row.get("suryodayam")),
-                "sunset": _clean_cell(row.get("suryasthamayam")),
-                "special_note": "; ".join(n for n in notes if n),
-            }
-            if not doc["tithi"] or not doc["nakshatra"]:
-                errors.append(f"Row {row_num} ({date_val}): missing tithi or nakshatra")
-                continue
-            operations.append(UpdateOne(
-                {"date": date_val},
-                {
-                    "$set": doc,
-                    "$setOnInsert": {"id": str(uuid.uuid4()), "created_at": datetime.now(timezone.utc).isoformat()}
-                },
-                upsert=True
-            ))
-        except Exception as e:
-            errors.append(f"Row {row_num}: {e}")
-
-    imported, updated = 0, 0
-    if operations:
-        result = await db.panchangam.bulk_write(operations, ordered=False)
-        imported = result.upserted_count
-        updated = result.modified_count
-    return {"total_rows": len(df), "imported": imported, "updated": updated, "errors": errors}
+@api_router.put("/admin/panchangam/{item_id}")
+@api_router.delete("/admin/panchangam/{item_id}")
+async def panchangam_is_engine_only(item_id: Optional[str] = None, user=Depends(require_permission("panchangam:view"))):
+    raise HTTPException(status_code=410, detail=_PANCHANGAM_ENGINE_ONLY)
 
 # ==================== LIVE BLOG ROUTES ====================
 @api_router.get("/live-blog")
