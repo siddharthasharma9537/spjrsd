@@ -64,7 +64,7 @@ grants instead of one:
 | `donations` | Donations | view (that's all that exists today — see note below) |
 | `accommodations` | Accommodation | view, create, edit, delete |
 | `news` | News | view, create, edit, delete |
-| `panchangam` | Panchangam | view, create, edit, delete |
+| `panchangam` | Panchangam | view (the data is synced from the panchangam engine; the create, edit and delete routes are closed) |
 | `live_blog` | Live Blog | view, create, edit, delete |
 | `gallery` | Gallery | view, create, edit, delete |
 | `stotrams` | Stotrams | view, create, edit, delete |
