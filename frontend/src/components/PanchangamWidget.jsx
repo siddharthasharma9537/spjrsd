@@ -32,6 +32,9 @@ export default function PanchangamWidget() {
     { label: t('Nakshatra', 'నక్షత్రం'), value: t(data.nakshatra, data.nakshatra_telugu), timing: formatTiming(stripLeadingName(data.nakshatra_timing, [data.nakshatra, data.nakshatra_telugu]), !te) },
     { label: t('Paksha', 'పక్షం'), value: t(data.paksha, data.paksha_telugu) },
     { label: t('Masam', 'మాసం'), value: t(data.masa, data.masa_telugu) },
+    { label: t('Yoga', 'యోగం'), value: t(data.yoga, data.yoga_telugu) },
+    { label: t('Karana', 'కరణం'), value: t(data.karana, data.karana_telugu) },
+    { label: t('Rahu Kalam', 'రాహు కాలం'), value: formatTiming(data.rahu_kalam, !te) },
     { label: t('Varjyam', 'వర్జ్యం'), value: formatTiming(data.varjyam, !te) },
     { label: t('Durmuhurtham', 'దుర్ముహూర్తం'), value: formatTiming(data.durmuhurtham, !te) },
   ].filter(r => r.value);
@@ -75,6 +78,11 @@ export default function PanchangamWidget() {
             </div>
           ))}
         </dl>
+        {(data.special_note || data.special_note_telugu) && (
+          <p className="text-xs text-[#621B00] bg-[#D4AF37]/10 border border-[#D4AF37]/25 rounded-lg px-3 py-2 mb-3" data-testid="panchangam-widget-note">
+            {t(data.special_note, data.special_note_telugu)}
+          </p>
+        )}
         {(data.sunrise || data.sunset) && (
           <div className="flex items-center gap-4 pt-3 border-t border-[#E6DCCA] text-xs text-[#5D4037]">
             {data.sunrise && <span className="flex items-center gap-1"><Sunrise className="h-3.5 w-3.5 text-[#D4AF37]" /> {data.sunrise}</span>}
