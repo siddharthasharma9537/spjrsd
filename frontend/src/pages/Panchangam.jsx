@@ -5,7 +5,7 @@ import Footer from '@/components/Footer';
 import api from '@/lib/api';
 import DateInput from '@/components/ui/date-input';
 import { useT } from '@/contexts/LanguageContext';
-import { stripLeadingName } from '@/lib/panchangam';
+import { stripLeadingName, formatTiming } from '@/lib/panchangam';
 import { Sun, Sunrise, Sunset, AlertCircle, Calendar } from 'lucide-react';
 
 function toISODate(d) {
@@ -13,7 +13,7 @@ function toISODate(d) {
 }
 
 export default function Panchangam() {
-  const { t, heading } = useT();
+  const { t, te, heading } = useT();
   const [date, setDate] = useState(toISODate(new Date()));
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -32,8 +32,8 @@ export default function Panchangam() {
     { label: t('Vaaram (Day)', 'వారం'), value: t(data.vaaram, data.vaaram_telugu) },
     { label: t('Masam (Month)', 'మాసం'), value: t(data.masa, data.masa_telugu) },
     { label: t('Paksha', 'పక్షం'), value: t(data.paksha, data.paksha_telugu) },
-    { label: t('Tithi', 'తిథి'), value: t(data.tithi, data.tithi_telugu), sub: stripLeadingName(data.tithi_timing, [data.tithi, data.tithi_telugu]) },
-    { label: t('Nakshatra', 'నక్షత్రం'), value: t(data.nakshatra, data.nakshatra_telugu), sub: stripLeadingName(data.nakshatra_timing, [data.nakshatra, data.nakshatra_telugu]) },
+    { label: t('Tithi', 'తిథి'), value: t(data.tithi, data.tithi_telugu), sub: formatTiming(stripLeadingName(data.tithi_timing, [data.tithi, data.tithi_telugu]), !te) },
+    { label: t('Nakshatra', 'నక్షత్రం'), value: t(data.nakshatra, data.nakshatra_telugu), sub: formatTiming(stripLeadingName(data.nakshatra_timing, [data.nakshatra, data.nakshatra_telugu]), !te) },
     { label: t('Yoga', 'యోగం'), value: t(data.yoga, data.yoga_telugu) },
     { label: t('Karana', 'కరణం'), value: t(data.karana, data.karana_telugu) },
   ].filter(d => d.value) : [];
@@ -41,12 +41,12 @@ export default function Panchangam() {
   const timings = data ? [
     { label: t('Sunrise', 'సూర్యోదయం'), value: data.sunrise, icon: Sunrise },
     { label: t('Sunset', 'సూర్యాస్తమయం'), value: data.sunset, icon: Sunset },
-    { label: t('Rahu Kalam', 'రాహు కాలం'), value: data.rahu_kalam },
-    { label: t('Yamagandam', 'యమగండం'), value: data.yamagandam },
-    { label: t('Gulika Kalam', 'గుళిక కాలం'), value: data.gulika_kalam },
-    { label: t('Abhijit Muhurtam', 'అభిజిత్ ముహూర్తం'), value: data.abhijit_muhurtam },
-    { label: t('Varjyam', 'వర్జ్యం'), value: data.varjyam },
-    { label: t('Durmuhurtham', 'దుర్ముహూర్తం'), value: data.durmuhurtham },
+    { label: t('Rahu Kalam', 'రాహు కాలం'), value: formatTiming(data.rahu_kalam, !te) },
+    { label: t('Yamagandam', 'యమగండం'), value: formatTiming(data.yamagandam, !te) },
+    { label: t('Gulika Kalam', 'గుళిక కాలం'), value: formatTiming(data.gulika_kalam, !te) },
+    { label: t('Abhijit Muhurtam', 'అభిజిత్ ముహూర్తం'), value: formatTiming(data.abhijit_muhurtam, !te) },
+    { label: t('Varjyam', 'వర్జ్యం'), value: formatTiming(data.varjyam, !te) },
+    { label: t('Durmuhurtham', 'దుర్ముహూర్తం'), value: formatTiming(data.durmuhurtham, !te) },
   ].filter(d => d.value) : [];
 
   return (
