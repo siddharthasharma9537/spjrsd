@@ -1071,20 +1071,45 @@ async def devotee_google_auth(data: DevoteeGoogleAuth):
     google_sub = info.get("sub", "")
     name = info.get("name") or email.split("@")[0]
 
-    devotee = await db.devotees.find_one({"$or": [{"email": email}, {"google_sub": google_sub}]}, {"_id": 0})
-    if not devotee:
-        devotee = {
-            "id": str(uuid.uuid4()), "name": name, "mobile": "", "email": email, "gotram": "",
-            "google_sub": google_sub,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "last_login_at": datetime.now(timezone.utc).isoformat(),
-        }
-        await db.devotees.insert_one(devotee)
-        await _send_welcome_email(email, name)
+    now = datetime.now(timezone.utc).isoformat()
+    # A Google identity (sub) we have already linked is trusted on its own.
+    devotee = await db.devotees.find_one({"google_sub": google_sub}, {"_id": 0})
+    if devotee:
+        update = {"last_login_at": now}
+        # Accounts this route created before it set email_verified would
+        # otherwise stay unable to book. Google has just vouched for this
+        # address, so it is only safe to mark verified if it is the account's own.
+        if (devotee.get("email") or "").strip().lower() == email:
+            update["email_verified"] = True
+        await db.devotees.update_one({"id": devotee["id"]}, {"$set": update})
+        devotee.update(update)
     else:
-        await db.devotees.update_one({"id": devotee["id"]}, {"$set": {
-            "last_login_at": datetime.now(timezone.utc).isoformat(), "google_sub": google_sub,
-        }})
+        existing = await db.devotees.find_one({"email": email}, {"_id": 0})
+        if existing:
+            # Password registration logs people in before the address is
+            # verified, so anyone can register someone else's e-mail with a
+            # password of their own. Only link Google to an account whose
+            # e-mail was actually verified, or the real owner would be signed
+            # into the account of whoever registered it first. (Deliberately
+            # no verification mail from here: that would steer the real owner
+            # into verifying the squatter's account.)
+            if not existing.get("email_verified"):
+                raise HTTPException(status_code=409, detail="An account with this email already exists but its email was never verified, so Google sign-in cannot be linked to it. Verify that account's email first (you can request a new link on the verification page), or ask the temple office for help.")
+            update = {"last_login_at": now, "google_sub": google_sub}
+            await db.devotees.update_one({"id": existing["id"]}, {"$set": update})
+            existing.update(update)
+            devotee = existing
+        else:
+            devotee = {
+                "id": str(uuid.uuid4()), "name": name, "mobile": "", "email": email, "gotram": "",
+                "google_sub": google_sub,
+                # Google already verified this address (checked above), and
+                # booking refuses any devotee without it.
+                "email_verified": True,
+                "created_at": now, "last_login_at": now,
+            }
+            await db.devotees.insert_one(devotee)
+            await _send_welcome_email(email, name)
 
     token = create_token({"sub": devotee["id"], "name": devotee["name"], "mobile": devotee.get("mobile", ""), "role": "devotee"})
     return {"token": token, "devotee": {k: v for k, v in devotee.items() if k not in ["_id", "password_hash"]}}
@@ -1754,8 +1779,54 @@ async def get_booking(booking_id: str):
         raise HTTPException(status_code=404, detail="Booking not found")
     return booking
 
+TICKET_EMAIL_COOLDOWN_MINUTES = 10
+
+async def _email_tickets_for_mobile(mobile: str):
+    """E-mail each devotee the tickets booked under this mobile number, to the
+    address on the account that made the booking - never to the caller.
+    Best-effort and silent: the endpoint's reply must not depend on whether
+    anything matched or was sent. Walk-in (counter) tickets have no account to
+    e-mail and are skipped."""
+    try:
+        bookings = await db.bookings.find(
+            {"devotee_mobile": mobile},
+            {"_id": 0, "id": 1, "booking_number": 1, "devotee_id": 1, "seva_name_english": 1,
+             "for_date": 1, "slot_start_time": 1, "slot_end_time": 1, "status": 1},
+        ).sort("booking_date_time", -1).to_list(20)
+        by_devotee = {}
+        for b in bookings:
+            if b.get("devotee_id"):
+                by_devotee.setdefault(b["devotee_id"], []).append(b)
+        cutoff = datetime.now(timezone.utc) - timedelta(minutes=TICKET_EMAIL_COOLDOWN_MINUTES)
+        for devotee_id, rows in by_devotee.items():
+            devotee = await db.devotees.find_one({"id": devotee_id}, {"_id": 0, "id": 1, "name": 1, "email": 1, "last_ticket_email_at": 1})
+            if not devotee or not devotee.get("email"):
+                continue
+            last = devotee.get("last_ticket_email_at")
+            if last and datetime.fromisoformat(last) > cutoff:
+                continue
+            lines = [
+                f"- {b.get('seva_name_english', '')}, {b.get('for_date', '')} {b.get('slot_start_time', '')}-{b.get('slot_end_time', '')} ({b.get('status', '')})\n"
+                f"  Booking number: {b['booking_number']}\n"
+                f"  Ticket: https://cheruvugattu.online/ticket/{b['id']}"
+                for b in rows
+            ]
+            await send_email_via_msg91(
+                [{"email": devotee["email"]}],
+                subject="Your seva tickets - Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam",
+                message=(
+                    f"Namaste {devotee.get('name', '')},\n\n"
+                    "Someone asked on our website for the tickets booked with your mobile number. "
+                    "Here they are:\n\n" + "\n\n".join(lines) +
+                    "\n\nIf this wasn't you, you can ignore this email."
+                ),
+            )
+            await db.devotees.update_one({"id": devotee_id}, {"$set": {"last_ticket_email_at": datetime.now(timezone.utc).isoformat()}})
+    except Exception:
+        logger.exception("Ticket e-mail for a mobile lookup failed")
+
 @api_router.get("/bookings/lookup/ticket")
-async def lookup_ticket(booking_number: Optional[str] = None, mobile: Optional[str] = None):
+async def lookup_ticket(background_tasks: BackgroundTasks, booking_number: Optional[str] = None, mobile: Optional[str] = None):
     # booking_number is a full match on an auto-generated, high-entropy
     # reference (effectively a capability token, like an airline PNR) - safe
     # to return the full record, same as the id-keyed GET /bookings/{id} a
@@ -1765,18 +1836,13 @@ async def lookup_ticket(booking_number: Optional[str] = None, mobile: Optional[s
         if booking:
             return [booking]
     # A mobile number is NOT a secret - nothing here proves the caller owns
-    # it. So unlike the booking_number branch above, this can't return
-    # gotram/nakshatra/rashi/amount/mobile etc. to an unverified caller who
-    # merely knows (or guesses, or was given) someone's phone number. Just
-    # enough to recognize "yes, this is my ticket" and find the
-    # booking_number to look it up properly.
+    # it. Even a bare booking_number or id from this branch would be a key to
+    # the full record (above, and GET /bookings/{id}), so it returns nothing
+    # about the bookings at all: the tickets go by e-mail to the account that
+    # made them, and the reply is identical whether or not any matched.
     if mobile:
-        bookings = await db.bookings.find(
-            {"devotee_mobile": mobile},
-            {"_id": 0, "id": 1, "booking_number": 1, "seva_name_english": 1, "seva_name_telugu": 1,
-             "for_date": 1, "slot_start_time": 1, "slot_end_time": 1, "devotee_name": 1, "status": 1},
-        ).sort("booking_date_time", -1).to_list(20)
-        return bookings
+        background_tasks.add_task(_email_tickets_for_mobile, mobile)
+        return {"message": "If tickets were booked with this mobile number, we have e-mailed them to the email address of the account that made the booking."}
     raise HTTPException(status_code=400, detail="Provide booking_number or mobile")
 
 @api_router.get("/admin/bookings")

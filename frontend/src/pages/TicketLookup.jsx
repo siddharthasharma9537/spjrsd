@@ -15,15 +15,20 @@ export default function TicketLookup() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [emailed, setEmailed] = useState(false);
 
   const handleSearch = async (e) => {
     e.preventDefault();
     setLoading(true);
     setSearched(true);
+    setEmailed(false);
     try {
       const params = searchType === 'booking_number' ? `booking_number=${query}` : `mobile=${query}`;
       const res = await api.get(`/bookings/lookup/ticket?${params}`);
-      setResults(res.data);
+      // By mobile the server no longer returns tickets (a mobile number isn't a
+      // secret) - it e-mails them to the booking account and replies with a message.
+      if (Array.isArray(res.data)) setResults(res.data);
+      else { setResults([]); setEmailed(true); }
     } catch {
       setResults([]);
     } finally {
@@ -79,7 +84,11 @@ export default function TicketLookup() {
 
         {loading && <p className="text-center py-8 text-[#8D6E63]">{t('Searching...', 'వెతుకుతోంది...')}</p>}
 
-        {searched && !loading && results.length === 0 && (
+        {searched && !loading && emailed && (
+          <p className="text-center py-8 text-[#5D4037]" data-testid="tickets-emailed">{t("If tickets were booked with this mobile number, we've emailed them to the email address of the account that made the booking. Please check your inbox (and spam folder). For a ticket bought at the temple counter, search by its booking number instead.", 'ఈ మొబైల్ నంబర్‌తో టికెట్లు బుక్ అయి ఉంటే, వాటిని బుకింగ్ చేసిన ఖాతాలోని ఇమెయిల్‌కు పంపాము. దయచేసి మీ ఇన్‌బాక్స్ (స్పామ్ ఫోల్డర్ కూడా) చూడండి. ఆలయ కౌంటర్‌లో కొన్న టికెట్ కోసం బుకింగ్ నంబర్ ద్వారా వెతకండి.')}</p>
+        )}
+
+        {searched && !loading && !emailed && results.length === 0 && (
           <p className="text-center py-8 text-[#8D6E63]" data-testid="no-results">{t('No tickets found. Check your booking number or mobile.', 'టికెట్లు కనబడలేదు. మీ బుకింగ్ నంబర్ లేదా మొబైల్‌ను తనిఖీ చేయండి.')}</p>
         )}
 

@@ -111,9 +111,10 @@ class CounterBookingCreate(BaseModel):
 ```
 
 No `devotee_id` — counter walk-ins are not required to have an account.
-Ticket lookup by `booking_number` or mobile (`GET /bookings/lookup/ticket`,
-already implemented) works without one, exactly as it does for online
-Quick Booking today.
+Ticket lookup by `booking_number` (`GET /bookings/lookup/ticket`, already
+implemented) works without one. Lookup by mobile does not: it e-mails the
+tickets to the account that made the booking and returns nothing itself, so a
+walk-in ticket (no account) can only be found by its `booking_number`.
 
 **Logic** (parallels `create_booking` at `main.py:917-948`, differences
 called out):
