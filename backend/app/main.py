@@ -3091,8 +3091,8 @@ async def cron_send_panchangam_digest(request: Request, test_email: Optional[str
 STAR_RATING_MAP = {"FIVE": 5, "FOUR": 4, "THREE": 3, "TWO": 2, "ONE": 1}
 
 REVIEW_REPLY_TEMPLATES = {
-    5: "Thank you so much, {name}! We're delighted you had a wonderful experience at Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam. Your blessings and support mean a lot to us. \U0001F64F",
-    4: "Thank you, {name}, for visiting and sharing your feedback. We're glad you enjoyed your visit, and we hope to welcome you again soon.",
+    5: "Namaste {name} garu, thank you for visiting Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam. We look forward to welcoming you again. Om Namo Bhagavate Ramalingaya \U0001F64F",
+    4: "Namaste {name} garu, thank you for visiting Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam. We look forward to welcoming you again. Om Namo Bhagavate Ramalingaya \U0001F64F",
     3: "Thank you for your feedback, {name}. We appreciate you taking the time to share your experience and will work on improving where we can. Please feel free to contact the temple office on +91 94910 00701 with any specific concerns.",
     2: "We're sorry your experience didn't meet expectations, {name}. Please reach out to the temple office directly on +91 94910 00701 so we can understand and address your concerns.",
     1: "We're sorry to hear about your experience, {name}. Please contact the temple office on +91 94910 00701 so we can look into this and make it right.",
