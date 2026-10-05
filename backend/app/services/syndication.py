@@ -1,8 +1,12 @@
-"""Mirror published content to the temple's other channels.
+"""Mirror published content to the temple's other channels, and pull/reply
+to Google reviews.
 
 The website is the source of truth: news and live blog posts published here
 are echoed to the Facebook Page and Google Business Profile so devotees who
 follow those instead see it without a second person having to retype it.
+fetch_reviews()/post_review_reply() go the other way - pulling in reviews
+left on the Business Profile listing and posting the temple's public reply
+to them - but share the same GBP OAuth plumbing and account below.
 
 Every channel is off unless its credentials are set, so this is inert until
 they are. Each channel is independent and swallows its own failures - one
@@ -194,6 +198,50 @@ def _post_to_google_business_profile(message, link):
     )
     response.raise_for_status()
     return response.json().get('name')
+
+
+def google_reviews_configured():
+    return bool(GBP_ACCOUNT_ID and GBP_LOCATION_ID and GBP_CLIENT_ID and GBP_CLIENT_SECRET and GBP_REFRESH_TOKEN)
+
+
+def fetch_reviews():
+    """All reviews for the configured location, newest Google page first.
+
+    Raises RuntimeError if GBP_* isn't configured, or requests.RequestException
+    if the call itself fails - callers decide how to turn each into a response.
+    Same v4 Business Profile API as _post_to_google_business_profile above,
+    just reading instead of writing: GET .../reviews instead of .../localPosts.
+    """
+    if not google_reviews_configured():
+        raise RuntimeError('Google Business Profile is not configured (GBP_* env vars missing)')
+    access_token = _gbp_access_token()
+    response = requests.get(
+        f'https://mybusiness.googleapis.com/v4/accounts/{GBP_ACCOUNT_ID}/locations/{GBP_LOCATION_ID}/reviews',
+        headers={'Authorization': f'Bearer {access_token}'},
+        timeout=TIMEOUT_SECONDS,
+    )
+    response.raise_for_status()
+    return response.json().get('reviews', [])
+
+
+def post_review_reply(review_name, comment):
+    """Post (or replace) the public reply on one review.
+
+    `review_name` is the review's own resource name as Google returns it from
+    fetch_reviews() - e.g. "accounts/{id}/locations/{id}/reviews/{id}" - not
+    just the trailing review ID; the reply endpoint is PUT on that full path.
+    """
+    if not google_reviews_configured():
+        raise RuntimeError('Google Business Profile is not configured (GBP_* env vars missing)')
+    access_token = _gbp_access_token()
+    response = requests.put(
+        f'https://mybusiness.googleapis.com/v4/{review_name}/reply',
+        headers={'Authorization': f'Bearer {access_token}'},
+        json={'comment': comment},
+        timeout=TIMEOUT_SECONDS,
+    )
+    response.raise_for_status()
+    return response.json()
 
 
 def publish(item, path='/news', facebook=True, google=True):

@@ -764,6 +764,9 @@ class ContactMessage(BaseModel):
     subject: str
     message: str
 
+class ReviewDraftUpdate(BaseModel):
+    draft_reply: str
+
 class PanchangamCreate(BaseModel):
     date: str  # YYYY-MM-DD
     vaaram: Optional[str] = ""
@@ -3080,6 +3083,114 @@ async def cron_send_panchangam_digest(request: Request, test_email: Optional[str
         sent += len(batch)
 
     return {"message": "Digest sent", "sent": sent, "subject": subject}
+
+# ==================== GOOGLE REVIEW REPLIES ====================
+# AI-drafted replies are templated for now (see _draft_review_reply) rather
+# than calling an LLM - easy to swap the template lookup for a real model
+# call later without touching the sync/approve/reject flow around it.
+STAR_RATING_MAP = {"FIVE": 5, "FOUR": 4, "THREE": 3, "TWO": 2, "ONE": 1}
+
+REVIEW_REPLY_TEMPLATES = {
+    5: "Thank you so much, {name}! We're delighted you had a wonderful experience at Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam. Your blessings and support mean a lot to us. \U0001F64F",
+    4: "Thank you, {name}, for visiting and sharing your feedback. We're glad you enjoyed your visit, and we hope to welcome you again soon.",
+    3: "Thank you for your feedback, {name}. We appreciate you taking the time to share your experience and will work on improving where we can. Please feel free to contact the temple office on +91 94910 00701 with any specific concerns.",
+    2: "We're sorry your experience didn't meet expectations, {name}. Please reach out to the temple office directly on +91 94910 00701 so we can understand and address your concerns.",
+    1: "We're sorry to hear about your experience, {name}. Please contact the temple office on +91 94910 00701 so we can look into this and make it right.",
+}
+
+def _draft_review_reply(star_rating: int, reviewer_name: str) -> str:
+    first_name = (reviewer_name or "").split(" ")[0] or "there"
+    template = REVIEW_REPLY_TEMPLATES.get(star_rating, REVIEW_REPLY_TEMPLATES[3])
+    return template.format(name=first_name)
+
+@api_router.get("/admin/reviews")
+async def admin_list_reviews(status: Optional[str] = None, user=Depends(require_permission("reviews:view"))):
+    query = {"status": status} if status else {}
+    return await db.google_reviews.find(query, {"_id": 0}).sort("create_time", -1).to_list(500)
+
+@api_router.put("/admin/reviews/{review_id}/draft")
+async def update_review_draft(review_id: str, data: ReviewDraftUpdate, user=Depends(require_permission("reviews:edit"))):
+    result = await db.google_reviews.update_one({"id": review_id}, {"$set": {"draft_reply": data.draft_reply}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Review not found")
+    return await db.google_reviews.find_one({"id": review_id}, {"_id": 0})
+
+@api_router.post("/admin/reviews/sync")
+async def sync_google_reviews(user=Depends(require_permission("reviews:edit"))):
+    """Pull the latest reviews from Google Business Profile and cache them
+    locally. Existing cached reviews are refreshed (in case the business
+    owner replied directly from the Google app rather than through this
+    screen) but never lose a draft that's still pending or rejected here."""
+    try:
+        reviews = syndication.fetch_reviews()
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except requests.RequestException as e:
+        raise HTTPException(status_code=502, detail=f"Could not reach Google: {e}")
+
+    new_count = 0
+    for r in reviews:
+        google_review_id = r.get("name")
+        if not google_review_id:
+            continue
+        star_rating = STAR_RATING_MAP.get(r.get("starRating"), 0)
+        reviewer_name = (r.get("reviewer") or {}).get("displayName", "Devotee")
+        existing_reply = r.get("reviewReply")
+        existing = await db.google_reviews.find_one({"google_review_id": google_review_id}, {"_id": 0})
+        if existing:
+            update = {"comment": r.get("comment", ""), "synced_at": datetime.now(timezone.utc).isoformat()}
+            if existing_reply and existing.get("status") not in ("approved", "already_replied"):
+                update["status"] = "already_replied"
+                update["posted_reply"] = existing_reply.get("comment", "")
+                update["posted_at"] = existing_reply.get("updateTime")
+            await db.google_reviews.update_one({"google_review_id": google_review_id}, {"$set": update})
+            continue
+        doc = {
+            "id": str(uuid.uuid4()),
+            "google_review_id": google_review_id,
+            "reviewer_name": reviewer_name,
+            "reviewer_photo_url": (r.get("reviewer") or {}).get("profilePhotoUrl", ""),
+            "star_rating": star_rating,
+            "comment": r.get("comment", ""),
+            "create_time": r.get("createTime", datetime.now(timezone.utc).isoformat()),
+            "draft_reply": _draft_review_reply(star_rating, reviewer_name),
+            "status": "already_replied" if existing_reply else "pending",
+            "posted_reply": existing_reply.get("comment") if existing_reply else None,
+            "posted_at": existing_reply.get("updateTime") if existing_reply else None,
+            "synced_at": datetime.now(timezone.utc).isoformat(),
+        }
+        await db.google_reviews.insert_one(doc)
+        new_count += 1
+    return {"fetched": len(reviews), "new": new_count}
+
+@api_router.post("/admin/reviews/{review_id}/approve")
+async def approve_review_reply(review_id: str, user=Depends(require_permission("reviews:edit"))):
+    review = await db.google_reviews.find_one({"id": review_id}, {"_id": 0})
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    if review["status"] in ("approved", "already_replied"):
+        raise HTTPException(status_code=400, detail="This review already has a reply posted")
+    if not (review.get("draft_reply") or "").strip():
+        raise HTTPException(status_code=400, detail="Write a reply before approving")
+    try:
+        syndication.post_review_reply(review["google_review_id"], review["draft_reply"])
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except requests.RequestException as e:
+        raise HTTPException(status_code=502, detail=f"Could not post reply to Google: {e}")
+    await db.google_reviews.update_one({"id": review_id}, {"$set": {
+        "status": "approved",
+        "posted_reply": review["draft_reply"],
+        "posted_at": datetime.now(timezone.utc).isoformat(),
+    }})
+    return await db.google_reviews.find_one({"id": review_id}, {"_id": 0})
+
+@api_router.post("/admin/reviews/{review_id}/reject")
+async def reject_review(review_id: str, user=Depends(require_permission("reviews:edit"))):
+    result = await db.google_reviews.update_one({"id": review_id}, {"$set": {"status": "rejected"}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Review not found")
+    return await db.google_reviews.find_one({"id": review_id}, {"_id": 0})
 
 # ==================== VISITOR STATS ROUTES ====================
 @api_router.get("/visitor-stats")

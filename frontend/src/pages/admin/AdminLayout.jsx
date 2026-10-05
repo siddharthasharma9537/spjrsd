@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasAnyPermission, hasPermission } from '@/lib/permissions';
-import { ShieldCheck, LayoutDashboard, Flame as FlameIcon, Calendar, Clock, BookOpen, Users, LogOut, HandCoins, BedDouble, Newspaper, Camera, Sun, Radio, Mail, MessageSquare, Gift, ScrollText, Settings, Receipt, UserCog, KeyRound, PanelLeftClose, PanelLeftOpen, Store, BarChart3, Ban, ScanLine } from 'lucide-react';
+import { ShieldCheck, LayoutDashboard, Flame as FlameIcon, Calendar, Clock, BookOpen, Users, LogOut, HandCoins, BedDouble, Newspaper, Camera, Sun, Radio, Mail, MessageSquare, Gift, ScrollText, Settings, Receipt, UserCog, KeyRound, PanelLeftClose, PanelLeftOpen, Store, BarChart3, Ban, ScanLine, Star } from 'lucide-react';
 
 // Remembered across page loads/navigations, not just component state - so
 // the sidebar doesn't snap back open every time an admin clicks between
@@ -52,6 +52,7 @@ const navItems = [
   { path: '/admin/newsletter', icon: Mail, label: 'Newsletter', resource: 'newsletter' },
   { path: '/admin/contact-messages', icon: MessageSquare, label: 'Contact Messages', resource: 'contact_messages' },
   { path: '/admin/aashirvachanam', icon: Gift, label: 'Aashirvachanam', resource: 'aashirvachanam' },
+  { path: '/admin/reviews', icon: Star, label: 'Google Reviews', resource: 'reviews' },
   { path: '/admin/settings', icon: Settings, label: 'Settings' },
 ];
 
