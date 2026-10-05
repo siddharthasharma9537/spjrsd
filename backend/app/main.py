@@ -3129,7 +3129,17 @@ async def sync_google_reviews(user=Depends(require_permission("reviews:edit"))):
     except requests.RequestException as e:
         raise HTTPException(status_code=502, detail=f"Could not reach Google: {e}")
 
-    new_count = 0
+    # One lookup, one bulk update, one bulk insert - not a query or two per
+    # review, which on the free-tier database took longer than the admin
+    # site's 20 second request timeout for a 200 review sync.
+    wanted = [r["name"] for r in reviews if r.get("name")]
+    existing_by_id = {
+        d["google_review_id"]: d
+        for d in await db.google_reviews.find(
+            {"google_review_id": {"$in": wanted}}, {"_id": 0, "google_review_id": 1, "status": 1}
+        ).to_list(len(wanted) or 1)
+    }
+    updates, new_docs = [], []
     for r in reviews:
         google_review_id = r.get("name")
         if not google_review_id:
@@ -3137,16 +3147,16 @@ async def sync_google_reviews(user=Depends(require_permission("reviews:edit"))):
         star_rating = STAR_RATING_MAP.get(r.get("starRating"), 0)
         reviewer_name = (r.get("reviewer") or {}).get("displayName", "Devotee")
         existing_reply = r.get("reviewReply")
-        existing = await db.google_reviews.find_one({"google_review_id": google_review_id}, {"_id": 0})
+        existing = existing_by_id.get(google_review_id)
         if existing:
             update = {"comment": r.get("comment", ""), "synced_at": datetime.now(timezone.utc).isoformat()}
             if existing_reply and existing.get("status") not in ("approved", "already_replied"):
                 update["status"] = "already_replied"
                 update["posted_reply"] = existing_reply.get("comment", "")
                 update["posted_at"] = existing_reply.get("updateTime")
-            await db.google_reviews.update_one({"google_review_id": google_review_id}, {"$set": update})
+            updates.append(UpdateOne({"google_review_id": google_review_id}, {"$set": update}))
             continue
-        doc = {
+        new_docs.append({
             "id": str(uuid.uuid4()),
             "google_review_id": google_review_id,
             "reviewer_name": reviewer_name,
@@ -3159,9 +3169,12 @@ async def sync_google_reviews(user=Depends(require_permission("reviews:edit"))):
             "posted_reply": existing_reply.get("comment") if existing_reply else None,
             "posted_at": existing_reply.get("updateTime") if existing_reply else None,
             "synced_at": datetime.now(timezone.utc).isoformat(),
-        }
-        await db.google_reviews.insert_one(doc)
-        new_count += 1
+        })
+    if updates:
+        await db.google_reviews.bulk_write(updates, ordered=False)
+    if new_docs:
+        await db.google_reviews.insert_many(new_docs)
+    new_count = len(new_docs)
     return {"fetched": len(reviews), "new": new_count}
 
 @api_router.post("/admin/reviews/{review_id}/approve")

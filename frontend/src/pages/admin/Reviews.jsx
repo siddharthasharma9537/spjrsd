@@ -52,7 +52,9 @@ export default function AdminReviews() {
     setSyncing(true);
     setSyncResult(null);
     try {
-      const r = await api.post('/admin/reviews/sync');
+      // Several calls to Google plus saving the results - allow well past the
+      // client's default 20s so a slow sync isn't reported as a failure.
+      const r = await api.post('/admin/reviews/sync', null, { timeout: 120000 });
       setSyncResult(r.data);
       load();
     } catch (err) {
