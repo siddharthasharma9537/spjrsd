@@ -3122,7 +3122,8 @@ async def sync_google_reviews(user=Depends(require_permission("reviews:edit"))):
     owner replied directly from the Google app rather than through this
     screen) but never lose a draft that's still pending or rejected here."""
     try:
-        reviews = syndication.fetch_reviews()
+        # Several sequential HTTP calls to Google - keep them off the event loop.
+        reviews = await asyncio.to_thread(syndication.fetch_reviews)
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except requests.RequestException as e:

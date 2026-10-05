@@ -204,24 +204,45 @@ def google_reviews_configured():
     return bool(GBP_ACCOUNT_ID and GBP_LOCATION_ID and GBP_CLIENT_ID and GBP_CLIENT_SECRET and GBP_REFRESH_TOKEN)
 
 
-def fetch_reviews():
-    """All reviews for the configured location, newest Google page first.
+REVIEW_PAGE_SIZE = 50  # Google's maximum per page for reviews.list
+# A busy listing has thousands of reviews (the temple's has 2,500+) and Google
+# returns them newest first, so the newest few hundred are the ones worth
+# replying to. Capping also keeps one admin click to a handful of API calls.
+MAX_REVIEWS_PER_SYNC = 200
 
-    Raises RuntimeError if GBP_* isn't configured, or requests.RequestException
-    if the call itself fails - callers decide how to turn each into a response.
-    Same v4 Business Profile API as _post_to_google_business_profile above,
-    just reading instead of writing: GET .../reviews instead of .../localPosts.
+
+def fetch_reviews(max_reviews=MAX_REVIEWS_PER_SYNC):
+    """The newest `max_reviews` reviews for the configured location.
+
+    Follows Google's nextPageToken, 50 at a time, until the listing runs out
+    or the cap is reached. Raises RuntimeError if GBP_* isn't configured, or
+    requests.RequestException if a call fails - callers decide how to turn
+    each into a response. Same v4 Business Profile API as
+    _post_to_google_business_profile above, just reading instead of writing:
+    GET .../reviews instead of .../localPosts.
     """
     if not google_reviews_configured():
         raise RuntimeError('Google Business Profile is not configured (GBP_* env vars missing)')
     access_token = _gbp_access_token()
-    response = requests.get(
-        f'https://mybusiness.googleapis.com/v4/accounts/{GBP_ACCOUNT_ID}/locations/{GBP_LOCATION_ID}/reviews',
-        headers={'Authorization': f'Bearer {access_token}'},
-        timeout=TIMEOUT_SECONDS,
-    )
-    response.raise_for_status()
-    return response.json().get('reviews', [])
+    reviews = []
+    page_token = None
+    while len(reviews) < max_reviews:
+        params = {'pageSize': min(REVIEW_PAGE_SIZE, max_reviews - len(reviews))}
+        if page_token:
+            params['pageToken'] = page_token
+        response = requests.get(
+            f'https://mybusiness.googleapis.com/v4/accounts/{GBP_ACCOUNT_ID}/locations/{GBP_LOCATION_ID}/reviews',
+            headers={'Authorization': f'Bearer {access_token}'},
+            params=params,
+            timeout=TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        reviews.extend(payload.get('reviews', []))
+        page_token = payload.get('nextPageToken')
+        if not page_token:
+            break
+    return reviews
 
 
 def post_review_reply(review_name, comment):
