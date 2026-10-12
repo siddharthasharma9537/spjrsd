@@ -3,7 +3,9 @@ import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
 import { Plus, Pencil, Trash2, X, Pin } from 'lucide-react';
 
-const EMPTY_FORM = { event_name: '', event_name_telugu: '', title: '', title_telugu: '', content: '', content_telugu: '', image_url: '', is_pinned: false, active_flag: true, also_show_in_ticker: false };
+const EMPTY_FORM = { event_name: '', event_name_telugu: '', title: '', title_telugu: '', content: '', content_telugu: '', image_url: '', is_pinned: false, active_flag: true, also_show_in_ticker: false, publish_at: '' };
+
+const isScheduled = (p) => !!p.publish_at && new Date(p.publish_at) > new Date();
 
 export default function AdminLiveBlog() {
   const [items, setItems] = useState([]);
@@ -25,7 +27,9 @@ export default function AdminLiveBlog() {
       const { also_show_in_ticker, ...update } = form;
       await api.put(`/admin/live-blog/${editing}`, update);
     } else {
-      await api.post('/admin/live-blog', form);
+      // datetime-local has no timezone; the browser's local time (IST) is meant.
+      const publish_at = form.publish_at ? new Date(form.publish_at).toISOString() : null;
+      await api.post('/admin/live-blog', { ...form, publish_at });
     }
     resetForm(); load();
   };
@@ -57,16 +61,23 @@ export default function AdminLiveBlog() {
             <div><label className="block text-xs font-medium text-[#5D4037] mb-1">Content (English)</label><textarea className={`${inputCls} h-24 py-2`} value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} required /></div>
             <div><label className="block text-xs font-medium text-[#5D4037] mb-1">Content (Telugu)</label><textarea className={`${inputCls} h-24 py-2`} value={form.content_telugu} onChange={e => setForm({ ...form, content_telugu: e.target.value })} /></div>
             <div><label className="block text-xs font-medium text-[#5D4037] mb-1">Image URL</label><input className={inputCls} value={form.image_url} onChange={e => setForm({ ...form, image_url: e.target.value })} placeholder="/Assets/example.webp" /></div>
+            {!editing && (
+              <div>
+                <label className="block text-xs font-medium text-[#5D4037] mb-1">Publish at (optional)</label>
+                <input type="datetime-local" className={`${inputCls} md:w-72`} value={form.publish_at} onChange={e => setForm({ ...form, publish_at: e.target.value, also_show_in_ticker: false })} data-testid="live-blog-publish-at-input" />
+                <p className="text-xs text-[#8D6E63] mt-1">Leave empty to publish now. A later time keeps the post hidden until then; Facebook, Google and Instagram get it shortly after.</p>
+              </div>
+            )}
             <div className="flex gap-4">
               <label className="flex items-center gap-2 text-sm text-[#5D4037]"><input type="checkbox" checked={form.is_pinned} onChange={e => setForm({ ...form, is_pinned: e.target.checked })} /> Pinned</label>
               <label className="flex items-center gap-2 text-sm text-[#5D4037]"><input type="checkbox" checked={form.active_flag} onChange={e => setForm({ ...form, active_flag: e.target.checked })} /> Active</label>
-              {!editing && (
+              {!editing && !form.publish_at && (
                 <label className="flex items-center gap-2 text-sm text-[#5D4037]"><input type="checkbox" checked={form.also_show_in_ticker} onChange={e => setForm({ ...form, also_show_in_ticker: e.target.checked })} data-testid="live-blog-ticker-checkbox" /> Also show in News ticker</label>
               )}
             </div>
             <div className="flex justify-end gap-3">
               <button type="button" onClick={resetForm} className="px-6 py-2 text-sm border border-[#E6DCCA] rounded-full">Cancel</button>
-              <button type="submit" className="px-6 py-2 bg-[#C43E00] text-white text-sm rounded-full" data-testid="live-blog-submit-btn">{editing ? 'Update' : 'Publish'}</button>
+              <button type="submit" className="px-6 py-2 bg-[#C43E00] text-white text-sm rounded-full" data-testid="live-blog-submit-btn">{editing ? 'Update' : form.publish_at ? 'Schedule' : 'Publish'}</button>
             </div>
           </form>
         </div>
@@ -81,6 +92,7 @@ export default function AdminLiveBlog() {
                     <span className="text-xs font-medium text-[#C43E00] uppercase tracking-wide">{p.event_name}</span>
                     {p.is_pinned && <Pin className="h-3 w-3 text-[#D4AF37]" />}
                     <span className={`px-2 py-0.5 rounded-full text-xs ${p.active_flag ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{p.active_flag ? 'Active' : 'Inactive'}</span>
+                    {isScheduled(p) && <span className="px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-800">Scheduled · {new Date(p.publish_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</span>}
                   </div>
                   <h3 className="font-medium text-[#2D1B0E] text-sm">{p.title}</h3>
                   <p className="text-xs text-[#8D6E63] line-clamp-1 mt-1">{p.content}</p>

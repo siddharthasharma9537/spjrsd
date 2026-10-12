@@ -1,0 +1,20 @@
+name: Publish Scheduled Live Blog Posts
+
+# Mirrors scheduled live blog posts to Facebook / Google / Instagram once their
+# publish time has passed (the website itself shows them on time without this).
+# GitHub runs scheduled workflows late - often by hours - so this is only a
+# fallback; anything else that POSTs to the endpoint with the secret works too,
+# and calling it more often is harmless.
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish due live blog posts
+        run: |
+          curl -sf --max-time 120 -X POST "https://spjrsd-backend.onrender.com/api/cron/live-blog-publish" \
+            -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}"
