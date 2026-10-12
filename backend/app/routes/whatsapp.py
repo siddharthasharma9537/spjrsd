@@ -148,12 +148,10 @@ REPLIES_EN = {
         "sevas online:\n"
         f"{SITE}/donations"
     ),
+    # {rooms} is filled from db.accommodations by _accommodation_reply.
     "4": (
         "🛏️ Accommodation\n\n"
-        "- Siva Nilayam (AC Room) – ₹800/day\n"
-        "- Parvathi Sadanam (Non-AC Room) – ₹400/day\n"
-        "- Nandi Cottage – ₹1500/day\n"
-        "- Pilgrim Dormitory – ₹100/day\n\n"
+        "{rooms}\n\n"
         f"Check availability and book: {SITE}/accommodation"
     ),
     "5": (
@@ -247,12 +245,10 @@ REPLIES_TE = {
         "ఈ-హుండీ, అన్నదానం మరియు ఇతర ఆలయ సేవలకు ఆన్‌లైన్‌లో విరాళం అందించవచ్చు:\n"
         f"{SITE}/donations"
     ),
+    # {rooms} is filled from db.accommodations by _accommodation_reply.
     "4": (
         "🛏️ వసతి\n\n"
-        "- శివ నిలయం (ఏసీ రూమ్) – ₹800/రోజు\n"
-        "- పార్వతి సదనం (నాన్ ఏసీ రూమ్) – ₹400/రోజు\n"
-        "- నంది కాటేజ్ – ₹1500/రోజు\n"
-        "- యాత్రికుల డార్మిటరీ – ₹100/రోజు\n\n"
+        "{rooms}\n\n"
         f"లభ్యత చూసి బుక్ చేసుకోండి: {SITE}/accommodation"
     ),
     "5": (
@@ -571,6 +567,23 @@ def _resolve_option(stripped: str) -> str | None:
     return None
 
 
+async def _accommodation_reply(language: str) -> str:
+    """Menu option 4, built from the same active rooms /accommodation lists.
+    This used to be hard-coded and drifted from the real rooms and prices
+    (it still advertised the seed data's rooms after they were replaced), so
+    it now reads db.accommodations on every request."""
+    rooms = await db.accommodations.find(
+        {"active_flag": True}, {"_id": 0, "name": 1, "name_telugu": 1, "price_per_day": 1}
+    ).sort("price_per_day", 1).to_list(50)
+    per_day = "/day" if language == "en" else "/రోజు"
+    lines = []
+    for room in rooms:
+        name = room["name"] if language == "en" else ((room.get("name_telugu") or "").strip() or room["name"])
+        lines.append(f"- {name} – ₹{room['price_per_day']:g}{per_day}")
+    replies = REPLIES_EN if language == "en" else REPLIES_TE
+    return replies["4"].format(rooms="\n".join(lines))
+
+
 async def _handle_free_text(to: str, language: str, message: str):
     """A message that matched no menu number/keyword. intent_router decides
     whether it's trying to *do* something (book/pay/donate/cancel) or *ask*
@@ -798,6 +811,9 @@ async def _handle_inbound_message(message: dict, value: dict):
     option = _resolve_option(stripped)
     if option == "11":
         await _start_registration(from_number, language)
+        return
+    if option == "4":
+        await _send_whatsapp_text(from_number, await _accommodation_reply(language))
         return
     if option == "7":
         # Sthala Puranam used to be sent as long wall-of-text messages (2 per
