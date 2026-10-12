@@ -21,6 +21,11 @@ function timeAgo(iso, t) {
   return t(`${days}d ago`, `${days} రోజుల క్రితం`);
 }
 
+// Roughly whether a post overflows the 6-line preview in the list.
+function isLong(text) {
+  return !!text && (text.split('\n').length > 6 || text.length > 420);
+}
+
 export default function LiveBlog() {
   const { t, heading } = useT();
   const [posts, setPosts] = useState([]);
@@ -72,7 +77,12 @@ export default function LiveBlog() {
                     <span className="text-xs text-[#8D6E63]">{timeAgo(p.posted_at, t)}</span>
                   </div>
                   <h2 className="font-medium text-[#2D1B0E] mb-1">{t(p.title, p.title_telugu)}</h2>
-                  <p className="text-sm text-[#5D4037] leading-relaxed">{t(p.content, p.content_telugu)}</p>
+                  {/* Keep the post's own line breaks (headings, schedules) and show a
+                      preview only - the full text is on the post's page this card links to. */}
+                  <p className="text-sm text-[#5D4037] leading-relaxed whitespace-pre-line line-clamp-6">{t(p.content, p.content_telugu)}</p>
+                  {isLong(t(p.content, p.content_telugu)) && (
+                    <span className="inline-block mt-1 text-sm font-medium text-[#C43E00]">{t('Read more →', 'పూర్తిగా చదవండి →')}</span>
+                  )}
                   {p.image_url && (
                     <div className="mt-3 rounded-lg overflow-hidden">
                       <img src={p.image_url} alt={p.title} className="w-full h-auto object-cover" loading="lazy" />
