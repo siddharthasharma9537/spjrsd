@@ -14,8 +14,9 @@ channel being down or unconfigured never affects another, or the website
 itself. Add a new channel by adding a _post_to_<channel>() function and a
 call to it in publish(), following the same try/except-and-log shape.
 
-Instagram isn't implemented yet, but rides the same Meta Graph API and Page
-token as Facebook - much less setup than Google Business Profile needed.
+Instagram rides the same Meta Graph API and Page token as Facebook, posting
+as the Instagram business account linked to the Page (IG_USER_ID). Instagram
+only accepts a JPEG image, so items without one skip it.
 
 Google Business Profile posting needs its API access explicitly granted by
 Google (a Cloud project, OAuth consent, and an access request Google reviews)
@@ -27,6 +28,7 @@ import os
 import time
 
 import requests
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +57,7 @@ SITE_URL = os.environ.get('SITE_URL', 'https://cheruvugattu.online').rstrip('/')
 FB_PAGE_ID = os.environ.get('FB_PAGE_ID')
 FB_PAGE_TOKEN = os.environ.get('FB_PAGE_TOKEN')
 FB_GRAPH_VERSION = os.environ.get('FB_GRAPH_VERSION', 'v21.0')
+IG_USER_ID = os.environ.get('IG_USER_ID')
 
 GBP_ACCOUNT_ID = os.environ.get('GBP_ACCOUNT_ID')
 GBP_LOCATION_ID = os.environ.get('GBP_LOCATION_ID')
@@ -67,6 +70,12 @@ TIMEOUT_SECONDS = 10
 # Google rejects a post summary over 1,500 characters; Facebook's limit is far
 # higher, so only the Google copy is shortened.
 GBP_SUMMARY_LIMIT = 1500
+
+IG_CAPTION_LIMIT = 2200
+# Instagram downloads the image after the media container is created, and
+# publishing before it's done fails - so publish is retried a few times.
+IG_PUBLISH_ATTEMPTS = 5
+IG_PUBLISH_RETRY_SECONDS = 3
 
 FACEBOOK_STATS_CACHE_SECONDS = 12 * 60 * 60
 _facebook_stats_cache = {'fetched_at': 0, 'data': None}
@@ -200,6 +209,32 @@ def _post_to_google_business_profile(message, link):
     return response.json().get('name')
 
 
+def _is_jpeg(image_url):
+    return urlparse(image_url).path.lower().endswith(('.jpg', '.jpeg'))
+
+
+def _post_to_instagram(image_url, caption):
+    base = f'https://graph.facebook.com/{FB_GRAPH_VERSION}/{IG_USER_ID}'
+    response = requests.post(
+        f'{base}/media',
+        data={'image_url': image_url, 'caption': caption, 'access_token': FB_PAGE_TOKEN},
+        timeout=TIMEOUT_SECONDS,
+    )
+    response.raise_for_status()
+    creation_id = response.json()['id']
+    for attempt in range(IG_PUBLISH_ATTEMPTS):
+        response = requests.post(
+            f'{base}/media_publish',
+            data={'creation_id': creation_id, 'access_token': FB_PAGE_TOKEN},
+            timeout=TIMEOUT_SECONDS,
+        )
+        if response.ok or attempt == IG_PUBLISH_ATTEMPTS - 1:
+            break
+        time.sleep(IG_PUBLISH_RETRY_SECONDS)
+    response.raise_for_status()
+    return response.json().get('id')
+
+
 def google_reviews_configured():
     return bool(GBP_ACCOUNT_ID and GBP_LOCATION_ID and GBP_CLIENT_ID and GBP_CLIENT_SECRET and GBP_REFRESH_TOKEN)
 
@@ -265,13 +300,13 @@ def post_review_reply(review_name, comment):
     return response.json()
 
 
-def publish(item, path='/news', facebook=True, google=True):
+def publish(item, path='/news', facebook=True, google=True, instagram=True):
     """Mirror one news or live blog item to every configured channel.
 
     `path` is the site path the mirrored post links back to - the item's own
-    detail page, e.g. '/news/{id}' or '/live-blog/{id}'. `facebook` and `google`
-    let the admin opt a single post out of a channel. Safe to call from a
-    background task: it raises nothing.
+    detail page, e.g. '/news/{id}' or '/live-blog/{id}'. `facebook`, `google`
+    and `instagram` let a caller opt a single post out of a channel. Safe to
+    call from a background task: it raises nothing.
     """
     message = render(item)
     if not message:
@@ -305,3 +340,20 @@ def publish(item, path='/news', facebook=True, google=True):
             logger.error('Google Business Profile syndication failed for %s: %s', item.get('id'), _safe_error(exc))
     else:
         logger.info('Google Business Profile syndication is not configured; skipping %s', item.get('id'))
+
+    if not instagram:
+        logger.info('Instagram syndication switched off for %s; skipping', item.get('id'))
+    elif not (IG_USER_ID and FB_PAGE_TOKEN):
+        logger.info('Instagram syndication is not configured; skipping %s', item.get('id'))
+    elif not image_url or not _is_jpeg(image_url):
+        logger.info('Instagram needs a JPEG image; skipping %s', item.get('id'))
+    else:
+        # Instagram fetches the image itself, so it needs an absolute URL.
+        absolute_image = image_url if image_url.startswith('http') else f'{SITE_URL}{image_url}'
+        # Links in captions aren't clickable on Instagram, but the address still helps.
+        caption = _truncate(f'{message}\n\n{link}', IG_CAPTION_LIMIT)
+        try:
+            media_id = _post_to_instagram(absolute_image, caption)
+            logger.info('Mirrored %s to Instagram post %s', item.get('id'), media_id)
+        except (requests.RequestException, KeyError) as exc:
+            logger.error('Instagram syndication failed for %s: %s', item.get('id'), _safe_error(exc))

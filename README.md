@@ -11,9 +11,9 @@ This is a monorepo with a FastAPI backend and a React frontend, covering the pub
 - **Admin dashboard** (`/admin`) — staff-only CRUD for sevas, schedule slots, day profiles, accommodations, bookings, donations, gallery (uploads to Cloudflare R2), live blog, news, panchangam, stotrams, aashirvachanam, newsletter, devotee management, and contact messages. Also a **Counter Sale** screen for in-person ticket-counter staff (Cashier role) to sell sevas against their own reserved slot capacity, and a **Staff** screen (EO-only) for creating and managing admin accounts.
 - **WhatsApp chatbot** — a Meta Cloud API webhook (`backend/app/routes/whatsapp.py`) that answers devotee questions via native list/button menus, and a separate WhatsApp OTP channel for devotee login/registration. Menu replies are fixed text in that file, except Accommodation, which lists the active rooms and prices from MongoDB so it always matches the website.
 - **Conversational AI agent** (optional, off by default) — free-text WhatsApp messages and a `POST /api/chat` endpoint (for a future website widget) that don't match a menu option are classified as either wanting to transact (book/pay/donate — kept on the deterministic menu, never handled by the AI) or wanting to ask a question (answered by Claude, grounded in live seva/panchangam/stotram/news data pulled fresh from MongoDB on every call). See `backend/app/services/chat_agent.py` (the shared "brain") and `backend/app/services/intent_router.py` (the transact-vs-chat classifier). Inert until `ANTHROPIC_API_KEY` is set.
-- **Content syndication** — News and Live Blog posts auto-mirror to the temple's Facebook Page and Google Business Profile, so the same post reaches all channels without retyping. When creating a News item in the admin panel, two checkboxes let the team opt that post out of Google and/or Facebook (both on by default; long posts are shortened to Google's 1,500-character limit) (`backend/app/services/syndication.py`).
+- **Content syndication** — News and Live Blog posts auto-mirror to the temple's Facebook Page and Google Business Profile, and Live Blog posts with a JPEG image also go to Instagram, so the same post reaches all channels without retyping. Live Blog posts can be scheduled with a *Publish at* time: they stay hidden on the site until then and are mirrored by the `/api/cron/live-blog-publish` endpoint. When creating a News item in the admin panel, two checkboxes let the team opt that post out of Google and/or Facebook (both on by default; long posts are shortened to Google's 1,500-character limit) (`backend/app/services/syndication.py`).
 - **Google review replies** — the admin Reviews screen (`/admin/reviews`, `reviews:view` / `reviews:edit`) pulls the newest 200 reviews from the Google Business Profile (the listing has thousands, newest first), drafts a reply by star rating, and posts only what staff approve. Reviews are cached in `google_reviews`; a re-sync never re-drafts a review it already holds.
-- **Scheduled jobs** — GitHub Actions workflows trigger backend cron endpoints for a weekly panchangam digest email and periodic aashirvachanam blessings.
+- **Scheduled jobs** — GitHub Actions workflows trigger backend cron endpoints for a weekly panchangam digest email, periodic aashirvachanam blessings, and mirroring scheduled Live Blog posts (every 15 minutes). GitHub runs scheduled workflows late, often by hours, so time-sensitive mirroring should also be triggered from a punctual scheduler calling the same endpoint.
 
 ## Stack
 
@@ -74,6 +74,7 @@ Backend env vars (see `backend/.env.example` for full descriptions of each):
 - `SEED_SECRET` — shared secret for `POST /api/seed`, which creates the platform's first EO account. Unset means the endpoint is disabled outright, not "open."
 - `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL` — gallery image uploads to Cloudflare R2.
 - `FB_PAGE_ID`, `FB_PAGE_TOKEN`, `FB_GRAPH_VERSION` — Facebook Page syndication (optional; feature is inert without them).
+- `IG_USER_ID` — the Instagram business account linked to the Facebook Page; with `FB_PAGE_TOKEN` (which needs `instagram_basic` + `instagram_content_publish`) it enables Instagram syndication of Live Blog posts.
 - `GBP_ACCOUNT_ID`, `GBP_LOCATION_ID`, `GBP_CLIENT_ID`, `GBP_CLIENT_SECRET`, `GBP_REFRESH_TOKEN`, `SITE_URL` — Google Business Profile syndication (optional; feature is inert without them).
 - `ANTHROPIC_API_KEY`, `CHAT_AGENT_MODEL`, `INTENT_ROUTER_MODEL` — conversational AI agent (optional; feature is inert without `ANTHROPIC_API_KEY`).
 
@@ -91,7 +92,7 @@ Set `REACT_APP_GOOGLE_CLIENT_ID` (and any API base URL override) in `frontend/.e
 
 - **Backend** deploys to [Render](https://render.com); environment variables are managed there.
 - **Frontend** deploys to [Vercel](https://vercel.com); `npm run build` runs `scripts/generate-sitemap.js` first to regenerate `sitemap.xml`, including News and Live Blog detail pages.
-- Two GitHub Actions workflows (`.github/workflows/panchangam-digest.yml`, `.github/workflows/aashirvachanam-blessings.yml`) hit backend cron endpoints on a schedule, authenticated via the `CRON_SECRET` repository secret.
+- Three GitHub Actions workflows (`.github/workflows/panchangam-digest.yml`, `.github/workflows/aashirvachanam-blessings.yml`, `.github/workflows/live-blog-publish.yml`) hit backend cron endpoints on a schedule, authenticated via the `CRON_SECRET` repository secret.
 
 ## Notes
 
