@@ -148,6 +148,20 @@ function useColumnWidths() {
 
 const PAGE_SIZE = 10;
 
+// Icon-only action with its name shown straight away on hover (the browser's
+// own title tooltip takes about a second to appear and is easy to miss).
+function ActionButton({ label, onClick, danger, children }) {
+  return (
+    <button onClick={onClick} aria-label={label}
+      className={`group relative p-1.5 text-[#8D6E63] ${danger ? 'hover:text-red-600' : 'hover:text-[#C43E00]'}`}>
+      {children}
+      <span className="pointer-events-none absolute bottom-full right-0 mb-1 z-20 whitespace-nowrap rounded-md bg-[#2D1B0E] px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+        {label}
+      </span>
+    </button>
+  );
+}
+
 // Page numbers under a list; hidden when everything fits on one page.
 function Pager({ page, total, onPage }) {
   const pages = Math.ceil(total / PAGE_SIZE);
@@ -260,7 +274,6 @@ export default function AdminLiveBlog() {
   const inputCls = "w-full h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-1 focus:ring-[#C43E00]/20 outline-none text-sm text-[#2D1B0E]";
   const label = "block text-xs font-medium text-[#5D4037] mb-1";
   const btn = "inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-full";
-  const iconBtn = "p-1.5 text-[#8D6E63] hover:text-[#C43E00]";
   const igOk = isJpeg(form.image_url);
   const editingStatus = editing ? statusOf(editing) : null;
   const tabs = [['published', 'Published'], ['scheduled', 'Scheduled'], ['draft', 'Drafts']];
@@ -386,8 +399,8 @@ export default function AdminLiveBlog() {
                   {p.note && <p className="text-xs text-[#5D4037] mt-1">Note: {p.note}</p>}
                 </div>
                 <div className="flex gap-1 ml-2">
-                  <button onClick={() => handleEdit(p)} className={iconBtn} title="Edit"><Pencil className="h-4 w-4" /></button>
-                  <button onClick={() => remove(p)} className="p-1.5 text-[#8D6E63] hover:text-red-600" title="Delete"><Trash2 className="h-4 w-4" /></button>
+                  <ActionButton label="Edit" onClick={() => handleEdit(p)}><Pencil className="h-4 w-4" /></ActionButton>
+                  <ActionButton label="Delete" danger onClick={() => remove(p)}><Trash2 className="h-4 w-4" /></ActionButton>
                 </div>
               </div>
             </div>
@@ -437,17 +450,18 @@ export default function AdminLiveBlog() {
                   </td>
                   <td className={td}>{channelsCell(p)}</td>
                   <td className={td}><NoteCell key={p.note || ''} post={p} onSave={(note) => update(p.id, { note })} /></td>
-                  <td className={td}>
+                  {/* Not clipped, so the action names can show above the icons. */}
+                  <td className="px-3 py-3 align-top">
                     <div className="flex flex-wrap gap-1">
-                      <button onClick={() => handleEdit(p)} className={iconBtn} title="Edit"><Pencil className="h-4 w-4" /></button>
+                      <ActionButton label="Edit" onClick={() => handleEdit(p)}><Pencil className="h-4 w-4" /></ActionButton>
                       {tab === 'draft' && (
-                        <button onClick={() => { setScheduleValue(tomorrowMorning()); setSchedulingDraft(p.id); }} className={iconBtn} title="Schedule"><CalendarClock className="h-4 w-4" /></button>
+                        <ActionButton label="Schedule" onClick={() => { setScheduleValue(tomorrowMorning()); setSchedulingDraft(p.id); }}><CalendarClock className="h-4 w-4" /></ActionButton>
                       )}
-                      <button onClick={() => publishNow(p)} className={iconBtn} title="Publish now"><Send className="h-4 w-4" /></button>
+                      <ActionButton label="Publish now" onClick={() => publishNow(p)}><Send className="h-4 w-4" /></ActionButton>
                       {tab === 'scheduled' && (
-                        <button onClick={() => moveToDraft(p)} className={iconBtn} title="Move to drafts"><Undo2 className="h-4 w-4" /></button>
+                        <ActionButton label="Move to drafts" onClick={() => moveToDraft(p)}><Undo2 className="h-4 w-4" /></ActionButton>
                       )}
-                      <button onClick={() => remove(p)} className="p-1.5 text-[#8D6E63] hover:text-red-600" title="Delete"><Trash2 className="h-4 w-4" /></button>
+                      <ActionButton label="Delete" danger onClick={() => remove(p)}><Trash2 className="h-4 w-4" /></ActionButton>
                     </div>
                   </td>
                 </tr>
