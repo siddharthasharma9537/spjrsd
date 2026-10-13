@@ -66,6 +66,7 @@ uvicorn app.main:app --reload
 Backend env vars (see `backend/.env.example` for full descriptions of each):
 
 - `MONGO_URL`, `DB_NAME`, `JWT_SECRET` — required to run at all.
+- `CORS_EXTRA_ORIGINS` — local development only: comma-separated extra origins the API accepts browser requests from, e.g. `http://localhost:3000` for the frontend dev server. Leave unset in production, where only the cheruvugattu.online origins are allowed.
 - `MSG91_*` — SMS/email OTP and the admin newsletter "send alert" feature.
 - `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_OTP_TEMPLATE_NAME` — WhatsApp OTP login/registration.
 - `WHATSAPP_VERIFY_TOKEN`, `META_APP_SECRET` — inbound WhatsApp chatbot webhook.

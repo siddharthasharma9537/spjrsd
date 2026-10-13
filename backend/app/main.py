@@ -88,6 +88,8 @@ origins = [
     "https://cheruvugattu.online",
     "https://www.cheruvugattu.online",
 ]
+# Local development only (e.g. http://localhost:3000); unset in production.
+origins += [o.strip() for o in os.environ.get("CORS_EXTRA_ORIGINS", "").split(",") if o.strip()]
 
 app.add_middleware(
     CORSMiddleware,
