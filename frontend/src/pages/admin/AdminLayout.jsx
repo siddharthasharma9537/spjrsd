@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasAnyPermission, hasPermission } from '@/lib/permissions';
 import TasksWidget from './TasksWidget';
-import { ShieldCheck, LayoutDashboard, Flame as FlameIcon, Calendar, Clock, BookOpen, Users, LogOut, HandCoins, BedDouble, Newspaper, Camera, Sun, Radio, Mail, MessageSquare, Gift, ScrollText, Settings, Receipt, UserCog, KeyRound, PanelLeftClose, PanelLeftOpen, Store, BarChart3, Ban, ScanLine, Star, ChevronDown } from 'lucide-react';
+import { ShieldCheck, LayoutDashboard, Flame as FlameIcon, Calendar, Clock, BookOpen, Users, LogOut, HandCoins, BedDouble, Newspaper, Camera, Sun, Radio, Mail, MessageSquare, Gift, ScrollText, Settings, Receipt, UserCog, KeyRound, PanelLeftClose, PanelLeftOpen, Store, BarChart3, Ban, ScanLine, Star, ChevronDown, Globe, ExternalLink } from 'lucide-react';
 
 // Remembered across page loads/navigations, not just component state - so
 // the sidebar doesn't snap back open every time an admin clicks between
@@ -186,8 +186,15 @@ export default function AdminLayout({ children, title }) {
             </div>
           ))}
         </nav>
-        {/* Pinned below the scrolling list so Settings and Logout are always in view. */}
+        {/* Pinned below the scrolling list so Settings and Logout are always in view.
+            "View website" opens the public site in a new tab, so the admin
+            screen (and anything half-edited on it) stays where it was. */}
         <div className="p-3 border-t border-[#5D4037]/30 space-y-1">
+          <a href="/" target="_blank" rel="noopener" title={collapsed ? 'View website (opens in a new tab)' : 'Opens in a new tab'}
+            className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm hover:bg-white/5 text-[#FFE0B2]/80 transition-all ${collapsed ? 'justify-center px-2' : ''}`} data-testid="admin-view-website">
+            <Globe className="h-4 w-4 shrink-0" />
+            {!collapsed && <><span className="flex-1">View website</span><ExternalLink className="h-3 w-3 opacity-60" /></>}
+          </a>
           {navLink(settingsItem)}
           <button onClick={logout} title={collapsed ? 'Logout' : undefined} className={`flex items-center gap-3 px-4 py-2.5 text-sm text-[#FFE0B2]/60 hover:text-white transition-colors w-full ${collapsed ? 'justify-center px-2' : ''}`} data-testid="admin-logout">
             <LogOut className="h-4 w-4 shrink-0" /> {!collapsed && 'Logout'}
@@ -209,6 +216,7 @@ export default function AdminLayout({ children, title }) {
                 <item.icon className="h-4 w-4" />
               </Link>
             ))}
+            <a href="/" target="_blank" rel="noopener" aria-label="View website (opens in a new tab)" className="p-2"><Globe className="h-4 w-4" /></a>
             <button onClick={logout} className="p-2"><LogOut className="h-4 w-4" /></button>
           </div>
         </header>
