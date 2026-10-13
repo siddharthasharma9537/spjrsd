@@ -38,17 +38,21 @@ const errorText = (err) => err?.response?.data?.detail || 'Something went wrong.
 
 function DateTimePicker({ value, onChange, testid }) {
   const sel = 'h-9 px-2 bg-white border border-[#E6DCCA] rounded-lg text-sm text-[#2D1B0E]';
+  const timeSel = 'h-9 w-14 pl-2 pr-0 bg-white border border-[#E6DCCA] rounded-lg text-sm text-[#2D1B0E]';
   return (
     <div className="flex items-center gap-1.5 flex-wrap" data-testid={testid}>
       <input type="date" className={sel} value={value.date} onChange={e => onChange({ ...value, date: e.target.value })} aria-label="Date" />
-      <select className={sel} value={value.hh} onChange={e => onChange({ ...value, hh: e.target.value })} aria-label="Hour (HH)">
-        {HOURS.map(h => <option key={h}>{h}</option>)}
-      </select>
-      <span className="text-[#8D6E63]">:</span>
-      <select className={sel} value={value.mm} onChange={e => onChange({ ...value, mm: e.target.value })} aria-label="Minute (MM)">
-        {MINUTES.map(m => <option key={m}>{m}</option>)}
-      </select>
-      <span className="text-xs text-[#8D6E63]">IST</span>
+      {/* HH : MM IST wraps as one unit, so the minute never ends up alone on the next line. */}
+      <span className="flex items-center gap-1 whitespace-nowrap">
+        <select className={timeSel} value={value.hh} onChange={e => onChange({ ...value, hh: e.target.value })} aria-label="Hour (HH)">
+          {HOURS.map(h => <option key={h}>{h}</option>)}
+        </select>
+        <span className="text-[#8D6E63]">:</span>
+        <select className={timeSel} value={value.mm} onChange={e => onChange({ ...value, mm: e.target.value })} aria-label="Minute (MM)">
+          {MINUTES.map(m => <option key={m}>{m}</option>)}
+        </select>
+        <span className="text-xs text-[#8D6E63] ml-0.5">IST</span>
+      </span>
     </div>
   );
 }
@@ -104,6 +108,44 @@ function NoteCell({ post, onSave }) {
   );
 }
 
+// Scheduled / Drafts table columns: drag a heading's right edge to resize.
+// Widths are remembered in this browser; the table scrolls sideways when wider than the screen.
+const COLUMN_WIDTHS = [56, 300, 200, 120, 220, 150];
+const MIN_COLUMN_WIDTH = 48;
+const WIDTHS_KEY = 'admin-live-blog-column-widths';
+
+function useColumnWidths() {
+  const [widths, setWidths] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(WIDTHS_KEY));
+      if (Array.isArray(saved) && saved.length === COLUMN_WIDTHS.length) return saved;
+    } catch { /* fall back to defaults */ }
+    return COLUMN_WIDTHS;
+  });
+  const startResize = (index, e) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = widths[index];
+    let latest = widths;
+    const move = (ev) => {
+      latest = widths.map((w, i) => i === index ? Math.max(MIN_COLUMN_WIDTH, startWidth + ev.clientX - startX) : w);
+      setWidths(latest);
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      try { localStorage.setItem(WIDTHS_KEY, JSON.stringify(latest)); } catch { /* not saved; fine */ }
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+  const reset = () => {
+    setWidths(COLUMN_WIDTHS);
+    try { localStorage.removeItem(WIDTHS_KEY); } catch { /* ignore */ }
+  };
+  return { widths, startResize, reset };
+}
+
 export default function AdminLiveBlog() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -115,6 +157,7 @@ export default function AdminLiveBlog() {
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [scheduleValue, setScheduleValue] = useState(tomorrowMorning());
   const [schedulingDraft, setSchedulingDraft] = useState(null);
+  const columns = useColumnWidths();
 
   const load = () => api.get('/admin/live-blog').then(r => { setItems(r.data); setLoading(false); });
   useEffect(() => { load(); }, []);
@@ -193,7 +236,7 @@ export default function AdminLiveBlog() {
   const tabs = [['published', 'Published'], ['scheduled', 'Scheduled'], ['draft', 'Drafts']];
 
   const postCell = (p) => (
-    <div className="flex items-center gap-3 min-w-[220px]">
+    <div className="flex items-center gap-3">
       {p.image_url ? <img src={p.image_url} alt="" className="w-14 h-11 shrink-0 object-cover rounded-md border border-[#E6DCCA]" />
         : <div className="w-14 h-11 shrink-0 rounded-md bg-[#F5EFE3]" />}
       <div>
@@ -203,8 +246,10 @@ export default function AdminLiveBlog() {
     </div>
   );
   const channelsCell = (p) => <Channels post={p} onToggle={(k, v) => update(p.id, { [k]: v })} />;
-  const th = "text-left text-xs font-medium text-[#8D6E63] px-3 py-2 whitespace-nowrap";
-  const td = "px-3 py-3 align-top";
+  const th = "relative text-left text-xs font-medium text-[#8D6E63] px-3 py-2 whitespace-nowrap";
+  const td = "px-3 py-3 align-top overflow-hidden";
+  const headings = ['S.No', 'Post', tab === 'scheduled' ? 'Goes live (IST)' : 'Last edited', 'Share to', 'Note', 'Actions'];
+  const tableWidth = columns.widths.reduce((a, b) => a + b, 0);
 
   return (
     <AdminLayout title="Live Blog Management">
@@ -319,16 +364,23 @@ export default function AdminLiveBlog() {
           ))}
         </div>
       ) : (
+        <div>
         <div className="bg-white border border-[#E6DCCA] rounded-xl overflow-x-auto">
-          <table className="w-full text-sm" data-testid={`live-blog-table-${tab}`}>
+          <table className="text-sm table-fixed" style={{ width: tableWidth, minWidth: '100%' }} data-testid={`live-blog-table-${tab}`}>
+            <colgroup>{columns.widths.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
             <thead className="border-b border-[#E6DCCA] bg-[#FFFCF5]">
               <tr>
-                <th className={th}>S.No</th>
-                <th className={th}>Post</th>
-                <th className={th}>{tab === 'scheduled' ? 'Goes live (IST)' : 'Last edited'}</th>
-                <th className={th}>Share to</th>
-                <th className={th}>Note</th>
-                <th className={th}>Actions</th>
+                {headings.map((h, i) => (
+                  <th key={i} className={th}>
+                    {h}
+                    {i < headings.length - 1 && (
+                      <span onPointerDown={(e) => columns.startResize(i, e)} title="Drag to resize"
+                        className="group absolute top-0 -right-1.5 z-10 h-full w-3 flex justify-center cursor-col-resize select-none touch-none">
+                        <span className="my-1.5 w-0.5 rounded-full bg-[#D7C9B0] group-hover:w-1 group-hover:bg-[#C43E00]" />
+                      </span>
+                    )}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -353,9 +405,9 @@ export default function AdminLiveBlog() {
                     )}
                   </td>
                   <td className={td}>{channelsCell(p)}</td>
-                  <td className={`${td} min-w-[200px]`}><NoteCell key={p.note || ''} post={p} onSave={(note) => update(p.id, { note })} /></td>
+                  <td className={td}><NoteCell key={p.note || ''} post={p} onSave={(note) => update(p.id, { note })} /></td>
                   <td className={td}>
-                    <div className="flex gap-1">
+                    <div className="flex flex-wrap gap-1">
                       <button onClick={() => handleEdit(p)} className={iconBtn} title="Edit"><Pencil className="h-4 w-4" /></button>
                       {tab === 'draft' && (
                         <button onClick={() => { setScheduleValue(tomorrowMorning()); setSchedulingDraft(p.id); }} className={iconBtn} title="Schedule"><CalendarClock className="h-4 w-4" /></button>
@@ -371,6 +423,8 @@ export default function AdminLiveBlog() {
               ))}
             </tbody>
           </table>
+        </div>
+        <button onClick={columns.reset} className="mt-2 text-xs text-[#8D6E63] hover:text-[#C43E00]">Reset column widths</button>
         </div>
       )}
     </AdminLayout>
