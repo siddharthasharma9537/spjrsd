@@ -31,16 +31,16 @@ export default function AdminDashboard() {
   return (
     <AdminLayout title="Dashboard">
       {loading ? <p className="text-[#8D6E63]">Loading stats...</p> : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
           {cards.map((c, i) => (
-            <div key={i} className="bg-white border border-[#E6DCCA] rounded-xl p-5 hover:border-[#D4AF37]/50 transition-all" data-testid={`stat-card-${i}`}>
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 ${c.bg} rounded-full flex items-center justify-center`}>
+            <div key={i} className="bg-white border border-[#E6DCCA] rounded-xl p-3 sm:p-5 hover:border-[#D4AF37]/50 transition-all min-w-0" data-testid={`stat-card-${i}`}>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className={`w-8 h-8 sm:w-10 sm:h-10 shrink-0 ${c.bg} rounded-full flex items-center justify-center`}>
                   <c.icon className={`h-5 w-5 ${c.color}`} />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs text-[#8D6E63]">{c.label}</p>
-                  <p className="text-xl font-bold text-[#2D1B0E]">{c.value}</p>
+                  <p className="text-lg sm:text-xl font-bold text-[#2D1B0E] break-words">{c.value}</p>
                 </div>
               </div>
             </div>
