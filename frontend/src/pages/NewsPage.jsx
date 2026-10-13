@@ -4,6 +4,7 @@ import TopStrip from '@/components/TopStrip';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import api from '@/lib/api';
+import { isLong } from '@/lib/utils';
 import LoadState from "@/components/LoadState";
 import { useT } from "@/contexts/LanguageContext";
 import { Newspaper, AlertCircle } from 'lucide-react';
@@ -47,7 +48,12 @@ export default function NewsPage() {
                       <h2 className="font-medium text-[#2D1B0E]">{t(n.title, n.title_telugu)}</h2>
                       {n.is_important && <span className="px-2 py-0.5 bg-[#C43E00] text-white text-xs rounded-full">{t('Important', 'ముఖ్యమైనది')}</span>}
                     </div>
-                    <p className="text-sm text-[#5D4037] leading-relaxed mb-2">{t(n.content, n.content_telugu)}</p>
+                    {/* Keep the post's own line breaks and show a preview only, as on
+                        the Live Blog - the full text is on the page this card links to. */}
+                    <p className="text-sm text-[#5D4037] leading-relaxed whitespace-pre-line line-clamp-6">{t(n.content, n.content_telugu)}</p>
+                    {isLong(t(n.content, n.content_telugu)) && (
+                      <span className="inline-block mt-1 text-sm font-medium text-[#C43E00]">{t('Read more →', 'పూర్తిగా చదవండి →')}</span>
+                    )}
                     <p className="text-xs text-[#8D6E63] mt-3">{new Date(n.created_at).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                   </div>
                 </div>
