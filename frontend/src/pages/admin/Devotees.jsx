@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from './AdminLayout';
+import useIsPhone from '@/hooks/useIsPhone';
 import EmailReplyModal from './EmailReplyModal';
 import DateInput from '@/components/ui/date-input';
 import { useCachedGet } from '@/lib/cachedGet';
@@ -10,6 +11,7 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-dig
 
 export default function AdminDevotees() {
   const navigate = useNavigate();
+  const isPhone = useIsPhone();
   const { data, loading, error } = useCachedGet('/admin/devotees');
   const devotees = useMemo(() => data || [], [data]);
   // An error only matters when there's nothing cached to show instead.
@@ -68,6 +70,26 @@ export default function AdminDevotees() {
 
       {loading ? <p className="text-[#8D6E63]">Loading...</p> : visible.length === 0 ? (
         <p className="text-center py-12 text-[#8D6E63]">{devotees.length === 0 ? 'No devotees registered yet' : 'No devotees match your filters'}</p>
+      ) : isPhone ? (
+        // Phones: one card per devotee; tapping it opens their activity, as the table row does.
+        <div className="space-y-3" data-testid="devotees-cards">
+          {visible.map(d => (
+            <div key={d.id} onClick={() => navigate(`/admin/devotees/${d.id}`)} className="bg-white border border-[#E6DCCA] rounded-xl p-4 active:bg-[#FDFBF7]" data-testid={`devotee-row-${d.id}`}>
+              <div className="flex items-start justify-between gap-3">
+                <p className="font-medium text-[#2D1B0E]">{d.name}</p>
+                <span className="text-xs text-[#8D6E63] shrink-0">{fmtDate(d.created_at)}</span>
+              </div>
+              <a href={`tel:${d.mobile}`} onClick={e => e.stopPropagation()} className="mt-1 inline-flex items-center gap-1 min-h-[2.25rem] text-sm text-[#C43E00]"><Phone className="h-3.5 w-3.5" /> {d.mobile}</a>
+              {d.email && (
+                <p className="mt-1 flex items-center gap-2 text-sm text-[#5D4037] min-w-0">
+                  <Mail className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{d.email}</span>
+                  <button onClick={e => { e.stopPropagation(); setReplyTarget(d); }} className="text-[#C43E00] text-sm px-3 min-h-[2.25rem] -my-1.5 shrink-0" data-testid={`devotee-reply-${d.id}`}>Reply</button>
+                </p>
+              )}
+              {d.gotram && <p className="mt-1 text-xs text-[#8D6E63]">Gotram {d.gotram}</p>}
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="bg-white border border-[#E6DCCA] rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
