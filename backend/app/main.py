@@ -2375,6 +2375,34 @@ async def get_panchangam_reminders():
                     "title": title, "title_telugu": title_te})
     return out
 
+def _festivals_of(doc: dict) -> list:
+    """A day's festivals as [(english, telugu)]: its non-recurring observances, so the recurring days the special note also lists
+    (Ekadashi, Pradosham, the kartes ...) don't crowd them out. A day uploaded before observances existed falls back to its note."""
+    if doc.get("observances") is not None:
+        return [(o.get("name_en", ""), o.get("name_te") or o.get("name_en", "")) for o in doc["observances"] if not o.get("recurring")]
+    en = [p.strip() for p in (doc.get("special_note") or "").split(";")]
+    te = [p.strip() for p in (doc.get("special_note_telugu") or "").split(";")]
+    te = te if len(te) == len(en) else en
+    return [(e, t) for e, t in zip(en, te) if e and not e.lower().startswith(_NOTE_NOISE)]
+
+@api_router.get("/panchangam/upcoming")
+async def get_upcoming_festivals(date: Optional[str] = None, limit: int = Query(6, ge=1, le=20)):
+    """The next festivals after a date (default today), for the full panchangam page."""
+    start = date or datetime.now(IST).date().isoformat()
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", start):
+        raise HTTPException(status_code=400, detail="date must be YYYY-MM-DD")
+    docs = await db.panchangam.find(
+        {"date": {"$gt": start}, "$or": [{"observances.recurring": False},
+                                         {"observances": {"$exists": False}, "special_note": {"$nin": [None, ""]}}]},
+        {"_id": 0, "date": 1, "observances": 1, "special_note": 1, "special_note_telugu": 1},
+    ).sort("date", 1).to_list(limit)
+    out = []
+    for doc in docs:
+        for en, te in _festivals_of(doc):
+            if len(out) < limit:
+                out.append({"date": doc["date"], "name": en, "name_telugu": te})
+    return out
+
 @api_router.get("/panchangam")
 async def get_panchangam_by_date(date: str):
     item = await db.panchangam.find_one({"date": date}, {"_id": 0})

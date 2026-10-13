@@ -74,3 +74,48 @@ def test_endpoint_lists_only_days_worth_a_reminder(client):
     assert item["when"] == "tomorrow" and item["date"] == tomorrow.isoformat()
     assert item["title"] == f"Tomorrow ({tomorrow.strftime('%a')}, {tomorrow.day} {tomorrow.strftime('%b')}): Ashwayuja Amavasya"
     assert item["title_telugu"].startswith("రేపు (") and item["title_telugu"].endswith("Ashwayuja Amavasya")
+
+
+# ---- upcoming festivals for the full panchangam page
+def test_festivals_of_a_day_skip_the_recurring_observances():
+    doc = {"observances": [{"name_en": "Mahalaya Amavasya", "name_te": "మహాలయ అమావాస్య", "recurring": False},
+                           {"name_en": "Chitta Karte", "name_te": "చిత్త కార్తె", "recurring": True}],
+           "special_note": "Mahalaya Amavasya; Chitta Karte"}
+    assert main._festivals_of(doc) == [("Mahalaya Amavasya", "మహాలయ అమావాస్య")]
+
+
+def test_festivals_of_an_older_day_come_from_its_note():
+    assert main._festivals_of({"special_note": "Gauri Tritiya; Star symbol", "special_note_telugu": "గౌరీ తృతీయ; Star symbol"}) == \
+        [("Gauri Tritiya", "గౌరీ తృతీయ")]
+    assert main._festivals_of({"special_note": "Holi; Pournami", "special_note_telugu": "హోళీ"}) == [("Holi", "Holi"), ("Pournami", "Pournami")]
+
+
+def test_upcoming_endpoint_lists_the_next_festivals(monkeypatch):
+    rows = [
+        {"date": "2026-10-16", "observances": [{"name_en": "Sri Saraswati Avahana", "name_te": "శ్రీ సరస్వతీ ఆవాహన", "recurring": False}]},
+        {"date": "2026-10-19", "observances": [{"name_en": "Durgashtami", "name_te": "దుర్గాష్టమి", "recurring": False},
+                                               {"name_en": "Maha Navami", "name_te": "మహర్నవమి", "recurring": False}]},
+    ]
+    seen = {}
+
+    class Sorted:
+        def __init__(self, rows):
+            self.rows = rows
+
+        def sort(self, *_):
+            return Cursor(self.rows)
+
+    class Panchangam:
+        def find(self, q, proj=None):
+            seen["query"] = q
+            return Sorted([r for r in rows if r["date"] > q["date"]["$gt"]])
+
+    class DB:
+        panchangam = Panchangam()
+
+    monkeypatch.setattr(main, "db", DB())
+    body = TestClient(main.app).get("/api/panchangam/upcoming", params={"date": "2026-10-13", "limit": 2}).json()
+    assert body == [{"date": "2026-10-16", "name": "Sri Saraswati Avahana", "name_telugu": "శ్రీ సరస్వతీ ఆవాహన"},
+                    {"date": "2026-10-19", "name": "Durgashtami", "name_telugu": "దుర్గాష్టమి"}]
+    assert seen["query"]["date"] == {"$gt": "2026-10-13"}
+    assert TestClient(main.app).get("/api/panchangam/upcoming", params={"date": "13-10-2026"}).status_code == 400

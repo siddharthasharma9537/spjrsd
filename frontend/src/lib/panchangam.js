@@ -83,3 +83,23 @@ export function toEnglishTiming(timing) {
 export function formatTiming(timing, isEnglish) {
   return isEnglish ? toEnglishTiming(timing) : timing || '';
 }
+
+/* The tithi's number within its paksha (1-15) from the engine's English name, for the "3 ఆశ్వయుజ" date line; null for a name
+   it doesn't recognise (older hand-entered rows). */
+const TITHI_NUMBERS = ['padyami', 'vidiya', 'tadiya', 'chaviti', 'panchami', 'shashti', 'saptami', 'ashtami', 'navami', 'dashami',
+  'ekadashi', 'dwadashi', 'trayodashi', 'chaturdashi'];
+export function tithiNumber(name) {
+  const key = (name || '').trim().toLowerCase();
+  if (key === 'pournami' || key === 'amavasya') return 15;
+  const i = TITHI_NUMBERS.indexOf(key);
+  return i < 0 ? null : i + 1;
+}
+
+/* A karana's end in the page's language. The engine writes its end the books' way ("ఉ 10-32"), which cannot say that the
+   last karana of a day ends the next morning; its exact `ends_at` can, so English adds "(next day)" then. */
+export function karanaEnd(karana, day, isEnglish) {
+  if (!isEnglish) return karana.timing || '';
+  const text = toEnglishTiming(karana.timing);
+  const nextDay = karana.ends_at && karana.ends_at.slice(0, 10) > day && !text.endsWith('(next day)');
+  return nextDay ? `${text} (next day)` : text;
+}
