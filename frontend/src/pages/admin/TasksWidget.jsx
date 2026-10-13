@@ -81,13 +81,20 @@ function TaskList({ tasks, onOpen, filter, setFilter }) {
   };
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="sticky top-0 z-10 flex gap-1 px-2 py-1.5 border-b border-[#F0E8D8] bg-[#FFFCF5]" role="tablist">
-        {FILTERS.map(([key, label]) => (
-          <button key={key} role="tab" aria-selected={filter === key} onClick={() => setFilter(key)} data-testid={`tasks-filter-${key}`}
-            className={`px-2.5 py-1 rounded-full text-xs whitespace-nowrap ${filter === key ? 'bg-[#C43E00] text-white' : 'text-[#5D4037] hover:bg-[#F5EFE3]'}`}>
-            {label} <span className={filter === key ? 'text-white/80' : 'text-[#8D6E63]'}>{groups[key].length}</span>
-          </button>
-        ))}
+      <div className="sticky top-0 z-10 flex gap-1.5 px-2 py-2 border-b border-[#F0E8D8] bg-[#FFFCF5] overflow-x-auto" role="tablist">
+        {FILTERS.map(([key, label]) => {
+          const selected = filter === key;
+          const count = groups[key].length;
+          return (
+            <button key={key} role="tab" aria-selected={selected} onClick={() => setFilter(key)} data-testid={`tasks-filter-${key}`}
+              className={`flex items-center gap-1 pl-2.5 pr-1 py-0.5 rounded-full border text-xs whitespace-nowrap transition-colors ${
+                selected ? 'bg-[#C43E00] border-[#C43E00] text-white shadow-sm' : 'bg-white border-[#E6DCCA] text-[#5D4037] hover:border-[#C43E00]'}`}>
+              {label}
+              <span className={`min-w-[1.25rem] px-1 rounded-full text-[11px] leading-[1.25rem] text-center ${
+                selected ? 'bg-white/25 text-white' : key === 'need_help' && count > 0 ? 'bg-red-600 text-white' : 'bg-[#F5EFE3] text-[#8D6E63]'}`}>{count}</span>
+            </button>
+          );
+        })}
       </div>
       {shown.length === 0 && <p className="px-3 py-6 text-center text-sm text-[#8D6E63]">{EMPTY[filter]}</p>}
       <ul className="divide-y divide-[#F0E8D8]">{shown.map(row)}</ul>
