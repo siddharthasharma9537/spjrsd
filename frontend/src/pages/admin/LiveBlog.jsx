@@ -477,7 +477,8 @@ export default function AdminLiveBlog() {
               <div key={p.id} className="bg-white border border-[#E6DCCA] rounded-xl p-4" data-testid={`live-blog-row-${p.id}`}>
                 {postCell(p)}
                 <div className="mt-3 text-sm"><p className="text-xs text-[#8D6E63] mb-1">{headings[2]}</p>{whenCell(p)}</div>
-                <div className="mt-3"><p className="text-xs text-[#8D6E63] mb-1">Share to</p>{channelsCell(p)}</div>
+                {/* The table's compact checkboxes, made big enough to tap. */}
+                <div className="mt-3 [&_label]:min-h-[2.25rem] [&_label]:text-sm [&_input]:h-4 [&_input]:w-4"><p className="text-xs text-[#8D6E63] mb-1">Share to</p>{channelsCell(p)}</div>
                 <div className="mt-3"><p className="text-xs text-[#8D6E63] mb-1">Note</p><NoteCell key={p.note || ''} post={p} onSave={(note) => update(p.id, { note })} /></div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {rowActions(p).map(([label, Icon, onClick, danger]) => (
