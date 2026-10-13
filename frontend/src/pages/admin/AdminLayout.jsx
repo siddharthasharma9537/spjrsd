@@ -112,7 +112,7 @@ export default function AdminLayout({ children, title }) {
   const closeTimer = useRef(null);
   const prefetchTimer = useRef(null);
   const flyoutTimer = useRef(null);
-  // The section menu open off the collapsed rail: { label, top, anchor }.
+  // The section menu open off the collapsed rail: { label, top, anchor, focusFirst }.
   const [flyout, setFlyout] = useState(null);
   const flyoutRef = useRef(null);
   // Opened from the keyboard: move focus into the menu.
@@ -124,20 +124,11 @@ export default function AdminLayout({ children, title }) {
   }, []);
   useEffect(() => () => { clearTimeout(closeTimer.current); clearTimeout(prefetchTimer.current); clearTimeout(flyoutTimer.current); }, []);
   // "Pinned" = open and holding its full width in the layout. Otherwise the
-  // layout only ever holds the icon rail, and the full panel opens over the
-  // page (hover mode), so the content never jumps sideways.
+  // layout only ever holds the icon rail, and the panel opens over the page
+  // (hover mode), so the content never jumps sideways.
   const pinned = !hoverMode && !collapsedPref;
-  const panelOpen = pinned || (hoverMode && hovered);
-  // Counts openings of the panel during this visit, so its links spring in
-  // when it opens - but not on every page load while it's pinned open.
-  const [prevPanelOpen, setPrevPanelOpen] = useState(panelOpen);
-  const [panelOpenings, setPanelOpenings] = useState(0);
-  if (panelOpen !== prevPanelOpen) {
-    setPrevPanelOpen(panelOpen);
-    if (panelOpen) setPanelOpenings(n => n + 1);
-  }
-  // A group folded open by hand springs its links in the same way.
-  const [justUnfolded, setJustUnfolded] = useState(null);  const [closedGroups, setClosedGroups] = useState(() => {
+  const expanded = pinned || (hoverMode && hovered);
+  const [closedGroups, setClosedGroups] = useState(() => {
     try { return JSON.parse(localStorage.getItem(GROUPS_CLOSED_KEY)) || []; } catch { return []; }
   });
   const groups = navGroups
@@ -149,7 +140,6 @@ export default function AdminLayout({ children, title }) {
   // The group holding the current page always shows, even if folded earlier.
   const isOpen = (g) => !g.label || !closedGroups.includes(g.label) || g.items.some(isActive);
   const toggleGroup = (label) => {
-    setJustUnfolded(closedGroups.includes(label) ? label : null);
     setClosedGroups(prev => {
       const next = prev.includes(label) ? prev.filter(l => l !== label) : [...prev, label];
       try { localStorage.setItem(GROUPS_CLOSED_KEY, JSON.stringify(next)); } catch { /* not remembered; fine */ }
@@ -170,43 +160,57 @@ export default function AdminLayout({ children, title }) {
   };
   const stopPrefetch = () => clearTimeout(prefetchTimer.current);
 
-  // Shown at once on hover/keyboard focus of a rail icon (a `title` takes
-  // about a second). It's `fixed` so the rail's scroll box doesn't clip it,
-  // which means CSS alone can't know where the (possibly scrolled) row is:
-  // placeTip hands it the row's height on screen as --tip-y.
-  const placeTip = (e) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    e.currentTarget.style.setProperty('--tip-y', `${r.top + r.height / 2}px`);
-  };
-  const tip = (label, { onHover = true } = {}) => (
-    <span aria-hidden="true" className={`pointer-events-none fixed left-[5.5rem] top-[var(--tip-y)] -translate-y-1/2 z-50 hidden ${onHover ? 'group-hover:block' : ''} group-focus-visible:block whitespace-nowrap rounded-md bg-[#1E1209] px-2.5 py-1 text-xs text-[#FFE0B2] shadow-lg ring-1 ring-[#5D4037]/60`}>
-      {label}
+  // Rail icon names, shown at once on hover or keyboard focus (a `title`
+  // takes about a second). One label drawn outside the panel, because the
+  // panel's clip-path would cut off anything inside it past the rail.
+  const [railTip, setRailTip] = useState(null);
+  const tipEvents = (text, { onEnter, onLeave } = {}) => ({
+    onPointerEnter: (e) => {
+      if (!expanded) { const r = e.currentTarget.getBoundingClientRect(); setRailTip({ text, y: r.top + r.height / 2 }); }
+      onEnter?.();
+    },
+    onPointerLeave: () => { setRailTip(null); onLeave?.(); },
+    onFocus: (e) => {
+      if (!expanded && e.currentTarget.matches(':focus-visible')) { const r = e.currentTarget.getBoundingClientRect(); setRailTip({ text, y: r.top + r.height / 2 }); }
+      onEnter?.();
+    },
+    onBlur: () => { setRailTip(null); onLeave?.(); },
+  });
+
+  // One sidebar that folds, Atlas-style, rather than two layouts swapped:
+  // icons sit in a fixed 56px box centred on the rail (x = 40px) in both
+  // states, so they never move sideways. Collapsing folds every section's
+  // links away (grid rows 1fr -> 0fr), which slides the section icons up
+  // into a short column; expanding unfolds them and the icons spread back
+  // out to their headings. Labels fade, and the panel's width is revealed
+  // with clip-path - nothing outside the panel is re-laid out.
+  const EASE = '[transition-timing-function:cubic-bezier(0.2,0.8,0.2,1)]';
+  const label = (text, extra = '') => (
+    <span className={`whitespace-nowrap transition-opacity duration-200 ${expanded ? 'opacity-100' : 'opacity-0'} ${extra}`}>{text}</span>
+  );
+  const iconBox = (Icon, highlighted) => (
+    <span className={`w-14 h-9 shrink-0 flex items-center justify-center rounded-lg ${highlighted ? 'bg-[#C43E00] text-white' : ''}`}>
+      <Icon className="h-4 w-4" />
     </span>
   );
+  const rowCls = (active) => `group flex items-center w-full rounded-lg text-sm transition-colors ${
+    expanded ? (active ? 'bg-[#C43E00] text-white' : 'hover:bg-white/5 text-[#FFE0B2]/80') : (active ? 'text-white' : 'text-[#FFE0B2]/80 hover:text-white')}`;
 
-  // The sidebar is drawn twice: the icon rail (collapsed) and the full panel.
-  // Only the one on screen is `live` - it carries the data-testids, and the
-  // other is `inert` so keyboard focus and tests never land on a hidden copy.
-  const testId = (live, id) => (live ? id : undefined);
-
-  // Ease with a slight overshoot - the "elastic" settle.
-  const SPRING = 'animate-in fade-in-0 zoom-in-90 slide-in-from-left-2 duration-300 [animation-timing-function:cubic-bezier(0.34,1.56,0.64,1)] fill-mode-both origin-left';
-  const navLink = (item, collapsed, live, { spring = false, index = 0, role } = {}) => (
-    <Link key={item.path} to={item.path} aria-label={collapsed ? item.label : undefined} role={role}
-      style={spring ? { animationDelay: `${index * 18}ms` } : undefined}
-      onPointerEnter={(e) => { placeTip(e); startPrefetch(item); }} onPointerLeave={stopPrefetch}
-      onFocus={(e) => { placeTip(e); startPrefetch(item); }} onBlur={stopPrefetch}
-      className={`group flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-colors ${spring ? SPRING : ''} ${collapsed ? 'justify-center px-2' : ''} ${
-      isActive(item) ? 'bg-[#C43E00] text-white' : 'hover:bg-white/5 text-[#FFE0B2]/80'
-    }`} data-testid={testId(live, `admin-nav-${item.label.toLowerCase().replace(' ', '-')}`)}>
-      <item.icon className="h-4 w-4 shrink-0" />
-      {collapsed ? tip(item.label) : item.label}
+  const navLink = (item) => (
+    <Link key={item.path} to={item.path} aria-label={expanded ? undefined : item.label}
+      {...tipEvents(item.label, { onEnter: () => startPrefetch(item), onLeave: stopPrefetch })}
+      className={rowCls(isActive(item))} data-testid={`admin-nav-${item.label.toLowerCase().replace(' ', '-')}`}>
+      {iconBox(item.icon, !expanded && isActive(item))}
+      {label(item.label)}
     </Link>
   );
 
-  // Section menus off the collapsed rail. Like hover mode they open at once
-  // and close 120 ms after the pointer leaves both the icon and the menu.
+  // Section menus off the collapsed rail (when it isn't in hover mode, where
+  // the whole panel unfolds instead). Like hover mode they open at once and
+  // close 120 ms after the pointer leaves both the icon and the menu.
+  const flyoutsOn = !expanded && !hoverMode;
   const openFlyout = (g, e, { focusFirst = false } = {}) => {
+    if (!flyoutsOn) return;
     clearTimeout(flyoutTimer.current);
     const anchor = e.currentTarget;
     const r = anchor.getBoundingClientRect();
@@ -222,27 +226,30 @@ export default function AdminLayout({ children, title }) {
     else if (e.key === 'ArrowDown') { e.preventDefault(); links[(at + 1) % links.length]?.focus(); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); links[(at - 1 + links.length) % links.length]?.focus(); }
   };
+  const flyoutGroup = flyoutsOn && flyout && groups.find(g => g.label === flyout.label);
 
-  const sectionButton = (g, live) => {
-    const active = g.items.some(isActive);
-    const open = flyout?.label === g.label;
+  // A section heading: the fold toggle when expanded, the rail icon (with
+  // its menu) when collapsed.
+  const sectionHeading = (g) => {
+    const slug = g.label.toLowerCase().replace(/[^a-z]+/g, '-');
+    const menuOpen = flyoutGroup?.label === g.label;
     return (
-      <button key={g.label} type="button" aria-label={g.label} aria-haspopup="menu" aria-expanded={open}
-        onPointerEnter={(e) => { placeTip(e); openFlyout(g, e); }} onPointerLeave={closeFlyoutSoon} onFocus={placeTip}
-        onClick={(e) => openFlyout(g, e)}
-        onKeyDown={(e) => { if (['Enter', ' ', 'ArrowRight'].includes(e.key)) { e.preventDefault(); openFlyout(g, e, { focusFirst: true }); } }}
-        className={`group w-full flex items-center justify-center px-2 py-2 rounded-lg text-sm transition-colors ${
-          active ? 'bg-[#C43E00] text-white' : open ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-[#FFE0B2]/80'}`}
-        data-testid={testId(live, `admin-nav-section-${g.label.toLowerCase().replace(/[^a-z]+/g, '-')}`)}>
-        <g.icon className="h-4 w-4 shrink-0" />
-        {!open && tip(g.label, { onHover: false })}
+      <button type="button" aria-label={expanded ? undefined : g.label}
+        aria-expanded={expanded ? isOpen(g) : menuOpen} aria-haspopup={expanded ? undefined : 'menu'}
+        onClick={(e) => (expanded ? toggleGroup(g.label) : openFlyout(g, e))}
+        onPointerEnter={(e) => openFlyout(g, e)} onPointerLeave={closeFlyoutSoon}
+        onKeyDown={(e) => { if (!expanded && ['Enter', ' ', 'ArrowRight'].includes(e.key)) { e.preventDefault(); openFlyout(g, e, { focusFirst: true }); } }}
+        className={`group flex items-center w-full rounded-lg text-[11px] uppercase tracking-wider ${expanded ? 'text-[#D4AF37]/80 hover:text-[#D4AF37]' : menuOpen ? 'text-white' : 'text-[#FFE0B2]/80 hover:text-white'}`}
+        data-testid={expanded ? `admin-nav-group-${slug}` : `admin-nav-section-${slug}`}>
+        {iconBox(g.icon, !expanded && g.items.some(isActive))}
+        {label(g.label, 'flex-1 text-left')}
+        <ChevronDown className={`h-3.5 w-3.5 mr-3 shrink-0 transition-[transform,opacity] duration-200 ${expanded ? 'opacity-100' : 'opacity-0'} ${isOpen(g) ? '' : '-rotate-90'}`} />
       </button>
     );
   };
 
-  const flyoutGroup = !panelOpen && flyout && groups.find(g => g.label === flyout.label);
-
   const toggleCollapsed = () => {
+    setFlyout(null);
     setCollapsed(prev => {
       const next = !prev;
       localStorage.setItem(COLLAPSE_KEY, String(next));
@@ -250,94 +257,91 @@ export default function AdminLayout({ children, title }) {
     });
   };
 
-  const sidebar = (collapsed, live) => (
-    <>
-        <div className="p-5 border-b border-[#5D4037]/30 flex items-start justify-between gap-2">
-          <div className={collapsed ? 'sr-only' : ''}>
-            <div className="flex items-center gap-2 mb-1">
-              <ShieldCheck className="h-5 w-5 text-[#D4AF37] shrink-0" />
-              <span className="font-english-heading text-xs tracking-wide">ADMIN PORTAL</span>
-            </div>
-            <p className="text-xs text-[#8D6E63]">{user?.name} ({user?.role})</p>
-          </div>
-          {collapsed && <ShieldCheck className="h-5 w-5 text-[#D4AF37] mx-auto" />}
-          {!hoverMode && <button
-            onClick={toggleCollapsed}
-            className="text-[#FFE0B2]/60 hover:text-white transition-colors shrink-0"
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            data-testid={testId(live, 'admin-sidebar-toggle')}
-          >
-            {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-          </button>}
-        </div>
-        {collapsed ? (
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {groups.map(g => g.label ? sectionButton(g, live) : g.items.map(item => navLink(item, true, live)))}
-        </nav>
-        ) : (
-        <nav key={panelOpenings} className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {groups.map((g, i) => (
-            <div key={g.label || i} className={g.label ? 'pt-3 space-y-1' : 'space-y-1'}>
-              {g.label && (
-                <button onClick={() => toggleGroup(g.label)} className="w-full flex items-center justify-between px-4 pb-1 text-[11px] uppercase tracking-wider text-[#D4AF37]/70 hover:text-[#D4AF37]" aria-expanded={isOpen(g)} data-testid={testId(live, `admin-nav-group-${g.label.toLowerCase().replace(/[^a-z]+/g, '-')}`)}>
-                  {g.label}
-                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isOpen(g) ? '' : '-rotate-90'}`} />
-                </button>
-              )}
-              {isOpen(g) && g.items.map((item, j) => navLink(item, false, live,
-                { spring: panelOpenings > 0 || justUnfolded === g.label, index: j }))}
-            </div>
-          ))}
-        </nav>
-        )}
-        {/* Pinned below the scrolling list so Settings and Logout are always in view.
-            "View website" opens the public site in a new tab, so the admin
-            screen (and anything half-edited on it) stays where it was. */}
-        <div className="p-3 border-t border-[#5D4037]/30 space-y-1">
-          <a href="/" target="_blank" rel="noopener" onPointerEnter={placeTip} onFocus={placeTip} aria-label={collapsed ? 'View website (opens in a new tab)' : undefined} title={collapsed ? undefined : 'Opens in a new tab'}
-            className={`group flex items-center gap-3 px-4 py-2 rounded-lg text-sm hover:bg-white/5 text-[#FFE0B2]/80 transition-colors ${collapsed ? 'justify-center px-2' : ''}`} data-testid={testId(live, 'admin-view-website')}>
-            <Globe className="h-4 w-4 shrink-0" />
-            {collapsed ? tip('View website') : <><span className="flex-1">View website</span><ExternalLink className="h-3 w-3 opacity-60" /></>}
-          </a>
-          {navLink(settingsItem, collapsed, live)}
-          <button onClick={logout} onPointerEnter={placeTip} onFocus={placeTip} aria-label={collapsed ? 'Logout' : undefined} className={`group flex items-center gap-3 px-4 py-2.5 text-sm text-[#FFE0B2]/60 hover:text-white transition-colors w-full ${collapsed ? 'justify-center px-2' : ''}`} data-testid={testId(live, 'admin-logout')}>
-            <LogOut className="h-4 w-4 shrink-0" /> {collapsed ? tip('Logout') : 'Logout'}
-          </button>
-        </div>
-    </>
-  );
-
   return (
     <div className="min-h-screen bg-[#FFFCF5] flex">
       {/* Sidebar - desktop only; the mobile header below has its own
-          always-compact, icon-only layout so it isn't affected.
-          Its width never animates: pinned/collapsed snaps the layout between
-          w-64 and w-20 in one step, and only the panel on top fades/slides
-          (transform + opacity, which the browser composites without
-          re-laying out the page). */}
+          always-compact, icon-only layout so it isn't affected. The aside
+          only snaps between w-20 and w-64 (pinned); the panel inside it is
+          always w-64, absolutely placed, and folds as described above. */}
       <aside className={`${pinned ? 'w-64' : 'w-20'} hidden md:block shrink-0 md:sticky md:top-0 md:h-screen z-40`}
         onMouseEnter={onSidebarEnter} onMouseLeave={onSidebarLeave} data-testid="admin-sidebar">
-        <div className="w-20 h-full bg-[#2D1B0E] text-[#FFE0B2] flex flex-col" inert={panelOpen}>
-          {sidebar(true, !panelOpen)}
+        <div className={`absolute inset-y-0 left-0 w-64 bg-[#2D1B0E] text-[#FFE0B2] flex flex-col transition-[clip-path,box-shadow] duration-200 ${EASE} ${
+          expanded ? '[clip-path:inset(0_-48px_0_0)]' : '[clip-path:inset(0_176px_0_0)]'} ${expanded && !pinned ? 'shadow-2xl' : ''}`}
+          data-testid="admin-sidebar-panel">
+          <div className="h-[4.75rem] px-3 border-b border-[#5D4037]/30 flex items-center">
+            <span className="w-14 shrink-0 flex justify-center"><ShieldCheck className="h-5 w-5 text-[#D4AF37]" /></span>
+            <div className={`flex-1 min-w-0 transition-opacity duration-200 ${expanded ? 'opacity-100' : 'opacity-0'}`}>
+              <span className="font-english-heading text-xs tracking-wide whitespace-nowrap">ADMIN PORTAL</span>
+              <p className="text-xs text-[#8D6E63] truncate">{user?.name} ({user?.role})</p>
+            </div>
+            {!hoverMode && <button
+              onClick={toggleCollapsed}
+              className={`text-[#FFE0B2]/60 hover:text-white transition-colors shrink-0 ${expanded ? 'mr-1' : 'absolute left-[3.75rem] top-2'}`}
+              title={expanded ? 'Collapse sidebar' : 'Expand sidebar'}
+              data-testid="admin-sidebar-toggle"
+            >
+              {expanded ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-3.5 w-3.5" />}
+            </button>}
+          </div>
+          <nav className={`flex-1 p-3 space-y-1 ${expanded ? 'overflow-y-auto' : 'overflow-hidden'}`}>
+            {groups.map((g, i) => g.label ? (
+              <div key={g.label} className={`transition-[padding] duration-200 ${EASE} ${expanded ? 'pt-2' : ''}`}>
+                {sectionHeading(g)}
+                {/* 0fr <-> 1fr animates the links' height; inert while folded
+                    so Tab never lands on a hidden link. */}
+                <div className={`grid transition-[grid-template-rows] duration-200 ${EASE} ${expanded && isOpen(g) ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
+                  inert={!(expanded && isOpen(g))}>
+                  <div className="overflow-hidden space-y-1 pt-1">{g.items.map(navLink)}</div>
+                </div>
+              </div>
+            ) : <div key={i} className="space-y-1">{g.items.map(navLink)}</div>)}
+          </nav>
+          {/* Pinned below the scrolling list so Settings and Logout are always in view.
+              "View website" opens the public site in a new tab, so the admin
+              screen (and anything half-edited on it) stays where it was. */}
+          <div className="p-3 border-t border-[#5D4037]/30 space-y-1">
+            <a href="/" target="_blank" rel="noopener" {...tipEvents('View website')}
+              aria-label={expanded ? undefined : 'View website (opens in a new tab)'} title={expanded ? 'Opens in a new tab' : undefined}
+              className={rowCls(false)} data-testid="admin-view-website">
+              {iconBox(Globe, false)}
+              {label('View website', 'flex-1')}
+              <ExternalLink className={`h-3 w-3 mr-3 transition-opacity duration-200 ${expanded ? 'opacity-60' : 'opacity-0'}`} />
+            </a>
+            {navLink(settingsItem)}
+            <button onClick={logout} {...tipEvents('Logout')} aria-label={expanded ? undefined : 'Logout'}
+              className={rowCls(false)} data-testid="admin-logout">
+              {iconBox(LogOut, false)}
+              {label('Logout')}
+            </button>
+          </div>
         </div>
+        {railTip && !expanded && (
+          <span aria-hidden="true" style={{ top: railTip.y }}
+            className="pointer-events-none fixed left-[5.5rem] -translate-y-1/2 z-50 whitespace-nowrap rounded-md bg-[#1E1209] px-2.5 py-1 text-xs text-[#FFE0B2] shadow-lg ring-1 ring-[#5D4037]/60"
+            data-testid="admin-rail-tip">
+            {railTip.text}
+          </span>
+        )}
         {flyoutGroup && (
-          // `fixed` so the rail's scroll box doesn't clip it; the transparent
-          // pl-2 strip keeps the pointer "inside" on its way across.
+          // `fixed` so the rail's clip doesn't hide it; the transparent pl-2
+          // strip keeps the pointer "inside" on its way across.
           <div ref={flyoutRef} role="menu" aria-label={flyoutGroup.label} onPointerEnter={keepFlyout} onPointerLeave={closeFlyoutSoon} onKeyDown={flyoutKeys}
             style={{ top: flyout.top }}
             className="fixed left-20 z-50 pl-2 animate-in fade-in-0 zoom-in-90 slide-in-from-left-3 duration-200 [animation-timing-function:cubic-bezier(0.34,1.56,0.64,1)] origin-top-left"
             data-testid="admin-nav-flyout">
             <div className="w-56 rounded-xl bg-[#2D1B0E] text-[#FFE0B2] p-2 space-y-1 shadow-2xl ring-1 ring-[#5D4037]/60">
               <p className="px-4 pt-1 pb-1 text-[11px] uppercase tracking-wider text-[#D4AF37]/70">{flyoutGroup.label}</p>
-              {flyoutGroup.items.map(item => navLink(item, false, true, { role: 'menuitem' }))}
+              {flyoutGroup.items.map(item => (
+                <Link key={item.path} to={item.path} role="menuitem"
+                  onPointerEnter={() => startPrefetch(item)} onPointerLeave={stopPrefetch} onFocus={() => startPrefetch(item)} onBlur={stopPrefetch}
+                  className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-colors ${isActive(item) ? 'bg-[#C43E00] text-white' : 'hover:bg-white/5 text-[#FFE0B2]/80'}`}>
+                  <item.icon className="h-4 w-4 shrink-0" />
+                  {item.label}
+                </Link>
+              ))}
             </div>
           </div>
         )}
-        <div className={`absolute inset-y-0 left-0 w-64 bg-[#2D1B0E] text-[#FFE0B2] flex flex-col transition-[transform,opacity] duration-150 ease-out ${
-          panelOpen ? 'translate-x-0 opacity-100' : '-translate-x-3 opacity-0 pointer-events-none'} ${pinned ? '' : 'shadow-2xl'}`}
-          inert={!panelOpen}>
-          {sidebar(false, panelOpen)}
-        </div>
       </aside>
 
       {/* Mobile header */}
