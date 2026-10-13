@@ -146,10 +146,35 @@ function useColumnWidths() {
   return { widths, startResize, reset };
 }
 
+const PAGE_SIZE = 10;
+
+// Page numbers under a list; hidden when everything fits on one page.
+function Pager({ page, total, onPage }) {
+  const pages = Math.ceil(total / PAGE_SIZE);
+  if (pages <= 1) return null;
+  const btn = "min-w-[2rem] h-8 px-2 text-sm rounded-full border";
+  return (
+    <div className="flex items-center justify-between gap-3 flex-wrap mt-3" data-testid="live-blog-pager">
+      <span className="text-xs text-[#8D6E63]">
+        Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}
+      </span>
+      <div className="flex items-center gap-1 flex-wrap">
+        <button onClick={() => onPage(page - 1)} disabled={page === 1} className={`${btn} border-[#E6DCCA] text-[#5D4037] disabled:opacity-40`}>‹ Prev</button>
+        {Array.from({ length: pages }, (_, i) => i + 1).map(n => (
+          <button key={n} onClick={() => onPage(n)} aria-current={n === page ? 'page' : undefined}
+            className={`${btn} ${n === page ? 'bg-[#C43E00] border-[#C43E00] text-white' : 'border-[#E6DCCA] text-[#5D4037] hover:border-[#C43E00]'}`}>{n}</button>
+        ))}
+        <button onClick={() => onPage(page + 1)} disabled={page === pages} className={`${btn} border-[#E6DCCA] text-[#5D4037] disabled:opacity-40`}>Next ›</button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminLiveBlog() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('published');
+  const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -168,6 +193,11 @@ export default function AdminLiveBlog() {
     draft: items.filter(p => statusOf(p) === 'draft')
       .sort((a, b) => (b.updated_at || b.posted_at).localeCompare(a.updated_at || a.posted_at)),
   };
+  // Stay on a page that exists after posts move between tabs or are deleted.
+  const currentPage = Math.min(page, Math.max(1, Math.ceil(byTab[tab].length / PAGE_SIZE)));
+  const firstIndex = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = byTab[tab].slice(firstIndex, firstIndex + PAGE_SIZE);
+  const goToPage = (n) => { setPage(n); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
   const resetForm = () => { setForm(EMPTY_FORM); setEditing(null); setShowForm(false); setFormError(''); setScheduleOpen(false); };
   const openNew = () => { resetForm(); setScheduleValue(tomorrowMorning()); setShowForm(true); };
@@ -256,7 +286,7 @@ export default function AdminLiveBlog() {
       <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
         <div className="inline-flex bg-white border border-[#E6DCCA] rounded-full p-1" role="tablist">
           {tabs.map(([key, name]) => (
-            <button key={key} role="tab" aria-selected={tab === key} onClick={() => setTab(key)} data-testid={`live-blog-tab-${key}`}
+            <button key={key} role="tab" aria-selected={tab === key} onClick={() => { setTab(key); setPage(1); }} data-testid={`live-blog-tab-${key}`}
               className={`px-4 py-1.5 text-sm rounded-full ${tab === key ? 'bg-[#C43E00] text-white' : 'text-[#5D4037]'}`}>
               {name} <span className={tab === key ? 'text-white/80' : 'text-[#8D6E63]'}>({byTab[key].length})</span>
             </button>
@@ -340,7 +370,7 @@ export default function AdminLiveBlog() {
       {loading ? <p className="text-[#8D6E63]">Loading...</p> : tab === 'published' ? (
         <div className="space-y-3">
           {byTab.published.length === 0 && <p className="text-sm text-[#8D6E63]">No published posts yet.</p>}
-          {byTab.published.map(p => (
+          {pageItems.map(p => (
             <div key={p.id} className={`bg-white border rounded-xl p-5 ${p.is_pinned ? 'border-[#D4AF37]/40' : 'border-[#E6DCCA]'}`} data-testid={`live-blog-row-${p.id}`}>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -362,6 +392,7 @@ export default function AdminLiveBlog() {
               </div>
             </div>
           ))}
+          <Pager page={currentPage} total={byTab.published.length} onPage={goToPage} />
         </div>
       ) : (
         <div>
@@ -387,9 +418,9 @@ export default function AdminLiveBlog() {
               {byTab[tab].length === 0 && (
                 <tr><td colSpan={6} className="px-3 py-6 text-center text-[#8D6E63]">{tab === 'scheduled' ? 'Nothing scheduled.' : 'No drafts.'}</td></tr>
               )}
-              {byTab[tab].map((p, i) => (
+              {pageItems.map((p, i) => (
                 <tr key={p.id} className="border-b border-[#F0E8D8] last:border-0" data-testid={`live-blog-row-${p.id}`}>
-                  <td className={`${td} text-[#8D6E63]`}>{i + 1}</td>
+                  <td className={`${td} text-[#8D6E63]`}>{firstIndex + i + 1}</td>
                   <td className={td}>{postCell(p)}</td>
                   <td className={td}>
                     {tab === 'scheduled' ? <ScheduleCell key={p.id} post={p} onSaved={load} /> : (
@@ -424,6 +455,7 @@ export default function AdminLiveBlog() {
             </tbody>
           </table>
         </div>
+        <Pager page={currentPage} total={byTab[tab].length} onPage={goToPage} />
         <button onClick={columns.reset} className="mt-2 text-xs text-[#8D6E63] hover:text-[#C43E00]">Reset column widths</button>
         </div>
       )}
