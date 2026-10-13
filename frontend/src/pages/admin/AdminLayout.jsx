@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { hasAnyPermission, hasPermission } from '@/lib/permissions';
 import { prefetchCached } from '@/lib/cachedGet';
 import TasksWidget from './TasksWidget';
-import { ShieldCheck, LayoutDashboard, Flame as FlameIcon, Calendar, Clock, BookOpen, Users, LogOut, HandCoins, BedDouble, Newspaper, Camera, Sun, Radio, Mail, MessageSquare, Gift, ScrollText, Settings, Receipt, UserCog, KeyRound, PanelLeftClose, PanelLeftOpen, Store, BarChart3, Ban, ScanLine, Star, ChevronDown, Globe, ExternalLink } from 'lucide-react';
+import { ShieldCheck, LayoutDashboard, Flame as FlameIcon, Calendar, Clock, BookOpen, Users, LogOut, HandCoins, BedDouble, Newspaper, Camera, Sun, Radio, Mail, MessageSquare, Gift, ScrollText, Settings, Receipt, UserCog, KeyRound, PanelLeftClose, PanelLeftOpen, Store, BarChart3, Ban, ScanLine, Star, ChevronDown, Globe, ExternalLink, Ticket, FileText, HeartHandshake } from 'lucide-react';
 
 // Remembered across page loads/navigations, not just component state - so
 // the sidebar doesn't snap back open every time an admin clicks between
@@ -28,7 +28,9 @@ export function setSidebarHoverMode(on) {
 // `resource` matches the resource half of a "resource:action" permission
 // (see docs/ROLES_AND_PERMISSIONS.md). No `resource` = always shown to any
 // logged-in staff member (Dashboard, Settings - nothing role-specific there).
-// Daily work, shown in the sidebar under folding group headings.
+// Daily work, shown in the sidebar under folding group headings. Collapsed,
+// each labelled group becomes one rail icon (`icon`) that opens a menu of its
+// screens, so the rail stays a handful of icons however many screens exist.
 // `prefetch` lists the GETs (url, params) the screen opens with - the same
 // ones it passes to useCachedGet - so resting the pointer on the link warms
 // the cache and the screen usually opens with its data already there.
@@ -36,7 +38,7 @@ const navGroups = [
   { items: [
     { path: '/admin', icon: LayoutDashboard, label: 'Dashboard', prefetch: [['/admin/stats']] },
   ] },
-  { label: 'Bookings & Counter', items: [
+  { label: 'Bookings & Counter', icon: Ticket, items: [
     { path: '/admin/bookings', icon: BookOpen, label: 'Bookings', resource: 'bookings', prefetch: [['/admin/bookings'], ['/sevas', { active_only: 'false' }]] },
     // The approval queue for cancellation requests a bookings:view-only
     // account raises from the Bookings screen (they can't cancel directly -
@@ -59,7 +61,7 @@ const navGroups = [
     // only its own - see /admin/counters/today-summary in the backend.
     { path: '/admin/counter-reports', icon: BarChart3, label: 'Counter Reports', permission: 'bookings:reconcile' },
   ] },
-  { label: 'Content', items: [
+  { label: 'Content', icon: FileText, items: [
     { path: '/admin/live-blog', icon: Radio, label: 'Live Blog', resource: 'live_blog', prefetch: [['/admin/live-blog']] },
     { path: '/admin/news', icon: Newspaper, label: 'News', resource: 'news' },
     { path: '/admin/gallery', icon: Camera, label: 'Gallery', resource: 'gallery' },
@@ -67,7 +69,7 @@ const navGroups = [
     { path: '/admin/stotrams', icon: ScrollText, label: 'Stotrams', resource: 'stotrams' },
     { path: '/admin/aashirvachanam', icon: Gift, label: 'Aashirvachanam', resource: 'aashirvachanam' },
   ] },
-  { label: 'Devotees', items: [
+  { label: 'Devotees', icon: HeartHandshake, items: [
     { path: '/admin/devotees', icon: Users, label: 'Devotees', resource: 'devotees' },
     { path: '/admin/donations', icon: HandCoins, label: 'Donations', resource: 'donations' },
     { path: '/admin/contact-messages', icon: MessageSquare, label: 'Contact Messages', resource: 'contact_messages' },
@@ -109,18 +111,33 @@ export default function AdminLayout({ children, title }) {
   const [hovered, setHovered] = useState(false);
   const closeTimer = useRef(null);
   const prefetchTimer = useRef(null);
+  const flyoutTimer = useRef(null);
+  // The section menu open off the collapsed rail: { label, top, anchor }.
+  const [flyout, setFlyout] = useState(null);
+  const flyoutRef = useRef(null);
+  // Opened from the keyboard: move focus into the menu.
+  useEffect(() => { if (flyout?.focusFirst) flyoutRef.current?.querySelector('a')?.focus(); }, [flyout]);
   useEffect(() => {
     const onChange = (e) => setHoverMode(e.detail);
     window.addEventListener(HOVER_MODE_EVENT, onChange);
     return () => window.removeEventListener(HOVER_MODE_EVENT, onChange);
   }, []);
-  useEffect(() => () => { clearTimeout(closeTimer.current); clearTimeout(prefetchTimer.current); }, []);
+  useEffect(() => () => { clearTimeout(closeTimer.current); clearTimeout(prefetchTimer.current); clearTimeout(flyoutTimer.current); }, []);
   // "Pinned" = open and holding its full width in the layout. Otherwise the
   // layout only ever holds the icon rail, and the full panel opens over the
   // page (hover mode), so the content never jumps sideways.
   const pinned = !hoverMode && !collapsedPref;
   const panelOpen = pinned || (hoverMode && hovered);
-  const [closedGroups, setClosedGroups] = useState(() => {
+  // Counts openings of the panel during this visit, so its links spring in
+  // when it opens - but not on every page load while it's pinned open.
+  const [prevPanelOpen, setPrevPanelOpen] = useState(panelOpen);
+  const [panelOpenings, setPanelOpenings] = useState(0);
+  if (panelOpen !== prevPanelOpen) {
+    setPrevPanelOpen(panelOpen);
+    if (panelOpen) setPanelOpenings(n => n + 1);
+  }
+  // A group folded open by hand springs its links in the same way.
+  const [justUnfolded, setJustUnfolded] = useState(null);  const [closedGroups, setClosedGroups] = useState(() => {
     try { return JSON.parse(localStorage.getItem(GROUPS_CLOSED_KEY)) || []; } catch { return []; }
   });
   const groups = navGroups
@@ -132,6 +149,7 @@ export default function AdminLayout({ children, title }) {
   // The group holding the current page always shows, even if folded earlier.
   const isOpen = (g) => !g.label || !closedGroups.includes(g.label) || g.items.some(isActive);
   const toggleGroup = (label) => {
+    setJustUnfolded(closedGroups.includes(label) ? label : null);
     setClosedGroups(prev => {
       const next = prev.includes(label) ? prev.filter(l => l !== label) : [...prev, label];
       try { localStorage.setItem(GROUPS_CLOSED_KEY, JSON.stringify(next)); } catch { /* not remembered; fine */ }
@@ -160,8 +178,8 @@ export default function AdminLayout({ children, title }) {
     const r = e.currentTarget.getBoundingClientRect();
     e.currentTarget.style.setProperty('--tip-y', `${r.top + r.height / 2}px`);
   };
-  const tip = (label) => (
-    <span aria-hidden="true" className="pointer-events-none fixed left-[5.5rem] top-[var(--tip-y)] -translate-y-1/2 z-50 hidden group-hover:block group-focus-visible:block whitespace-nowrap rounded-md bg-[#1E1209] px-2.5 py-1 text-xs text-[#FFE0B2] shadow-lg ring-1 ring-[#5D4037]/60">
+  const tip = (label, { onHover = true } = {}) => (
+    <span aria-hidden="true" className={`pointer-events-none fixed left-[5.5rem] top-[var(--tip-y)] -translate-y-1/2 z-50 hidden ${onHover ? 'group-hover:block' : ''} group-focus-visible:block whitespace-nowrap rounded-md bg-[#1E1209] px-2.5 py-1 text-xs text-[#FFE0B2] shadow-lg ring-1 ring-[#5D4037]/60`}>
       {label}
     </span>
   );
@@ -171,17 +189,58 @@ export default function AdminLayout({ children, title }) {
   // other is `inert` so keyboard focus and tests never land on a hidden copy.
   const testId = (live, id) => (live ? id : undefined);
 
-  const navLink = (item, collapsed, live) => (
-    <Link key={item.path} to={item.path} aria-label={collapsed ? item.label : undefined}
+  // Ease with a slight overshoot - the "elastic" settle.
+  const SPRING = 'animate-in fade-in-0 zoom-in-90 slide-in-from-left-2 duration-300 [animation-timing-function:cubic-bezier(0.34,1.56,0.64,1)] fill-mode-both origin-left';
+  const navLink = (item, collapsed, live, { spring = false, index = 0, role } = {}) => (
+    <Link key={item.path} to={item.path} aria-label={collapsed ? item.label : undefined} role={role}
+      style={spring ? { animationDelay: `${index * 18}ms` } : undefined}
       onPointerEnter={(e) => { placeTip(e); startPrefetch(item); }} onPointerLeave={stopPrefetch}
       onFocus={(e) => { placeTip(e); startPrefetch(item); }} onBlur={stopPrefetch}
-      className={`group flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-colors ${collapsed ? 'justify-center px-2' : ''} ${
+      className={`group flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-colors ${spring ? SPRING : ''} ${collapsed ? 'justify-center px-2' : ''} ${
       isActive(item) ? 'bg-[#C43E00] text-white' : 'hover:bg-white/5 text-[#FFE0B2]/80'
     }`} data-testid={testId(live, `admin-nav-${item.label.toLowerCase().replace(' ', '-')}`)}>
       <item.icon className="h-4 w-4 shrink-0" />
       {collapsed ? tip(item.label) : item.label}
     </Link>
   );
+
+  // Section menus off the collapsed rail. Like hover mode they open at once
+  // and close 120 ms after the pointer leaves both the icon and the menu.
+  const openFlyout = (g, e, { focusFirst = false } = {}) => {
+    clearTimeout(flyoutTimer.current);
+    const anchor = e.currentTarget;
+    const r = anchor.getBoundingClientRect();
+    const height = 48 + g.items.length * 40; // header + rows; keeps it on screen
+    setFlyout({ label: g.label, top: Math.max(8, Math.min(r.top - 8, window.innerHeight - height - 8)), anchor, focusFirst });
+  };
+  const keepFlyout = () => clearTimeout(flyoutTimer.current);
+  const closeFlyoutSoon = () => { flyoutTimer.current = setTimeout(() => setFlyout(null), 120); };
+  const flyoutKeys = (e) => {
+    const links = [...e.currentTarget.querySelectorAll('a')];
+    const at = links.indexOf(document.activeElement);
+    if (e.key === 'Escape') { e.preventDefault(); flyout.anchor.focus(); setFlyout(null); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); links[(at + 1) % links.length]?.focus(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); links[(at - 1 + links.length) % links.length]?.focus(); }
+  };
+
+  const sectionButton = (g, live) => {
+    const active = g.items.some(isActive);
+    const open = flyout?.label === g.label;
+    return (
+      <button key={g.label} type="button" aria-label={g.label} aria-haspopup="menu" aria-expanded={open}
+        onPointerEnter={(e) => { placeTip(e); openFlyout(g, e); }} onPointerLeave={closeFlyoutSoon} onFocus={placeTip}
+        onClick={(e) => openFlyout(g, e)}
+        onKeyDown={(e) => { if (['Enter', ' ', 'ArrowRight'].includes(e.key)) { e.preventDefault(); openFlyout(g, e, { focusFirst: true }); } }}
+        className={`group w-full flex items-center justify-center px-2 py-2 rounded-lg text-sm transition-colors ${
+          active ? 'bg-[#C43E00] text-white' : open ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-[#FFE0B2]/80'}`}
+        data-testid={testId(live, `admin-nav-section-${g.label.toLowerCase().replace(/[^a-z]+/g, '-')}`)}>
+        <g.icon className="h-4 w-4 shrink-0" />
+        {!open && tip(g.label, { onHover: false })}
+      </button>
+    );
+  };
+
+  const flyoutGroup = !panelOpen && flyout && groups.find(g => g.label === flyout.label);
 
   const toggleCollapsed = () => {
     setCollapsed(prev => {
@@ -211,19 +270,26 @@ export default function AdminLayout({ children, title }) {
             {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
           </button>}
         </div>
+        {collapsed ? (
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+          {groups.map(g => g.label ? sectionButton(g, live) : g.items.map(item => navLink(item, true, live)))}
+        </nav>
+        ) : (
+        <nav key={panelOpenings} className="flex-1 p-3 space-y-1 overflow-y-auto">
           {groups.map((g, i) => (
-            <div key={g.label || i} className={g.label ? (collapsed ? 'pt-2 mt-2 border-t border-[#5D4037]/40 space-y-1' : 'pt-3 space-y-1') : 'space-y-1'}>
-              {g.label && !collapsed && (
+            <div key={g.label || i} className={g.label ? 'pt-3 space-y-1' : 'space-y-1'}>
+              {g.label && (
                 <button onClick={() => toggleGroup(g.label)} className="w-full flex items-center justify-between px-4 pb-1 text-[11px] uppercase tracking-wider text-[#D4AF37]/70 hover:text-[#D4AF37]" aria-expanded={isOpen(g)} data-testid={testId(live, `admin-nav-group-${g.label.toLowerCase().replace(/[^a-z]+/g, '-')}`)}>
                   {g.label}
                   <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isOpen(g) ? '' : '-rotate-90'}`} />
                 </button>
               )}
-              {(collapsed || isOpen(g)) && g.items.map(item => navLink(item, collapsed, live))}
+              {isOpen(g) && g.items.map((item, j) => navLink(item, false, live,
+                { spring: panelOpenings > 0 || justUnfolded === g.label, index: j }))}
             </div>
           ))}
         </nav>
+        )}
         {/* Pinned below the scrolling list so Settings and Logout are always in view.
             "View website" opens the public site in a new tab, so the admin
             screen (and anything half-edited on it) stays where it was. */}
@@ -254,6 +320,19 @@ export default function AdminLayout({ children, title }) {
         <div className="w-20 h-full bg-[#2D1B0E] text-[#FFE0B2] flex flex-col" inert={panelOpen}>
           {sidebar(true, !panelOpen)}
         </div>
+        {flyoutGroup && (
+          // `fixed` so the rail's scroll box doesn't clip it; the transparent
+          // pl-2 strip keeps the pointer "inside" on its way across.
+          <div ref={flyoutRef} role="menu" aria-label={flyoutGroup.label} onPointerEnter={keepFlyout} onPointerLeave={closeFlyoutSoon} onKeyDown={flyoutKeys}
+            style={{ top: flyout.top }}
+            className="fixed left-20 z-50 pl-2 animate-in fade-in-0 zoom-in-90 slide-in-from-left-3 duration-200 [animation-timing-function:cubic-bezier(0.34,1.56,0.64,1)] origin-top-left"
+            data-testid="admin-nav-flyout">
+            <div className="w-56 rounded-xl bg-[#2D1B0E] text-[#FFE0B2] p-2 space-y-1 shadow-2xl ring-1 ring-[#5D4037]/60">
+              <p className="px-4 pt-1 pb-1 text-[11px] uppercase tracking-wider text-[#D4AF37]/70">{flyoutGroup.label}</p>
+              {flyoutGroup.items.map(item => navLink(item, false, true, { role: 'menuitem' }))}
+            </div>
+          </div>
+        )}
         <div className={`absolute inset-y-0 left-0 w-64 bg-[#2D1B0E] text-[#FFE0B2] flex flex-col transition-[transform,opacity] duration-150 ease-out ${
           panelOpen ? 'translate-x-0 opacity-100' : '-translate-x-3 opacity-0 pointer-events-none'} ${pinned ? '' : 'shadow-2xl'}`}
           inert={!panelOpen}>
