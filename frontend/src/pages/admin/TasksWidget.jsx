@@ -47,10 +47,17 @@ function AssigneeSelect({ value, onChange, people }) {
   );
 }
 
-function TaskList({ tasks, onOpen }) {
-  const [showDone, setShowDone] = useState(false);
-  const active = tasks.filter(t => t.status !== 'completed');
-  const done = tasks.filter(t => t.status === 'completed');
+const FILTERS = [['active', 'Active'], ['need_help', 'Need help'], ['completed', 'Completed'], ['all', 'All']];
+const EMPTY = { active: 'Nothing pending 🙏', need_help: 'Nobody needs help right now.', completed: 'Nothing completed yet.', all: 'No tasks yet.' };
+
+function TaskList({ tasks, onOpen, filter, setFilter }) {
+  const groups = {
+    active: tasks.filter(t => t.status !== 'completed'),
+    need_help: tasks.filter(t => t.status === 'need_help'),
+    completed: tasks.filter(t => t.status === 'completed'),
+    all: tasks,
+  };
+  const shown = groups[filter];
   const row = (t) => {
     const isNew = t.is_mine ? t.new_for_assignee : t.new_for_managers;
     const flagged = t.needs_attention && !t.is_mine;
@@ -74,16 +81,16 @@ function TaskList({ tasks, onOpen }) {
   };
   return (
     <div className="flex-1 overflow-y-auto">
-      {active.length === 0 && <p className="px-3 py-6 text-center text-sm text-[#8D6E63]">Nothing pending 🙏</p>}
-      <ul className="divide-y divide-[#F0E8D8]">{active.map(row)}</ul>
-      {done.length > 0 && (
-        <>
-          <button onClick={() => setShowDone(!showDone)} className="w-full px-3 py-2 text-left text-xs text-[#8D6E63] hover:text-[#C43E00] border-t border-[#F0E8D8]">
-            {showDone ? 'Hide' : 'Show'} {done.length} completed
+      <div className="sticky top-0 z-10 flex gap-1 px-2 py-1.5 border-b border-[#F0E8D8] bg-[#FFFCF5]" role="tablist">
+        {FILTERS.map(([key, label]) => (
+          <button key={key} role="tab" aria-selected={filter === key} onClick={() => setFilter(key)} data-testid={`tasks-filter-${key}`}
+            className={`px-2.5 py-1 rounded-full text-xs whitespace-nowrap ${filter === key ? 'bg-[#C43E00] text-white' : 'text-[#5D4037] hover:bg-[#F5EFE3]'}`}>
+            {label} <span className={filter === key ? 'text-white/80' : 'text-[#8D6E63]'}>{groups[key].length}</span>
           </button>
-          {showDone && <ul className="divide-y divide-[#F0E8D8]">{done.map(row)}</ul>}
-        </>
-      )}
+        ))}
+      </div>
+      {shown.length === 0 && <p className="px-3 py-6 text-center text-sm text-[#8D6E63]">{EMPTY[filter]}</p>}
+      <ul className="divide-y divide-[#F0E8D8]">{shown.map(row)}</ul>
     </div>
   );
 }
@@ -223,6 +230,7 @@ export default function TasksWidget() {
   const [data, setData] = useState(null);
   const [people, setPeople] = useState({ users: [], roles: [] });
   const [view, setView] = useState('list'); // 'list' | 'add' | task id
+  const [filter, setFilter] = useState('active');
   const [panelOpen, setPanelOpen] = useState(() => {
     try { return sessionStorage.getItem(OPEN_KEY) === 'true'; } catch { return false; }
   });
@@ -312,7 +320,7 @@ export default function TasksWidget() {
 
           {openTask ? <TaskChat task={openTask} me={user?.id} perms={data} people={people} onChanged={load} />
             : view === 'add' ? <AddTask people={people} onDone={() => { setView('list'); load(); }} onCancel={() => setView('list')} />
-            : <TaskList tasks={data.tasks} onOpen={open} />}
+            : <TaskList tasks={data.tasks} onOpen={open} filter={filter} setFilter={setFilter} />}
         </section>
       )}
 
