@@ -1,24 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
+import { useCachedGet, invalidateCached } from '@/lib/cachedGet';
 import { Plus, X, Pencil, Check } from 'lucide-react';
 
 const inputCls = "h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-1 focus:ring-[#C43E00]/20 outline-none text-sm text-[#2D1B0E]";
 
 export default function AdminCounters() {
-  const [counters, setCounters] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data, loading } = useCachedGet('/admin/counters');
+  const counters = data || [];
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
 
-  const load = () => {
-    api.get('/admin/counters').then(r => { setCounters(r.data); setLoading(false); })
-      .catch(() => setLoading(false));
-  };
-  useEffect(() => { load(); }, []);
+  const load = () => invalidateCached('/admin/counters');
 
   const createCounter = async (e) => {
     e.preventDefault();

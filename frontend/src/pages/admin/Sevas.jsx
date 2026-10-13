@@ -1,19 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
+import { useCachedGet, invalidateCached } from '@/lib/cachedGet';
 import { Plus, Pencil, Trash2, X } from 'lucide-react';
 import { sortByPriority } from '@/lib/sevaSamagri';
 
 export default function AdminSevas() {
-  const [sevas, setSevas] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data, loading } = useCachedGet('/sevas', { active_only: 'false' });
+  const sevas = sortByPriority(data || []);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const blankForm = { name_english: '', name_telugu: '', description: '', description_telugu: '', base_price: 0, duration_minutes: 30, is_online_bookable: true, max_per_slot_default: 20, max_persons_per_ticket: 4, special_instructions: '', location_categories: [], active_flag: true, prasadam_eligible: false, prasadam_items: [] };
   const [form, setForm] = useState(blankForm);
 
-  const load = () => api.get('/sevas?active_only=false').then(r => { setSevas(sortByPriority(r.data)); setLoading(false); });
-  useEffect(() => { load(); }, []);
+  // Every cached seva list (any filter), plus the Dashboard's Active Sevas count.
+  const load = () => { invalidateCached('/sevas'); invalidateCached('/admin/stats'); };
 
   const resetForm = () => {
     setForm(blankForm);

@@ -1,17 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
+import { useCachedGet, invalidateCached } from '@/lib/cachedGet';
 import { Plus, Pencil, Trash2, X } from 'lucide-react';
 
 export default function AdminProfiles() {
-  const [profiles, setProfiles] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data, loading } = useCachedGet('/day-profiles');
+  const profiles = data || [];
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: '', description: '', is_special_day_flag: false });
 
-  const load = () => api.get('/day-profiles').then(r => { setProfiles(r.data); setLoading(false); });
-  useEffect(() => { load(); }, []);
+  const load = () => invalidateCached('/day-profiles');
 
   const resetForm = () => { setForm({ name: '', description: '', is_special_day_flag: false }); setEditing(null); setShowForm(false); };
 

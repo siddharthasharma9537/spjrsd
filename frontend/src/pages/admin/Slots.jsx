@@ -1,33 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
+import { useCachedGet, invalidateCached } from '@/lib/cachedGet';
 import DateInput from '@/components/ui/date-input';
 import { Plus, Pencil, Trash2, X } from 'lucide-react';
 import { sortByPriority } from '@/lib/sevaSamagri';
 
 export default function AdminSlots() {
-  const [slots, setSlots] = useState([]);
-  const [sevas, setSevas] = useState([]);
-  const [profiles, setProfiles] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data: slotsData, loading } = useCachedGet('/schedule-slots');
+  const { data: sevasData } = useCachedGet('/sevas', { active_only: 'false' });
+  const { data: profilesData } = useCachedGet('/day-profiles');
+  const slots = slotsData || [];
+  const sevas = sortByPriority(sevasData || []);
+  const profiles = profilesData || [];
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [filterSeva, setFilterSeva] = useState('');
   const [form, setForm] = useState({ seva_id: '', profile_id: '', date: '', start_time: '', end_time: '', max_bookings: 20, online_quota: 10, counter_quota: 10 });
 
-  const load = () => {
-    Promise.all([
-      api.get('/schedule-slots'),
-      api.get('/sevas?active_only=false'),
-      api.get('/day-profiles')
-    ]).then(([s, sv, p]) => {
-      setSlots(s.data);
-      setSevas(sortByPriority(sv.data));
-      setProfiles(p.data);
-      setLoading(false);
-    });
-  };
-  useEffect(() => { load(); }, []);
+  const load = () => invalidateCached('/schedule-slots');
 
   const resetForm = () => { setForm({ seva_id: '', profile_id: '', date: '', start_time: '', end_time: '', max_bookings: 20, online_quota: 10, counter_quota: 10 }); setEditing(null); setShowForm(false); };
 

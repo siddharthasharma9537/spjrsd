@@ -45,7 +45,7 @@ const navGroups = [
     // see request_booking_cancellation in the backend). Gated on
     // bookings:edit since that's the same permission that lets an account
     // cancel a booking outright.
-    { path: '/admin/cancellation-requests', icon: Ban, label: 'Cancellation Requests', permission: 'bookings:edit' },
+    { path: '/admin/cancellation-requests', icon: Ban, label: 'Cancellation Requests', permission: 'bookings:edit', prefetch: [['/admin/cancellation-requests', { status: 'Pending' }]] },
     // The seva-location and Prasadam Counter scanning station - same
     // permission as Complete/Confirm since scanning just drives the same
     // status transitions (plus prasadam redemption) via a barcode/QR scanner
@@ -63,18 +63,18 @@ const navGroups = [
   ] },
   { label: 'Content', icon: FileText, items: [
     { path: '/admin/live-blog', icon: Radio, label: 'Live Blog', resource: 'live_blog', prefetch: [['/admin/live-blog']] },
-    { path: '/admin/news', icon: Newspaper, label: 'News', resource: 'news' },
-    { path: '/admin/gallery', icon: Camera, label: 'Gallery', resource: 'gallery' },
+    { path: '/admin/news', icon: Newspaper, label: 'News', resource: 'news', prefetch: [['/news', { active_only: 'false' }]] },
+    { path: '/admin/gallery', icon: Camera, label: 'Gallery', resource: 'gallery', prefetch: [['/gallery', { active_only: 'false' }]] },
     { path: '/admin/panchangam', icon: Sun, label: 'Panchangam', resource: 'panchangam', prefetch: [['/admin/panchangam']] },
-    { path: '/admin/stotrams', icon: ScrollText, label: 'Stotrams', resource: 'stotrams' },
-    { path: '/admin/aashirvachanam', icon: Gift, label: 'Aashirvachanam', resource: 'aashirvachanam' },
+    { path: '/admin/stotrams', icon: ScrollText, label: 'Stotrams', resource: 'stotrams', prefetch: [['/stotrams', { active_only: 'false' }], ['/sevas']] },
+    { path: '/admin/aashirvachanam', icon: Gift, label: 'Aashirvachanam', resource: 'aashirvachanam', prefetch: [['/admin/aashirvachanam']] },
   ] },
   { label: 'Devotees', icon: HeartHandshake, items: [
-    { path: '/admin/devotees', icon: Users, label: 'Devotees', resource: 'devotees' },
-    { path: '/admin/donations', icon: HandCoins, label: 'Donations', resource: 'donations' },
-    { path: '/admin/contact-messages', icon: MessageSquare, label: 'Contact Messages', resource: 'contact_messages' },
-    { path: '/admin/newsletter', icon: Mail, label: 'Newsletter', resource: 'newsletter' },
-    { path: '/admin/reviews', icon: Star, label: 'Google Reviews', resource: 'reviews' },
+    { path: '/admin/devotees', icon: Users, label: 'Devotees', resource: 'devotees', prefetch: [['/admin/devotees']] },
+    { path: '/admin/donations', icon: HandCoins, label: 'Donations', resource: 'donations', prefetch: [['/admin/donations'], ['/admin/donation-stats']] },
+    { path: '/admin/contact-messages', icon: MessageSquare, label: 'Contact Messages', resource: 'contact_messages', prefetch: [['/admin/contact-messages']] },
+    { path: '/admin/newsletter', icon: Mail, label: 'Newsletter', resource: 'newsletter', prefetch: [['/admin/newsletter/subscribers']] },
+    { path: '/admin/reviews', icon: Star, label: 'Google Reviews', resource: 'reviews', prefetch: [['/admin/reviews', { status: 'pending' }]] },
   ] },
 ];
 
@@ -82,21 +82,36 @@ const navGroups = [
 // page instead of the sidebar; Settings stays highlighted while on them.
 export const settingsSections = [
   { label: 'Temple setup', items: [
-    { path: '/admin/sevas', icon: FlameIcon, label: 'Sevas', resource: 'sevas' },
-    { path: '/admin/profiles', icon: Calendar, label: 'Day Profiles', resource: 'day_profiles' },
-    { path: '/admin/slots', icon: Clock, label: 'Slots', resource: 'slots' },
-    { path: '/admin/accommodations', icon: BedDouble, label: 'Accommodation', resource: 'accommodations' },
+    { path: '/admin/sevas', icon: FlameIcon, label: 'Sevas', resource: 'sevas', prefetch: [['/sevas', { active_only: 'false' }]] },
+    { path: '/admin/profiles', icon: Calendar, label: 'Day Profiles', resource: 'day_profiles', prefetch: [['/day-profiles']] },
+    { path: '/admin/slots', icon: Clock, label: 'Slots', resource: 'slots', prefetch: [['/schedule-slots'], ['/sevas', { active_only: 'false' }], ['/day-profiles']] },
+    { path: '/admin/accommodations', icon: BedDouble, label: 'Accommodation', resource: 'accommodations', prefetch: [['/accommodations', { active_only: 'false' }]] },
   ] },
   { label: 'Staff & access', items: [
-    { path: '/admin/staff', icon: UserCog, label: 'User Accounts', resource: 'staff' },
-    { path: '/admin/roles', icon: KeyRound, label: 'Roles', resource: 'roles' },
-    { path: '/admin/counters', icon: Store, label: 'Counters', resource: 'counters' },
+    { path: '/admin/staff', icon: UserCog, label: 'User Accounts', resource: 'staff', prefetch: [['/admin/staff'], ['/admin/roles'], ['/admin/counters']] },
+    { path: '/admin/roles', icon: KeyRound, label: 'Roles', resource: 'roles', prefetch: [['/admin/roles']] },
+    { path: '/admin/counters', icon: Store, label: 'Counters', resource: 'counters', prefetch: [['/admin/counters']] },
   ] },
 ];
 
 const settingsItem = { path: '/admin/settings', icon: Settings, label: 'Settings' };
 const settingsPaths = [settingsItem.path, ...settingsSections.flatMap(s => s.items.map(i => i.path))];
 const GROUPS_CLOSED_KEY = 'admin-sidebar-closed-groups';
+
+// Warms the cache for an item's `prefetch` GETs once the pointer has rested
+// on its link for 80 ms (a pass-over doesn't fire it). Shared with the
+// Settings cards.
+export function usePrefetchOnRest() {
+  const timer = useRef(null);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const start = (item) => {
+    if (!item.prefetch) return;
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => item.prefetch.forEach(([url, params]) => prefetchCached(url, params)), 80);
+  };
+  const stop = () => clearTimeout(timer.current);
+  return { start, stop };
+}
 
 export function canSee(user, item) {
   if (item.permission) return hasPermission(user, item.permission);
@@ -110,7 +125,6 @@ export default function AdminLayout({ children, title }) {
   const [hoverMode, setHoverMode] = useState(getSidebarHoverMode);
   const [hovered, setHovered] = useState(false);
   const closeTimer = useRef(null);
-  const prefetchTimer = useRef(null);
   const flyoutTimer = useRef(null);
   // The section menu open off the collapsed rail: { label, top, anchor, focusFirst }.
   const [flyout, setFlyout] = useState(null);
@@ -122,7 +136,7 @@ export default function AdminLayout({ children, title }) {
     window.addEventListener(HOVER_MODE_EVENT, onChange);
     return () => window.removeEventListener(HOVER_MODE_EVENT, onChange);
   }, []);
-  useEffect(() => () => { clearTimeout(closeTimer.current); clearTimeout(prefetchTimer.current); clearTimeout(flyoutTimer.current); }, []);
+  useEffect(() => () => { clearTimeout(closeTimer.current); clearTimeout(flyoutTimer.current); }, []);
   // "Pinned" = open and holding its full width in the layout. Otherwise the
   // layout only ever holds the icon rail, and the panel opens over the page
   // (hover mode), so the content never jumps sideways.
@@ -153,12 +167,7 @@ export default function AdminLayout({ children, title }) {
   const onSidebarEnter = () => { clearTimeout(closeTimer.current); setHovered(true); };
   const onSidebarLeave = () => { closeTimer.current = setTimeout(() => setHovered(false), 120); };
 
-  const startPrefetch = (item) => {
-    if (!item.prefetch) return;
-    clearTimeout(prefetchTimer.current);
-    prefetchTimer.current = setTimeout(() => item.prefetch.forEach(([url, params]) => prefetchCached(url, params)), 80);
-  };
-  const stopPrefetch = () => clearTimeout(prefetchTimer.current);
+  const { start: startPrefetch, stop: stopPrefetch } = usePrefetchOnRest();
 
   // Rail icon names, shown at once on hover or keyboard focus (a `title`
   // takes about a second). One label drawn outside the panel, because the

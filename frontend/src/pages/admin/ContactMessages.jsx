@@ -1,25 +1,22 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from './AdminLayout';
 import EmailReplyModal from './EmailReplyModal';
-import api from '@/lib/api';
+import { useCachedGet } from '@/lib/cachedGet';
 import { Mail, Phone, UserCircle, Search, ArrowUpDown } from 'lucide-react';
 
 const fmtDateTime = (d) => d ? new Date(d).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 
 export default function AdminContactMessages() {
-  const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  const { data, loading, error } = useCachedGet('/admin/contact-messages');
+  const messages = useMemo(() => data || [], [data]);
+  // An error only matters when there's nothing cached to show instead.
+  const loadError = !!error && !data;
 
   const [search, setSearch] = useState('');
   const [sortDir, setSortDir] = useState('desc');
   const [linkFilter, setLinkFilter] = useState('all');
   const [replyTarget, setReplyTarget] = useState(null);
-
-  useEffect(() => {
-    api.get('/admin/contact-messages').then(r => setMessages(r.data)).catch(() => setLoadError(true)).finally(() => setLoading(false));
-  }, []);
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();

@@ -1,22 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import AdminLayout from './AdminLayout';
 import { Link } from 'react-router-dom';
-import api from '@/lib/api';
+import { useCachedGet } from '@/lib/cachedGet';
 import { HandCoins, Heart, IndianRupee, FileCheck } from 'lucide-react';
 
 export default function AdminDonations() {
-  const [donations, setDonations] = useState([]);
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
-
-  const load = () => {
-    Promise.all([
-      api.get(`/admin/donations${filter ? `?donation_type=${filter}` : ''}`),
-      api.get('/admin/donation-stats')
-    ]).then(([d, s]) => { setDonations(d.data); setStats(s.data); setLoading(false); });
-  };
-  useEffect(() => { load(); }, [filter]);
+  const { data, loading } = useCachedGet('/admin/donations', { donation_type: filter });
+  const donations = data || [];
+  const { data: stats = null } = useCachedGet('/admin/donation-stats');
 
   return (
     <AdminLayout title="Donation Management">

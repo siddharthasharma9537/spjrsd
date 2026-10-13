@@ -1,24 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
+import { useCachedGet, invalidateCached } from '@/lib/cachedGet';
 import { Plus, Pencil, Trash2, X } from 'lucide-react';
 import { sortByPriority } from '@/lib/sevaSamagri';
 
 const EMPTY = { title: '', title_telugu: '', text_telugu: '', deity: 'Shiva', seva_id: '', display_order: 0, active_flag: true };
 
 export default function AdminStotrams() {
-  const [items, setItems] = useState([]);
-  const [sevas, setSevas] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data, loading } = useCachedGet('/stotrams', { active_only: 'false' });
+  const items = data || [];
+  const { data: sevasData } = useCachedGet('/sevas');
+  const sevas = sortByPriority(sevasData || []);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
 
-  const load = () => api.get('/stotrams?active_only=false').then(r => { setItems(r.data); setLoading(false); });
-  useEffect(() => {
-    load();
-    api.get('/sevas').then(r => setSevas(sortByPriority(r.data))).catch(() => setSevas([]));
-  }, []);
+  const load = () => invalidateCached('/stotrams');
 
   const resetForm = () => { setForm(EMPTY); setEditing(null); setShowForm(false); };
   const handleEdit = (s) => {
