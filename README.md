@@ -107,6 +107,7 @@ The panchangam pages, the homepage widget, the weekly digest and the chat assist
 - **Once a year**, about two months before Ugadi, the engine generates the coming Telugu year, it is compared with the printed book, and it is uploaded (`upload` first as a dry run, on a staging copy, then with `--apply`). Existing dates are left alone, so edits made in the admin Panchangam screen are kept.
 - **Keep it ahead of today.** The date picker reaches 365 days ahead (dates with no entry show "not available yet") and the homepage widget disappears when today has no entry. The engine's `check` command warns when fewer than 90 days remain.
 - The first upload covers 1 Jan 2026 to 6 Apr 2027; the next is the Telugu year starting in spring 2027.
+- The homepage news ticker starts with automatic *Today / Tomorrow* reminders built from these entries (`GET /api/panchangam/reminders`): the day's special note (book symbols like "Star symbol" / "Blank Circle" dropped), plus Amavasya, Pournami, Masa Shivaratri and Karthika Somavaram. Nothing is stored; each reminder disappears after its day, and editing a day's special note in the admin Panchangam changes its reminder.
 - The weekly digest lists every day that has a special note, so the engine leaves recurring days (Ekadashi, Amavasya and so on) out of it.
 
 ## Project planning docs

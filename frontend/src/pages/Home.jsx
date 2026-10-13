@@ -7,13 +7,14 @@ import Footer from '@/components/Footer';
 import PanchangamWidget from '@/components/PanchangamWidget';
 import api from '@/lib/api';
 import { useT } from "@/contexts/LanguageContext";
-import { Flame, BookOpen, Heart, ChevronRight, Camera, Newspaper, BedDouble, HandCoins, Tv, IndianRupee, Clock, Users, CalendarDays, Radio } from 'lucide-react';
+import { Flame, BookOpen, Heart, ChevronRight, Camera, Newspaper, BedDouble, HandCoins, Tv, IndianRupee, Clock, Users, CalendarDays, Radio, Sun } from 'lucide-react';
 import { BOOKINGS_PAUSED } from '@/lib/bookingStatus';
 import { sortByPriority } from '@/lib/sevaSamagri';
 
 export default function Home() {
   const { t, te, heading } = useT();
   const [news, setNews] = useState([]);
+  const [reminders, setReminders] = useState([]);
   const [gallery, setGallery] = useState([]);
   const [sevas, setSevas] = useState([]);
   const [visitors, setVisitors] = useState(null);
@@ -21,6 +22,8 @@ export default function Home() {
 
   useEffect(() => {
     api.get('/news').then(r => setNews(r.data.slice(0, 5))).catch(() => {});
+    // "Today / Tomorrow: Amavasya ..." lines built from the panchangam, shown first in the ticker.
+    api.get('/panchangam/reminders').then(r => setReminders(Array.isArray(r.data) ? r.data : [])).catch(() => {});
     api.get('/gallery?media_type=PHOTO').then(r => setGallery(r.data.slice(0, 6))).catch(() => api.get('/gallery').then(r => setGallery(r.data.filter(g => !g.media_type || g.media_type === 'PHOTO').slice(0, 6))).catch(() => {}));
     api.get('/sevas').then(r => setSevas(sortByPriority(r.data).slice(0, 4))).catch(() => {});
     api.get('/visitor-stats').then(r => setVisitors(r.data)).catch(err => console.error('Failed to fetch visitor stats:', err));
@@ -54,7 +57,7 @@ export default function Home() {
       <HeroCarousel />
 
       {/* News Ticker */}
-      {news.length > 0 && (
+      {(news.length > 0 || reminders.length > 0) && (
         <div className="bg-[#D4AF37]/10 border-b border-[#D4AF37]/20 overflow-hidden" data-testid="news-ticker">
           <div className="max-w-7xl mx-auto px-4 flex items-center gap-3 py-2.5">
             <span className="bg-[#C43E00] text-white text-xs px-3 py-1 rounded-full font-medium shrink-0 flex items-center gap-1">
@@ -62,6 +65,12 @@ export default function Home() {
             </span>
             <div className="overflow-hidden whitespace-nowrap flex-1">
               <div className="inline-block animate-marquee">
+                {reminders.map((r) => (
+                  <Link key={r.id} to={`/panchangam?date=${r.date}`} className="inline-flex items-center gap-1 text-sm font-medium text-[#621B00] mx-8 hover:text-[#C43E00] transition-colors" data-testid="ticker-reminder">
+                    <Sun className="h-3.5 w-3.5 text-[#D4AF37]" />
+                    {t(r.title, r.title_telugu)}
+                  </Link>
+                ))}
                 {news.map((n) => (
                   <Link key={n.id} to="/news" className="inline text-sm text-[#621B00] mx-8 hover:text-[#C43E00] transition-colors">
                     {n.is_important && <span className="text-[#C43E00] font-bold mr-1">*</span>}
