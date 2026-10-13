@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from './AdminLayout';
+import useIsPhone from '@/hooks/useIsPhone';
 import api from '@/lib/api';
 import { useCachedGet, invalidateCached } from '@/lib/cachedGet';
 import { Plus, KeyRound, X, Pencil, Trash2 } from 'lucide-react';
@@ -119,6 +120,49 @@ export default function AdminStaff() {
     }
   };
 
+
+  // Shared by the desktop table and the phone cards - only one is rendered.
+  const isPhone = useIsPhone();
+  const selectCls = 'h-8 px-2 bg-white border border-[#E6DCCA] rounded-lg text-xs text-[#2D1B0E]';
+  const roleSelect = (s, cls = selectCls) => (
+    <select className={cls} value={s.role} onChange={e => changeRole(s, e.target.value)} data-testid={`staff-role-select-${s.id}`} aria-label={`Role for ${s.name}`}>
+      {roles.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+    </select>
+  );
+  const counterSelect = (s, cls = selectCls) => (
+    <select className={cls} value={s.counter_id || ''} onChange={e => changeCounter(s, e.target.value)} data-testid={`staff-counter-select-${s.id}`} aria-label={`Counter for ${s.name}`}>
+      <option value="">— No counter —</option>
+      {counters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+    </select>
+  );
+  const statusBadge = (s) => (
+    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.active_flag ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+      {s.active_flag ? 'Active' : 'Disabled'}
+    </span>
+  );
+  const actions = (s, align = '') => deleteTarget === s.id ? (
+    <div className={`flex gap-1 items-center flex-wrap ${align}`}>
+      <span className="text-xs text-[#8D6E63]">Delete {s.name}?</span>
+      <button onClick={() => confirmDelete(s)} className="px-2 py-1 bg-red-600 text-white text-xs rounded-full hover:bg-red-700" data-testid={`staff-delete-confirm-${s.id}`}>Confirm</button>
+      <button onClick={() => setDeleteTarget(null)} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full hover:bg-gray-200">Cancel</button>
+    </div>
+  ) : (
+    <div className={`flex gap-1 flex-wrap ${align}`}>
+      <button onClick={() => openEdit(s)} className="px-2 py-1 bg-[#FDFBF7] border border-[#E6DCCA] text-[#621B00] text-xs rounded-full hover:bg-[#F0E6D6] inline-flex items-center gap-1" data-testid={`staff-edit-${s.id}`}>
+        <Pencil className="h-3 w-3" /> Edit
+      </button>
+      <button onClick={() => setResetTarget(s)} className="px-2 py-1 bg-[#FDFBF7] border border-[#E6DCCA] text-[#621B00] text-xs rounded-full hover:bg-[#F0E6D6] inline-flex items-center gap-1" data-testid={`staff-reset-${s.id}`}>
+        <KeyRound className="h-3 w-3" /> Reset Password
+      </button>
+      <button onClick={() => toggleActive(s)} className={`px-2 py-1 text-xs rounded-full ${s.active_flag ? 'bg-red-100 text-red-800 hover:bg-red-200' : 'bg-green-100 text-green-800 hover:bg-green-200'}`} data-testid={`staff-toggle-${s.id}`}>
+        {s.active_flag ? 'Disable' : 'Enable'}
+      </button>
+      <button onClick={() => setDeleteTarget(s.id)} className="px-2 py-1 bg-[#FDFBF7] border border-[#E6DCCA] text-red-700 text-xs rounded-full hover:bg-red-50 inline-flex items-center gap-1" data-testid={`staff-delete-${s.id}`}>
+        <Trash2 className="h-3 w-3" /> Delete
+      </button>
+    </div>
+  );
+
   return (
     <AdminLayout title="User Accounts">
       <div className="flex items-center justify-between mb-6">
@@ -166,6 +210,26 @@ export default function AdminStaff() {
 
       {loading ? <p className="text-[#8D6E63]">Loading...</p> : staff.length === 0 ? (
         <p className="text-center py-12 text-[#8D6E63]">No user accounts yet.</p>
+      ) : isPhone ? (
+        <div className="space-y-3" data-testid="staff-cards">
+          {staff.map(s => (
+            <div key={s.id} className="bg-white border border-[#E6DCCA] rounded-xl p-4" data-testid={`staff-row-${s.id}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-medium text-[#2D1B0E]">{s.name}</p>
+                  <p className="font-mono text-xs text-[#621B00]">{s.username}</p>
+                </div>
+                {statusBadge(s)}
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <label className="text-xs text-[#8D6E63]">Role{roleSelect(s, 'mt-1 w-full h-10 px-2 bg-white border border-[#E6DCCA] rounded-lg text-sm text-[#2D1B0E]')}</label>
+                <label className="text-xs text-[#8D6E63]">Counter{counterSelect(s, 'mt-1 w-full h-10 px-2 bg-white border border-[#E6DCCA] rounded-lg text-sm text-[#2D1B0E]')}</label>
+              </div>
+              {/* Bigger tap targets than the table's compact buttons. */}
+              <div className="mt-3 [&_button]:px-3 [&_button]:py-2 [&_button]:text-sm">{actions(s)}</div>
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="bg-white border border-[#E6DCCA] rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
@@ -185,46 +249,10 @@ export default function AdminStaff() {
                   <tr key={s.id} className="border-b border-[#E6DCCA]/50 hover:bg-[#FDFBF7]" data-testid={`staff-row-${s.id}`}>
                     <td className="px-4 py-3 text-[#2D1B0E]">{s.name}</td>
                     <td className="px-4 py-3 font-mono text-xs text-[#621B00]">{s.username}</td>
-                    <td className="px-4 py-3">
-                      <select className="h-8 px-2 bg-white border border-[#E6DCCA] rounded-lg text-xs text-[#2D1B0E]" value={s.role} onChange={e => changeRole(s, e.target.value)} data-testid={`staff-role-select-${s.id}`}>
-                        {roles.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
-                      </select>
-                    </td>
-                    <td className="px-4 py-3">
-                      <select className="h-8 px-2 bg-white border border-[#E6DCCA] rounded-lg text-xs text-[#2D1B0E]" value={s.counter_id || ''} onChange={e => changeCounter(s, e.target.value)} data-testid={`staff-counter-select-${s.id}`}>
-                        <option value="">— No counter —</option>
-                        {counters.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.active_flag ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-                        {s.active_flag ? 'Active' : 'Disabled'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {deleteTarget === s.id ? (
-                        <div className="flex gap-1 justify-end items-center">
-                          <span className="text-xs text-[#8D6E63]">Delete {s.name}?</span>
-                          <button onClick={() => confirmDelete(s)} className="px-2 py-1 bg-red-600 text-white text-xs rounded-full hover:bg-red-700" data-testid={`staff-delete-confirm-${s.id}`}>Confirm</button>
-                          <button onClick={() => setDeleteTarget(null)} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full hover:bg-gray-200">Cancel</button>
-                        </div>
-                      ) : (
-                        <div className="flex gap-1 justify-end">
-                          <button onClick={() => openEdit(s)} className="px-2 py-1 bg-[#FDFBF7] border border-[#E6DCCA] text-[#621B00] text-xs rounded-full hover:bg-[#F0E6D6] inline-flex items-center gap-1" data-testid={`staff-edit-${s.id}`}>
-                            <Pencil className="h-3 w-3" /> Edit
-                          </button>
-                          <button onClick={() => setResetTarget(s)} className="px-2 py-1 bg-[#FDFBF7] border border-[#E6DCCA] text-[#621B00] text-xs rounded-full hover:bg-[#F0E6D6] inline-flex items-center gap-1" data-testid={`staff-reset-${s.id}`}>
-                            <KeyRound className="h-3 w-3" /> Reset Password
-                          </button>
-                          <button onClick={() => toggleActive(s)} className={`px-2 py-1 text-xs rounded-full ${s.active_flag ? 'bg-red-100 text-red-800 hover:bg-red-200' : 'bg-green-100 text-green-800 hover:bg-green-200'}`} data-testid={`staff-toggle-${s.id}`}>
-                            {s.active_flag ? 'Disable' : 'Enable'}
-                          </button>
-                          <button onClick={() => setDeleteTarget(s.id)} className="px-2 py-1 bg-[#FDFBF7] border border-[#E6DCCA] text-red-700 text-xs rounded-full hover:bg-red-50 inline-flex items-center gap-1" data-testid={`staff-delete-${s.id}`}>
-                            <Trash2 className="h-3 w-3" /> Delete
-                          </button>
-                        </div>
-                      )}
-                    </td>
+                    <td className="px-4 py-3">{roleSelect(s)}</td>
+                    <td className="px-4 py-3">{counterSelect(s)}</td>
+                    <td className="px-4 py-3">{statusBadge(s)}</td>
+                    <td className="px-4 py-3 text-right">{actions(s, 'justify-end')}</td>
                   </tr>
                 ))}
               </tbody>

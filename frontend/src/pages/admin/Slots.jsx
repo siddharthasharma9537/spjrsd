@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import AdminLayout from './AdminLayout';
+import useIsPhone from '@/hooks/useIsPhone';
 import api from '@/lib/api';
 import { useCachedGet, invalidateCached } from '@/lib/cachedGet';
 import DateInput from '@/components/ui/date-input';
@@ -7,6 +8,7 @@ import { Plus, Pencil, Trash2, X } from 'lucide-react';
 import { sortByPriority } from '@/lib/sevaSamagri';
 
 export default function AdminSlots() {
+  const isPhone = useIsPhone();
   const { data: slotsData, loading } = useCachedGet('/schedule-slots');
   const { data: sevasData } = useCachedGet('/sevas', { active_only: 'false' });
   const { data: profilesData } = useCachedGet('/day-profiles');
@@ -121,7 +123,24 @@ export default function AdminSlots() {
         </div>
       )}
 
-      {loading ? <p className="text-[#8D6E63]">Loading...</p> : (
+      {loading ? <p className="text-[#8D6E63]">Loading...</p> : isPhone ? (
+        <div className="space-y-3" data-testid="slots-cards">
+          {filtered.slice(0, 50).map(s => (
+            <div key={s.id} className="bg-white border border-[#E6DCCA] rounded-xl p-4">
+              <div className="flex items-start justify-between gap-3">
+                <p className="font-medium text-[#2D1B0E]">{sevaMap[s.seva_id]?.name_english || '—'}</p>
+                <span className="text-sm text-[#2D1B0E] shrink-0">{s.start_time} - {s.end_time}</span>
+              </div>
+              <p className="mt-1 text-sm text-[#8D6E63]">{s.date || 'Recurring'} · {profileMap[s.profile_id]?.name || '—'}</p>
+              <p className="text-xs text-[#8D6E63]">Online {s.online_quota} · Counter {s.counter_quota}</p>
+              <div className="mt-3 flex gap-2">
+                <button onClick={() => handleEdit(s)} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-full border border-[#E6DCCA] text-[#621B00]"><Pencil className="h-4 w-4" /> Edit</button>
+                <button onClick={() => handleDelete(s.id)} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-full border border-[#E6DCCA] text-red-700"><Trash2 className="h-4 w-4" /> Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
         <div className="bg-white border border-[#E6DCCA] rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm" data-testid="slots-table">

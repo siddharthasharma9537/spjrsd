@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import AdminLayout from './AdminLayout';
+import useIsPhone from '@/hooks/useIsPhone';
 import api from '@/lib/api';
 import { useCachedGet, invalidateCached } from '@/lib/cachedGet';
 import { Plus, X, Lock } from 'lucide-react';
@@ -61,6 +62,7 @@ function GroupCheckbox({ keys, permissions, onToggle, testId }) {
 }
 
 export default function AdminRoles() {
+  const isPhone = useIsPhone();
   const { data, loading } = useCachedGet('/admin/roles');
   const roles = data || [];
   const [error, setError] = useState('');
@@ -224,7 +226,26 @@ export default function AdminRoles() {
         </form>
       )}
 
-      {loading ? <p className="text-[#8D6E63]">Loading...</p> : (
+      {loading ? <p className="text-[#8D6E63]">Loading...</p> : isPhone ? (
+        <div className="space-y-3" data-testid="roles-cards">
+          {roles.map(r => (
+            <div key={r.id} className="bg-white border border-[#E6DCCA] rounded-xl p-4" data-testid={`roles-row-${r.id}`}>
+              <p className="font-medium text-[#2D1B0E] flex items-center gap-2">
+                {r.name}{r.is_system && <span title="Built-in role"><Lock className="h-3 w-3 text-[#8D6E63]" /></span>}
+              </p>
+              <p className="mt-1 text-xs text-[#8D6E63]">
+                {r.is_superuser ? 'All permissions (superuser)' : (r.permissions.length ? r.permissions.join(', ') : 'None yet')}
+              </p>
+              {(!r.is_superuser || !r.is_system) && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {!r.is_superuser && <button onClick={() => setEditing(r)} className="px-3 py-2 bg-[#FDFBF7] border border-[#E6DCCA] text-[#621B00] text-sm rounded-full" data-testid={`roles-edit-${r.id}`}>Edit Permissions</button>}
+                  {!r.is_system && <button onClick={() => deleteRole(r)} className="px-3 py-2 bg-red-100 text-red-800 text-sm rounded-full inline-flex items-center gap-1" data-testid={`roles-delete-${r.id}`}><X className="h-4 w-4" /> Delete</button>}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
         <div className="bg-white border border-[#E6DCCA] rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm" data-testid="roles-table">

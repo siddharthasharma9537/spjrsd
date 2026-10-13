@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import AdminLayout from './AdminLayout';
+import useIsPhone from '@/hooks/useIsPhone';
 import api from '@/lib/api';
 import { useCachedGet, invalidateCached } from '@/lib/cachedGet';
 import { Plus, Pencil, Trash2, X } from 'lucide-react';
 import { sortByPriority } from '@/lib/sevaSamagri';
 
 export default function AdminSevas() {
+  const isPhone = useIsPhone();
   const { data, loading } = useCachedGet('/sevas', { active_only: 'false' });
   const sevas = sortByPriority(data || []);
   const [showForm, setShowForm] = useState(false);
@@ -187,7 +189,31 @@ export default function AdminSevas() {
         </div>
       )}
 
-      {loading ? <p className="text-[#8D6E63]">Loading...</p> : (
+      {loading ? <p className="text-[#8D6E63]">Loading...</p> : isPhone ? (
+        <div className="space-y-3" data-testid="sevas-cards">
+          {sevas.map(s => (
+            <div key={s.id} className="bg-white border border-[#E6DCCA] rounded-xl p-4" data-testid={`seva-row-${s.id}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-medium text-[#2D1B0E]">{s.name_english}</p>
+                  <p className="text-[#621B00] font-telugu-heading">{s.name_telugu}</p>
+                </div>
+                <button onClick={() => handleToggleActive(s)} title="Tap to toggle"
+                  className={`px-3 min-h-[2.25rem] rounded-full text-xs shrink-0 ${s.active_flag ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                  data-testid={`toggle-active-${s.id}`}>{s.active_flag ? 'Active' : 'Inactive'}</button>
+              </div>
+              <p className="mt-1 text-sm text-[#5D4037]">Rs. {s.base_price} · {s.duration_minutes} min</p>
+              {s.prasadam_eligible && (
+                <p className="text-xs text-amber-700 mt-0.5">🍚 Free Prasadam{s.prasadam_items?.length ? `: ${s.prasadam_items.map(i => `${i.quantity} ${i.name}`).join(', ')}` : ''}</p>
+              )}
+              <div className="mt-3 flex gap-2">
+                <button onClick={() => handleEdit(s)} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-full border border-[#E6DCCA] text-[#621B00]" data-testid={`edit-seva-${s.id}`}><Pencil className="h-4 w-4" /> Edit</button>
+                <button onClick={() => handleDelete(s.id)} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-full border border-[#E6DCCA] text-red-700" data-testid={`delete-seva-${s.id}`}><Trash2 className="h-4 w-4" /> Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
         <div className="bg-white border border-[#E6DCCA] rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm" data-testid="sevas-table">

@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import AdminLayout from './AdminLayout';
+import useIsPhone from '@/hooks/useIsPhone';
 import { Link } from 'react-router-dom';
 import { useCachedGet } from '@/lib/cachedGet';
 import { HandCoins, Heart, IndianRupee, FileCheck } from 'lucide-react';
 
 export default function AdminDonations() {
   const [filter, setFilter] = useState('');
+  const isPhone = useIsPhone();
   const { data, loading } = useCachedGet('/admin/donations', { donation_type: filter });
   const donations = data || [];
   const { data: stats = null } = useCachedGet('/admin/donation-stats');
@@ -45,6 +47,32 @@ export default function AdminDonations() {
 
       {loading ? <p className="text-[#8D6E63]">Loading...</p> : donations.length === 0 ? (
         <p className="text-center py-12 text-[#8D6E63]">No donations found</p>
+      ) : isPhone ? (
+        <div className="space-y-3" data-testid="donations-cards">
+          {donations.map(d => (
+            <div key={d.id} className="bg-white border border-[#E6DCCA] rounded-xl p-4" data-testid={`donation-row-${d.id}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-medium text-[#2D1B0E]">{d.is_anonymous ? 'Anonymous' : d.donor_name}</p>
+                  {d.donor_mobile && <a href={`tel:${d.donor_mobile}`} className="inline-flex items-center min-h-[2.25rem] text-sm text-[#C43E00]">{d.donor_mobile}</a>}
+                </div>
+                <p className="font-bold text-[#C43E00] shrink-0">Rs. {d.amount}</p>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#8D6E63]">
+                <span className={`px-2 py-0.5 rounded-full ${d.donation_type === 'e-Hundi' ? 'bg-[#D4AF37]/20 text-[#8D2800]' : 'bg-[#C43E00]/10 text-[#C43E00]'}`}>{d.donation_type}</span>
+                <span>{new Date(d.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                {d.donor_gotram && <span>Gotram {d.donor_gotram}</span>}
+              </div>
+              {d.message && <p className="mt-2 text-sm text-[#5D4037]">{d.message}</p>}
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <span className="font-mono text-xs text-[#621B00] truncate">{d.donation_number}</span>
+                <Link to={`/donation-receipt/${d.id}`} className="inline-flex items-center gap-1 px-3 py-2 bg-[#621B00] text-white text-sm rounded-full shrink-0" data-testid={`receipt-btn-${d.id}`}>
+                  <FileCheck className="h-4 w-4" /> 80G receipt
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="bg-white border border-[#E6DCCA] rounded-xl overflow-hidden">
           <div className="overflow-x-auto">

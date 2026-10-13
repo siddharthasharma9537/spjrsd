@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import AdminLayout from './AdminLayout';
+import useIsPhone from '@/hooks/useIsPhone';
 import api from '@/lib/api';
 import { useCachedGet, invalidateCached } from '@/lib/cachedGet';
 import { shrinkImage } from '@/lib/image';
@@ -201,6 +202,7 @@ export default function AdminLiveBlog() {
   const [scheduleValue, setScheduleValue] = useState(tomorrowMorning());
   const [schedulingDraft, setSchedulingDraft] = useState(null);
   const columns = useColumnWidths();
+  const isPhone = useIsPhone();
 
   const load = () => invalidateCached('/admin/live-blog');
 
@@ -312,6 +314,26 @@ export default function AdminLiveBlog() {
     </div>
   );
   const channelsCell = (p) => <Channels post={p} onToggle={(k, v) => update(p.id, { [k]: v })} />;
+  // "Goes live" (editable) for scheduled posts; last edited, or the schedule picker, for drafts.
+  const whenCell = (p) => tab === 'scheduled' ? <ScheduleCell key={p.id} post={p} onSaved={load} /> : (
+    schedulingDraft === p.id ? (
+      <div className="space-y-2">
+        <DateTimePicker value={scheduleValue} onChange={setScheduleValue} testid={`draft-schedule-picker-${p.id}`} />
+        <div className="flex gap-2">
+          <button onClick={() => scheduleDraft(p)} className="px-3 py-1 text-xs rounded-full bg-[#C43E00] text-white">Confirm</button>
+          <button onClick={() => setSchedulingDraft(null)} className="px-3 py-1 text-xs rounded-full border border-[#E6DCCA]">Cancel</button>
+        </div>
+      </div>
+    ) : <span className="text-[#5D4037] whitespace-nowrap">{fmtIst(p.updated_at || p.posted_at)}</span>
+  );
+  // One list of a row's actions: icon buttons in the table, labelled buttons on phone cards.
+  const rowActions = (p) => [
+    ['Edit', Pencil, () => handleEdit(p)],
+    tab === 'draft' && ['Schedule', CalendarClock, () => { setScheduleValue(tomorrowMorning()); setSchedulingDraft(p.id); }],
+    ['Publish now', Send, () => publishNow(p)],
+    tab === 'scheduled' && ['Move to drafts', Undo2, () => moveToDraft(p)],
+    ['Delete', Trash2, () => remove(p), true],
+  ].filter(Boolean);
   const th = "relative text-left text-xs font-medium text-[#8D6E63] px-3 py-2 whitespace-nowrap";
   const td = "px-3 py-3 align-top overflow-hidden";
   const headings = ['S.No', 'Post', tab === 'scheduled' ? 'Goes live (IST)' : 'Last edited', 'Share to', 'Note', 'Actions'];
@@ -447,6 +469,27 @@ export default function AdminLiveBlog() {
         </div>
       ) : (
         <div>
+        {isPhone ? (
+          // Phones: one card per post. The resizable-column table needs a wide screen.
+          <div className="space-y-3" data-testid={`live-blog-cards-${tab}`}>
+            {byTab[tab].length === 0 && <p className="text-sm text-[#8D6E63]">{tab === 'scheduled' ? 'Nothing scheduled.' : 'No drafts.'}</p>}
+            {pageItems.map(p => (
+              <div key={p.id} className="bg-white border border-[#E6DCCA] rounded-xl p-4" data-testid={`live-blog-row-${p.id}`}>
+                {postCell(p)}
+                <div className="mt-3 text-sm"><p className="text-xs text-[#8D6E63] mb-1">{headings[2]}</p>{whenCell(p)}</div>
+                <div className="mt-3"><p className="text-xs text-[#8D6E63] mb-1">Share to</p>{channelsCell(p)}</div>
+                <div className="mt-3"><p className="text-xs text-[#8D6E63] mb-1">Note</p><NoteCell key={p.note || ''} post={p} onSave={(note) => update(p.id, { note })} /></div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {rowActions(p).map(([label, Icon, onClick, danger]) => (
+                    <button key={label} onClick={onClick} className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-full border border-[#E6DCCA] ${danger ? 'text-red-700' : 'text-[#621B00]'}`}>
+                      <Icon className="h-4 w-4" /> {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
         <div className="bg-white border border-[#E6DCCA] rounded-xl overflow-x-auto">
           <table className="text-sm table-fixed" style={{ width: tableWidth, minWidth: '100%' }} data-testid={`live-blog-table-${tab}`}>
             <colgroup>{columns.widths.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
@@ -473,33 +516,15 @@ export default function AdminLiveBlog() {
                 <tr key={p.id} className="border-b border-[#F0E8D8] last:border-0" data-testid={`live-blog-row-${p.id}`}>
                   <td className={`${td} text-[#8D6E63]`}>{firstIndex + i + 1}</td>
                   <td className={td}>{postCell(p)}</td>
-                  <td className={td}>
-                    {tab === 'scheduled' ? <ScheduleCell key={p.id} post={p} onSaved={load} /> : (
-                      schedulingDraft === p.id ? (
-                        <div className="space-y-2">
-                          <DateTimePicker value={scheduleValue} onChange={setScheduleValue} testid={`draft-schedule-picker-${p.id}`} />
-                          <div className="flex gap-2">
-                            <button onClick={() => scheduleDraft(p)} className="px-3 py-1 text-xs rounded-full bg-[#C43E00] text-white">Confirm</button>
-                            <button onClick={() => setSchedulingDraft(null)} className="px-3 py-1 text-xs rounded-full border border-[#E6DCCA]">Cancel</button>
-                          </div>
-                        </div>
-                      ) : <span className="text-[#5D4037] whitespace-nowrap">{fmtIst(p.updated_at || p.posted_at)}</span>
-                    )}
-                  </td>
+                  <td className={td}>{whenCell(p)}</td>
                   <td className={td}>{channelsCell(p)}</td>
                   <td className={td}><NoteCell key={p.note || ''} post={p} onSave={(note) => update(p.id, { note })} /></td>
                   {/* Not clipped, so the action names can show above the icons. */}
                   <td className="px-3 py-3 align-top">
                     <div className="flex flex-wrap gap-1">
-                      <ActionButton label="Edit" onClick={() => handleEdit(p)}><Pencil className="h-4 w-4" /></ActionButton>
-                      {tab === 'draft' && (
-                        <ActionButton label="Schedule" onClick={() => { setScheduleValue(tomorrowMorning()); setSchedulingDraft(p.id); }}><CalendarClock className="h-4 w-4" /></ActionButton>
-                      )}
-                      <ActionButton label="Publish now" onClick={() => publishNow(p)}><Send className="h-4 w-4" /></ActionButton>
-                      {tab === 'scheduled' && (
-                        <ActionButton label="Move to drafts" onClick={() => moveToDraft(p)}><Undo2 className="h-4 w-4" /></ActionButton>
-                      )}
-                      <ActionButton label="Delete" danger onClick={() => remove(p)}><Trash2 className="h-4 w-4" /></ActionButton>
+                      {rowActions(p).map(([label, Icon, onClick, danger]) => (
+                        <ActionButton key={label} label={label} danger={danger} onClick={onClick}><Icon className="h-4 w-4" /></ActionButton>
+                      ))}
                     </div>
                   </td>
                 </tr>
@@ -507,8 +532,9 @@ export default function AdminLiveBlog() {
             </tbody>
           </table>
         </div>
+        )}
         <Pager page={currentPage} total={byTab[tab].length} onPage={goToPage} />
-        <button onClick={columns.reset} className="mt-2 text-xs text-[#8D6E63] hover:text-[#C43E00]">Reset column widths</button>
+        {!isPhone && <button onClick={columns.reset} className="mt-2 text-xs text-[#8D6E63] hover:text-[#C43E00]">Reset column widths</button>}
         </div>
       )}
     </AdminLayout>

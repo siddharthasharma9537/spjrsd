@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import AdminLayout from './AdminLayout';
+import useIsPhone from '@/hooks/useIsPhone';
 import { useCachedGet } from '@/lib/cachedGet';
 import { Mail, Search, ArrowUpDown, Gift } from 'lucide-react';
 
@@ -12,6 +13,7 @@ export default function AdminAashirvachanam() {
   const loadError = !!error && !data;
 
   const [search, setSearch] = useState('');
+  const isPhone = useIsPhone();
   const [occasionFilter, setOccasionFilter] = useState('all');
   const [sortDir, setSortDir] = useState('desc');
 
@@ -53,6 +55,19 @@ export default function AdminAashirvachanam() {
         <p className="text-center py-12 text-[#8D6E63]">Failed to load Aashirvachanam requests</p>
       ) : visible.length === 0 ? (
         <p className="text-center py-12 text-[#8D6E63]">{items.length === 0 ? 'No requests submitted yet' : 'No requests match your filters'}</p>
+      ) : isPhone ? (
+        <div className="space-y-3" data-testid="aashirvachanam-cards">
+          {visible.map(i => (
+            <div key={i.id} className="bg-white border border-[#E6DCCA] rounded-xl p-4" data-testid={`aashirvachanam-row-${i.id}`}>
+              <div className="flex items-start justify-between gap-3">
+                <p className="font-medium text-[#2D1B0E]">{i.name}</p>
+                <span className="text-xs text-[#8D6E63] shrink-0">{fmtDate(i.created_at)}</span>
+              </div>
+              <p className="mt-1 flex items-center gap-1 text-sm text-[#5D4037]"><Gift className="h-3.5 w-3.5" /> {i.occasion_type} · every {String(i.day).padStart(2, '0')}/{String(i.month).padStart(2, '0')}</p>
+              <p className="mt-1 flex items-center gap-1 text-sm text-[#5D4037] min-w-0"><Mail className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{i.email}</span></p>
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="bg-white border border-[#E6DCCA] rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
