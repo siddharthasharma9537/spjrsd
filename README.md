@@ -55,13 +55,27 @@ packages/
 
 ### Backend
 
+Needs MongoDB: either a local `mongod` (e.g. `brew tap mongodb/brew && brew install mongodb-community`) or an Atlas connection string.
+
 ```bash
 cd backend
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env   # fill in the values you need (see below)
-uvicorn app.main:app --reload
+cp .env.example app/.env   # note: app/.env, not backend/.env
+uvicorn app.main:app --reload --port 8000 --env-file app/.env
 ```
+
+In `app/.env`, set at least `MONGO_URL` (e.g. `mongodb://127.0.0.1:27017`), `DB_NAME` (e.g. `spjrsd_local`, so a local database is never mistaken for production), a random `JWT_SECRET`, a random `SEED_SECRET`, and `CORS_EXTRA_ORIGINS=http://localhost:3000` so the frontend dev server can call the API.
+
+`--env-file` is needed: `app/main.py` connects to the database while importing its routes, before its own `load_dotenv` call runs, so without the flag the server stops with *MONGO_URL is not set*.
+
+A brand-new database is empty. With the backend running, load the first admin account (username `admin`) and sample sevas, slots, rooms, news, gallery, panchangam and live-blog posts:
+
+```bash
+curl -X POST -H "X-Seed-Secret: <your SEED_SECRET>" http://localhost:8000/api/seed
+```
+
+The admin's starting password is set in `seed_data()` in `app/main.py`; change it from Settings after the first login. The seed does nothing once an admin account exists.
 
 Backend env vars (see `backend/.env.example` for full descriptions of each):
 
@@ -84,11 +98,14 @@ Backend env vars (see `backend/.env.example` for full descriptions of each):
 
 ```bash
 cd frontend
-npm install
-npm start
+cp .env.example .env   # REACT_APP_BACKEND_URL defaults to http://localhost:8000
+yarn install
+yarn start             # http://localhost:3000
 ```
 
-Set `REACT_APP_GOOGLE_CLIENT_ID` (and any API base URL override) in `frontend/.env` to match the backend.
+Use yarn, not npm: the lockfile is `yarn.lock`. Run the tests with `CI=true yarn craco test --watchAll=false`.
+
+`REACT_APP_BACKEND_URL` is baked in when the dev server starts or a build is made, so restart `yarn start` after changing it. Set `REACT_APP_GOOGLE_CLIENT_ID` to the backend's `GOOGLE_CLIENT_ID` to show the Google sign-in button; leave it empty to hide it.
 
 ## Deployment
 
