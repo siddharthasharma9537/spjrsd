@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
+import { useCachedGet, invalidateCached } from '@/lib/cachedGet';
 import DateInput from '@/components/ui/date-input';
 import { Plus, Pencil, Trash2, X, Upload, CheckCircle2, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -32,8 +33,8 @@ const FIELDS = [
 ];
 
 export default function AdminPanchangam() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data, loading } = useCachedGet('/admin/panchangam');
+  const items = useMemo(() => data || [], [data]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -43,8 +44,7 @@ export default function AdminPanchangam() {
   const [page, setPage] = useState(0);
   const fileInputRef = useRef(null);
 
-  const load = () => api.get('/admin/panchangam').then(r => { setItems(r.data); setLoading(false); setPage(0); });
-  useEffect(() => { load(); }, []);
+  const load = () => invalidateCached('/admin/panchangam').then(() => setPage(0));
 
   const monthOptions = useMemo(() => {
     const months = [...new Set(items.map(p => p.date?.slice(0, 7)).filter(Boolean))].sort();

@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
 import AdminLayout from './AdminLayout';
-import api from '@/lib/api';
+import { useCachedGet } from '@/lib/cachedGet';
 import { useAuth } from '@/contexts/AuthContext';
 import { Users, BookOpen, Flame, IndianRupee, CalendarCheck, HandCoins, BedDouble, Newspaper, Eye } from 'lucide-react';
 
@@ -12,13 +11,7 @@ export default function AdminDashboard() {
   // per-counter concept at all, so those cards would just always read 0
   // rather than mean anything for this login.
   const isCounterAccount = !!user?.counter_id;
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
-
-  useEffect(() => {
-    api.get('/admin/stats').then(r => setStats(r.data)).catch(() => setLoadError(true)).finally(() => setLoading(false));
-  }, []);
+  const { data: stats, loading } = useCachedGet('/admin/stats');
 
   const allCards = stats ? [
     { icon: Users, label: 'Total Devotees', value: stats.total_devotees, color: 'text-[#C43E00]', bg: 'bg-[#C43E00]/10' },

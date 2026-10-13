@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { clearCached } from '@/lib/cachedGet';
 
 const AuthContext = createContext(null);
 
@@ -21,6 +22,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = (tokenVal, userData, type) => {
+    clearCached();
     localStorage.setItem('token', tokenVal);
     localStorage.setItem('user', JSON.stringify(userData));
     localStorage.setItem('userType', type);
@@ -30,6 +32,7 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
+    clearCached();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('userType');

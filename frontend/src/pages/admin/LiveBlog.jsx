@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
+import { useCachedGet, invalidateCached } from '@/lib/cachedGet';
 import { Plus, Pencil, Trash2, X, Pin, Send, CalendarClock, FileText, Undo2 } from 'lucide-react';
 
 const EMPTY_FORM = {
@@ -185,8 +186,8 @@ function Pager({ page, total, onPage }) {
 }
 
 export default function AdminLiveBlog() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data, loading } = useCachedGet('/admin/live-blog');
+  const items = data || [];
   const [tab, setTab] = useState('published');
   const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
@@ -198,8 +199,7 @@ export default function AdminLiveBlog() {
   const [schedulingDraft, setSchedulingDraft] = useState(null);
   const columns = useColumnWidths();
 
-  const load = () => api.get('/admin/live-blog').then(r => { setItems(r.data); setLoading(false); });
-  useEffect(() => { load(); }, []);
+  const load = () => invalidateCached('/admin/live-blog');
 
   const byTab = {
     published: items.filter(p => statusOf(p) === 'published'),
