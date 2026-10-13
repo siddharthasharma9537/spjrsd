@@ -246,7 +246,7 @@ export default function AdminLiveBlog() {
     </div>
   );
   const channelsCell = (p) => <Channels post={p} onToggle={(k, v) => update(p.id, { [k]: v })} />;
-  const th = "relative text-left text-xs font-medium text-[#8D6E63] px-3 py-2 whitespace-nowrap overflow-hidden";
+  const th = "relative text-left text-xs font-medium text-[#8D6E63] px-3 py-2 whitespace-nowrap";
   const td = "px-3 py-3 align-top overflow-hidden";
   const headings = ['S.No', 'Post', tab === 'scheduled' ? 'Goes live (IST)' : 'Last edited', 'Share to', 'Note', 'Actions'];
   const tableWidth = columns.widths.reduce((a, b) => a + b, 0);
@@ -373,8 +373,12 @@ export default function AdminLiveBlog() {
                 {headings.map((h, i) => (
                   <th key={i} className={th}>
                     {h}
-                    <span onPointerDown={(e) => columns.startResize(i, e)} title="Drag to resize"
-                      className="absolute top-0 right-0 h-full w-2 cursor-col-resize border-r-2 border-transparent hover:border-[#C43E00]/50 select-none" />
+                    {i < headings.length - 1 && (
+                      <span onPointerDown={(e) => columns.startResize(i, e)} title="Drag to resize"
+                        className="group absolute top-0 -right-1.5 z-10 h-full w-3 flex justify-center cursor-col-resize select-none touch-none">
+                        <span className="my-1.5 w-0.5 rounded-full bg-[#D7C9B0] group-hover:w-1 group-hover:bg-[#C43E00]" />
+                      </span>
+                    )}
                   </th>
                 ))}
               </tr>
