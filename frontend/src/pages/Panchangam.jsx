@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import TopStrip from '@/components/TopStrip';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -14,7 +15,9 @@ function toISODate(d) {
 
 export default function Panchangam() {
   const { t, te, heading } = useT();
-  const [date, setDate] = useState(toISODate(new Date()));
+  // ?date=YYYY-MM-DD opens a given day (used by the homepage ticker's "Tomorrow: ..." reminders).
+  const [params] = useSearchParams();
+  const [date, setDate] = useState(() => /^\d{4}-\d{2}-\d{2}$/.test(params.get('date') || '') ? params.get('date') : toISODate(new Date()));
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);

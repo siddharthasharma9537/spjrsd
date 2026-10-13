@@ -2319,6 +2319,62 @@ async def get_next_purnima_amavasya(days: int = 45):
     amavasya = await _find(_AMAVASYA_NAMES)
     return {"purnima": purnima, "amavasya": amavasya}
 
+# Leftovers from the printed book's symbols that ended up in special_note.
+_NOTE_NOISE = ("star symbol", "blank circle")
+_TE_MONTHS = ["జనవరి", "ఫిబ్రవరి", "మార్చి", "ఏప్రిల్", "మే", "జూన్", "జూలై", "ఆగస్టు", "సెప్టెంబర్", "అక్టోబర్", "నవంబర్", "డిసెంబర్"]
+_TE_DAYS = ["సోమవారం", "మంగళవారం", "బుధవారం", "గురువారం", "శుక్రవారం", "శనివారం", "ఆదివారం"]
+
+def _reminder_labels(doc: dict) -> list:
+    """What a day is worth reminding devotees about, as [(english, telugu)].
+    The day's own festival note first, then the days that matter most at a
+    Shiva kshetram even when the note doesn't name them: Amavasya (the big
+    darshan day here), Pournami, Masa Shivaratri and Karthika Somavaram."""
+    labels = []
+    for part in (doc.get("special_note") or "").split(";"):
+        part = part.strip()
+        if part and not part.lower().startswith(_NOTE_NOISE):
+            labels.append((part, part))
+    said = " ".join(en.lower() for en, _ in labels)
+    tithi = (doc.get("tithi") or "").strip().lower()
+    paksha = (doc.get("paksha") or "").strip().lower()
+    if tithi in _AMAVASYA_NAMES and "amavasya" not in said:
+        labels.append(("Amavasya", "అమావాస్య"))
+    if tithi in _PURNIMA_NAMES and "pournami" not in said and "purnima" not in said:
+        labels.append(("Pournami", "పౌర్ణమి"))
+    if tithi == "chaturdashi" and paksha.startswith(("krishna", "bahula")) and "shivaratri" not in said:
+        labels.append(("Masa Shivaratri", "మాస శివరాత్రి"))
+    if (doc.get("masa") or "").lower().startswith(("kartika", "karthika")) and (doc.get("vaaram") or "").lower() == "monday" \
+            and "somavaram" not in said:
+        labels.append(("Karthika Somavaram", "కార్తీక సోమవారం"))
+    return labels
+
+@api_router.get("/panchangam/reminders")
+async def get_panchangam_reminders():
+    """Short "Today / Tomorrow" lines for the homepage news ticker, built from
+    the panchangam itself so the important days are announced even when
+    nobody posts a News item. Nothing is stored; each day drops off by itself."""
+    today = datetime.now(IST).date()
+    tomorrow = today + timedelta(days=1)
+    docs = await db.panchangam.find(
+        {"date": {"$in": [today.isoformat(), tomorrow.isoformat()]}}, {"_id": 0}
+    ).to_list(2)
+    out = []
+    for when, day in (("today", today), ("tomorrow", tomorrow)):
+        doc = next((d for d in docs if d.get("date") == day.isoformat()), None)
+        labels = _reminder_labels(doc) if doc else []
+        if not labels:
+            continue
+        en = ", ".join(e for e, _ in labels)
+        te = ", ".join(t for _, t in labels)
+        if when == "today":
+            title, title_te = f"Today: {en}", f"ఈరోజు: {te}"
+        else:
+            title = f"Tomorrow ({day.strftime('%a')}, {day.day} {day.strftime('%b')}): {en}"
+            title_te = f"రేపు ({day.day} {_TE_MONTHS[day.month - 1]}, {_TE_DAYS[day.weekday()]}): {te}"
+        out.append({"id": f"panchangam-{day.isoformat()}", "date": day.isoformat(), "when": when,
+                    "title": title, "title_telugu": title_te})
+    return out
+
 @api_router.get("/panchangam")
 async def get_panchangam_by_date(date: str):
     item = await db.panchangam.find_one({"date": date}, {"_id": 0})
