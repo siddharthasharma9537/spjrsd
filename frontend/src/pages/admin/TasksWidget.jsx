@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '@/lib/api';
+import { shrinkImage } from '@/lib/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { Plus, Clock, CheckCircle2, Hand, ChevronLeft, MoreVertical, Send, ListTodo, Trash2, X, Minus, Maximize2, Minimize2, ImagePlus, Loader2, Mic, AudioLines, Square } from 'lucide-react';
 
@@ -129,24 +130,8 @@ function AddTask({ people, onDone, onCancel }) {
   );
 }
 
-// Photos are shrunk in the browser before upload (long side 1600px, JPEG), so
-// phone pictures upload quickly and storage stays small.
+// Photos are shrunk in the browser before upload - see lib/image.js.
 const MAX_IMAGES = 4;
-const MAX_SIDE = 1600;
-async function shrinkImage(file) {
-  try {
-    const bitmap = await createImageBitmap(file);
-    const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
-    return blob ? new File([blob], 'image.jpg', { type: 'image/jpeg' }) : file;
-  } catch {
-    return file;
-  }
-}
 
 // Speak-to-type uses the browser's own speech recognition (Chrome / Edge);
 // the mic is hidden where it isn't available. Telugu or English, remembered.

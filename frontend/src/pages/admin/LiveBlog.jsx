@@ -2,7 +2,8 @@ import { useState, useRef } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
 import { useCachedGet, invalidateCached } from '@/lib/cachedGet';
-import { Plus, Pencil, Trash2, X, Pin, Send, CalendarClock, FileText, Undo2 } from 'lucide-react';
+import { shrinkImage } from '@/lib/image';
+import { Plus, Pencil, Trash2, X, Pin, Send, CalendarClock, FileText, Undo2, Camera } from 'lucide-react';
 
 const EMPTY_FORM = {
   event_name: '', event_name_telugu: '', title: '', title_telugu: '', content: '', content_telugu: '',
@@ -194,6 +195,8 @@ export default function AdminLiveBlog() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState('');
+  const [photo, setPhoto] = useState({ uploading: false, error: '' });
+  const photoInput = useRef(null);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [scheduleValue, setScheduleValue] = useState(tomorrowMorning());
   const [schedulingDraft, setSchedulingDraft] = useState(null);
@@ -213,7 +216,7 @@ export default function AdminLiveBlog() {
   const pageItems = byTab[tab].slice(firstIndex, firstIndex + PAGE_SIZE);
   const goToPage = (n) => { setPage(n); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
-  const resetForm = () => { setForm(EMPTY_FORM); setEditing(null); setShowForm(false); setFormError(''); setScheduleOpen(false); };
+  const resetForm = () => { setForm(EMPTY_FORM); setEditing(null); setShowForm(false); setFormError(''); setPhoto({ uploading: false, error: '' }); setScheduleOpen(false); };
   const openNew = () => { resetForm(); setScheduleValue(tomorrowMorning()); setShowForm(true); };
   const handleEdit = (p) => {
     setForm(Object.fromEntries(EDITABLE.map(k => [k, p[k] ?? EMPTY_FORM[k]])));
@@ -222,6 +225,8 @@ export default function AdminLiveBlog() {
   };
 
   const run = async (fn) => {
+    // Posting mid-upload would publish the post without its photo.
+    if (photo.uploading) { setFormError('Please wait for the photo to finish uploading.'); return; }
     setFormError('');
     try { await fn(); resetForm(); load(); } catch (err) { setFormError(errorText(err)); }
   };
@@ -268,6 +273,24 @@ export default function AdminLiveBlog() {
       } else {
         window.alert(errorText(err));
       }
+    }
+  };
+
+  // Phone camera or gallery -> shrunk to a JPEG in the browser -> R2. The
+  // returned link fills Image URL, which can still be typed or pasted instead.
+  const uploadPhoto = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setPhoto({ uploading: true, error: '' });
+    try {
+      const body = new FormData();
+      body.append('file', await shrinkImage(file));
+      const { data } = await api.post('/admin/live-blog/upload', body, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 60000 });
+      setForm(f => ({ ...f, image_url: data.url }));
+      setPhoto({ uploading: false, error: '' });
+    } catch (err) {
+      setPhoto({ uploading: false, error: err.response?.data?.detail || 'Upload failed. Please try again.' });
     }
   };
 
@@ -328,7 +351,22 @@ export default function AdminLiveBlog() {
             <div><label className={label}>Content (English)</label><textarea className={`${inputCls} h-24 py-2`} value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} required /></div>
             <div><label className={label}>Content (Telugu)</label><textarea className={`${inputCls} h-24 py-2`} value={form.content_telugu} onChange={e => setForm({ ...form, content_telugu: e.target.value })} /></div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div><label className={label}>Image URL</label><input className={inputCls} value={form.image_url} onChange={e => setForm({ ...form, image_url: e.target.value })} placeholder="https://…/poster.jpg" /></div>
+              <div>
+                <label className={label}>Photo</label>
+                {form.image_url && (
+                  <div className="mb-2 flex items-center gap-3">
+                    <img src={form.image_url} alt="" className="h-20 w-28 object-cover rounded-lg border border-[#E6DCCA]" data-testid="live-blog-photo-preview" />
+                    <button type="button" onClick={() => setForm(f => ({ ...f, image_url: '' }))} className="text-sm text-red-700 hover:underline">Remove</button>
+                  </div>
+                )}
+                <button type="button" onClick={() => photoInput.current?.click()} disabled={photo.uploading}
+                  className={`${btn} border border-[#C43E00] text-[#C43E00] disabled:opacity-60`} data-testid="live-blog-photo-upload">
+                  <Camera className="h-4 w-4" /> {photo.uploading ? 'Uploading…' : form.image_url ? 'Change photo' : 'Upload photo'}
+                </button>
+                <input ref={photoInput} type="file" accept="image/*" className="hidden" onChange={uploadPhoto} data-testid="live-blog-photo-input" />
+                <input className={`${inputCls} mt-2`} value={form.image_url} onChange={e => setForm({ ...form, image_url: e.target.value })} placeholder="or paste an image link: https://…/poster.jpg" aria-label="Image URL" />
+                {photo.error && <p className="text-xs text-red-600 mt-1" data-testid="live-blog-photo-error">{photo.error}</p>}
+              </div>
               <div><label className={label}>Note (staff only, never shown publicly)</label><input className={inputCls} value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} placeholder="e.g. Day 3 – Annapurna" data-testid="live-blog-note-input" /></div>
             </div>
 
