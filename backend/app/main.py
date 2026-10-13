@@ -3613,6 +3613,205 @@ async def health_check():
 
     return {"status": "ok" if overall_ok else "degraded", "services": services}
 
+
+# ==================== STAFF TO-DO (TASKS) ====================
+# A small shared to-do list on the admin dashboard. The EO (and anyone with
+# tasks:create) adds tasks for a staff member or a whole role; the person
+# assigned answers with a status (Working on it / Completed / Need help) or a
+# note, so the conversation about a task stays on the task. "Need help" flags
+# it for the managers and emails TASK_ALERT_EMAIL when that is set.
+TASK_ALERT_EMAIL = os.environ.get('TASK_ALERT_EMAIL', '')
+TASK_STATUSES = {"in_progress", "completed", "need_help"}
+
+class TaskCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    details: Optional[str] = ""
+    due_date: Optional[str] = None          # YYYY-MM-DD, India date
+    assigned_user_id: Optional[str] = None
+    assigned_role: Optional[str] = None
+
+class TaskUpdate(BaseModel):
+    title: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    details: Optional[str] = None
+    due_date: Optional[str] = None
+    assigned_user_id: Optional[str] = None
+    assigned_role: Optional[str] = None
+
+class TaskStatusUpdate(BaseModel):
+    status: str
+    text: Optional[str] = ""
+
+class TaskMessage(BaseModel):
+    text: str = Field(min_length=1, max_length=2000)
+
+async def _task_permissions(admin: dict) -> tuple:
+    role = await db.roles.find_one({"name": admin.get("role")}, {"_id": 0}) or {}
+    perms = set(role.get("permissions", []))
+    su = bool(role.get("is_superuser"))
+    return su, (lambda perm: su or perm in perms)
+
+def _is_task_assignee(task: dict, admin: dict) -> bool:
+    if task.get("assigned_user_id"):
+        return task["assigned_user_id"] == admin.get("sub")
+    return bool(task.get("assigned_role")) and task["assigned_role"] == admin.get("role")
+
+def _check_due_date(value: Optional[str]):
+    if value:
+        try:
+            datetime.strptime(value, "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="due_date must be YYYY-MM-DD")
+
+async def _resolve_assignee(user_id: Optional[str], role: Optional[str]) -> dict:
+    if user_id:
+        user = await db.user_accounts.find_one({"id": user_id}, {"_id": 0, "id": 1, "name": 1, "role": 1})
+        if not user:
+            raise HTTPException(status_code=400, detail="That staff member was not found")
+        return {"assigned_user_id": user["id"], "assigned_user_name": user["name"], "assigned_role": None}
+    if role:
+        if not await db.roles.find_one({"name": role}):
+            raise HTTPException(status_code=400, detail="That role was not found")
+        return {"assigned_user_id": None, "assigned_user_name": None, "assigned_role": role}
+    return {"assigned_user_id": None, "assigned_user_name": None, "assigned_role": None}
+
+def _thread_entry(admin: dict, kind: str, text: str = "", status: Optional[str] = None) -> dict:
+    entry = {"id": str(uuid.uuid4()), "by_id": admin.get("sub"), "by_name": admin.get("name"),
+             "kind": kind, "text": text, "at": _now_iso()}
+    if status:
+        entry["status"] = status
+    return entry
+
+async def _visible_task(task_id: str, admin: dict) -> tuple:
+    task = await db.tasks.find_one({"id": task_id}, {"_id": 0})
+    _, can = await _task_permissions(admin)
+    manager = can("tasks:view")
+    if not task or not (manager or _is_task_assignee(task, admin) or task.get("created_by_id") == admin.get("sub")):
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task, can
+
+async def _email_need_help(task: dict, admin: dict, text: str):
+    recipients = [{"email": e.strip()} for e in TASK_ALERT_EMAIL.split(",") if e.strip()]
+    if not recipients:
+        return
+    message = (f"Namaste,\n\n{admin.get('name')} needs help with the task \"{task['title']}\".\n\n"
+               f"Message: {text}\n\nOpen the admin dashboard to reply.")
+    try:
+        await send_email_via_msg91(recipients, f"Need help: {task['title']}", message)
+    except Exception as e:
+        logger.warning(f"Task help email failed for {task['id']}: {e}")
+
+@api_router.get("/admin/tasks")
+async def list_tasks(admin=Depends(get_current_admin)):
+    _, can = await _task_permissions(admin)
+    if can("tasks:view"):
+        query = {}
+    else:
+        query = {"$or": [{"assigned_user_id": admin.get("sub")},
+                         {"assigned_user_id": None, "assigned_role": admin.get("role")},
+                         {"created_by_id": admin.get("sub")}]}
+    tasks = await db.tasks.find(query, {"_id": 0}).to_list(500)
+    for t in tasks:
+        t["is_mine"] = _is_task_assignee(t, admin)
+    # Unfinished first, soonest due first (no due date last); finished at the end, newest first.
+    tasks.sort(key=lambda t: (t.get("status") == "completed", t.get("due_date") or "9999-12-31", t.get("created_at", "")))
+    return {"tasks": tasks, "can_create": can("tasks:create"), "can_edit": can("tasks:edit"), "can_delete": can("tasks:delete")}
+
+@api_router.get("/admin/tasks/assignees")
+async def list_task_assignees(admin=Depends(require_permission("tasks:create"))):
+    users = await db.user_accounts.find({"active_flag": True}, {"_id": 0, "id": 1, "name": 1, "role": 1}).sort("name", 1).to_list(500)
+    roles = [r["name"] for r in await db.roles.find({}, {"_id": 0, "name": 1}).sort("name", 1).to_list(100)]
+    return {"users": users, "roles": roles}
+
+@api_router.post("/admin/tasks")
+async def create_task(data: TaskCreate, admin=Depends(require_permission("tasks:create"))):
+    _check_due_date(data.due_date)
+    now = _now_iso()
+    task = {"id": str(uuid.uuid4()), "title": data.title.strip(), "details": (data.details or "").strip(),
+            "due_date": data.due_date or None, "status": "open",
+            **(await _resolve_assignee(data.assigned_user_id, data.assigned_role)),
+            "created_by_id": admin.get("sub"), "created_by_name": admin.get("name"),
+            "created_at": now, "updated_at": now, "thread": [],
+            "needs_attention": False, "new_for_managers": False, "new_for_assignee": True}
+    await db.tasks.insert_one(dict(task))
+    return task
+
+@api_router.put("/admin/tasks/{task_id}")
+async def update_task(task_id: str, data: TaskUpdate, admin=Depends(require_permission("tasks:edit"))):
+    task = await db.tasks.find_one({"id": task_id}, {"_id": 0})
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    fields = data.model_dump(exclude_unset=True)
+    _check_due_date(fields.get("due_date"))
+    changes, notes = {}, []
+    for key in ("title", "details"):
+        if key in fields and fields[key] is not None:
+            changes[key] = fields[key].strip()
+    if "due_date" in fields and (fields["due_date"] or None) != task.get("due_date"):
+        changes["due_date"] = fields["due_date"] or None
+        notes.append(f"Due date changed to {changes['due_date']}" if changes["due_date"] else "Due date removed")
+    if "assigned_user_id" in fields or "assigned_role" in fields:
+        who = await _resolve_assignee(fields.get("assigned_user_id"), fields.get("assigned_role"))
+        if (who["assigned_user_id"], who["assigned_role"]) != (task.get("assigned_user_id"), task.get("assigned_role")):
+            changes.update(who)
+            notes.append(f"Reassigned to {who['assigned_user_name'] or who['assigned_role'] or 'nobody'}")
+    if not changes:
+        return task
+    changes.update(updated_at=_now_iso(), new_for_assignee=True, needs_attention=False)
+    update = {"$set": changes}
+    if notes:
+        update["$push"] = {"thread": {"$each": [_thread_entry(admin, "change", n) for n in notes]}}
+    await db.tasks.update_one({"id": task_id}, update)
+    return await db.tasks.find_one({"id": task_id}, {"_id": 0})
+
+@api_router.delete("/admin/tasks/{task_id}")
+async def delete_task(task_id: str, admin=Depends(require_permission("tasks:delete"))):
+    result = await db.tasks.delete_one({"id": task_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return {"message": "Task deleted"}
+
+@api_router.post("/admin/tasks/{task_id}/status")
+async def set_task_status(task_id: str, data: TaskStatusUpdate, background_tasks: BackgroundTasks, admin=Depends(get_current_admin)):
+    task, can = await _visible_task(task_id, admin)
+    if data.status not in TASK_STATUSES:
+        raise HTTPException(status_code=400, detail="Unknown status")
+    if not (_is_task_assignee(task, admin) or can("tasks:edit")):
+        raise HTTPException(status_code=403, detail="Only the person assigned can update this task")
+    text = (data.text or "").strip()
+    if data.status == "need_help" and not text:
+        raise HTTPException(status_code=400, detail="Please write what help you need")
+    by_assignee = _is_task_assignee(task, admin)
+    changes = {"status": data.status, "updated_at": _now_iso(),
+               "needs_attention": data.status == "need_help"}
+    if by_assignee:
+        changes["new_for_managers"] = True
+    else:
+        changes["new_for_assignee"] = True
+    await db.tasks.update_one({"id": task_id}, {"$set": changes, "$push": {"thread": _thread_entry(admin, "status", text, data.status)}})
+    if data.status == "need_help":
+        background_tasks.add_task(_email_need_help, task, admin, text)
+    return await db.tasks.find_one({"id": task_id}, {"_id": 0})
+
+@api_router.post("/admin/tasks/{task_id}/messages")
+async def add_task_message(task_id: str, data: TaskMessage, admin=Depends(get_current_admin)):
+    task, _ = await _visible_task(task_id, admin)
+    by_assignee = _is_task_assignee(task, admin)
+    changes = {"updated_at": _now_iso()}
+    if by_assignee:
+        changes["new_for_managers"] = True
+    else:
+        # A manager's reply answers the "Need help" flag.
+        changes.update(new_for_assignee=True, needs_attention=False)
+    await db.tasks.update_one({"id": task_id}, {"$set": changes, "$push": {"thread": _thread_entry(admin, "note", data.text.strip())}})
+    return await db.tasks.find_one({"id": task_id}, {"_id": 0})
+
+@api_router.post("/admin/tasks/{task_id}/seen")
+async def mark_task_seen(task_id: str, admin=Depends(get_current_admin)):
+    task, _ = await _visible_task(task_id, admin)
+    flag = "new_for_assignee" if _is_task_assignee(task, admin) else "new_for_managers"
+    await db.tasks.update_one({"id": task_id}, {"$set": {flag: False}})
+    return {"ok": True}
+
 app.include_router(api_router)
 app.include_router(volunteer.router)
 app.include_router(contact.router)
