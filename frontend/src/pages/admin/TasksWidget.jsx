@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, Clock, CheckCircle2, Hand, ChevronLeft, MoreVertical, Send, ListTodo, Trash2, X, Minus, Maximize2, Minimize2, ImagePlus, Loader2 } from 'lucide-react';
+import { Plus, Clock, CheckCircle2, Hand, ChevronLeft, MoreVertical, Send, ListTodo, Trash2, X, Minus, Maximize2, Minimize2, ImagePlus, Loader2, Mic, AudioLines, Square } from 'lucide-react';
 
 // Staff to-do: a round button floating in the bottom-right corner of every
 // admin page, opening a small box that works like a chat. The list of tasks;
@@ -148,6 +148,16 @@ async function shrinkImage(file) {
   }
 }
 
+// Speak-to-type uses the browser's own speech recognition (Chrome / Edge);
+// the mic is hidden where it isn't available. Telugu or English, remembered.
+const SpeechRecognitionApi = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition);
+const DICTATION_KEY = 'admin-dictation-lang';
+// Voice messages: recorded in the browser, capped at 2 minutes.
+const canRecordVoice = typeof window !== 'undefined' && !!(navigator.mediaDevices?.getUserMedia && window.MediaRecorder);
+const RECORD_TYPES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];
+const MAX_RECORD_SECONDS = 120;
+const clock = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+
 function TaskChat({ task, me, perms, people, onChanged }) {
   const [text, setText] = useState('');
   const [error, setError] = useState('');
@@ -157,6 +167,90 @@ function TaskChat({ task, me, perms, people, onChanged }) {
   const bottom = useRef(null);
   const picker = useRef(null);
   const scroller = useRef(null);
+  const [dictLang, setDictLang] = useState(() => {
+    try { return localStorage.getItem(DICTATION_KEY) || 'te-IN'; } catch { return 'te-IN'; }
+  });
+  const [listening, setListening] = useState(false);
+  const recognizer = useRef(null);
+  const [recording, setRecording] = useState(false);
+  const [recSeconds, setRecSeconds] = useState(0);
+  const [voice, setVoice] = useState(null); // { blob, url, seconds }
+  const recorder = useRef(null);
+  const ticker = useRef(null);
+  useEffect(() => () => {
+    recognizer.current?.abort();
+    clearInterval(ticker.current);
+    if (recorder.current?.state === 'recording') { recorder.current.cancelled = true; recorder.current.stop(); }
+  }, []);
+
+  const toggleDictation = () => {
+    if (listening) { recognizer.current?.stop(); return; }
+    setError('');
+    const rec = new SpeechRecognitionApi();
+    rec.lang = dictLang;
+    rec.interimResults = true;
+    rec.continuous = true;
+    const before = text ? text.replace(/\s*$/, ' ') : '';
+    rec.onresult = (e) => setText(before + [...e.results].map(r => r[0].transcript).join(''));
+    rec.onerror = (e) => {
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') setError('Microphone permission is blocked for this site.');
+      else if (e.error !== 'aborted' && e.error !== 'no-speech') setError('Could not hear that clearly. Please try again.');
+    };
+    rec.onend = () => setListening(false);
+    recognizer.current = rec;
+    rec.start();
+    setListening(true);
+  };
+  const switchDictLang = () => {
+    const next = dictLang === 'te-IN' ? 'en-IN' : 'te-IN';
+    setDictLang(next);
+    try { localStorage.setItem(DICTATION_KEY, next); } catch { /* fine */ }
+    if (listening) recognizer.current?.stop();
+  };
+
+  const startRecording = async () => {
+    setError('');
+    if (listening) recognizer.current?.stop();
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch { setError('Microphone permission is blocked for this site.'); return; }
+    const mimeType = RECORD_TYPES.find(t => window.MediaRecorder.isTypeSupported?.(t));
+    const rec = new window.MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+    const chunks = [];
+    const started = Date.now();
+    rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+    rec.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      clearInterval(ticker.current);
+      setRecording(false);
+      if (rec.cancelled || !chunks.length) return;
+      const blob = new Blob(chunks, { type: rec.mimeType || mimeType || 'audio/webm' });
+      setVoice({ blob, url: URL.createObjectURL(blob), seconds: Math.max(1, Math.round((Date.now() - started) / 1000)) });
+    };
+    recorder.current = rec;
+    rec.start();
+    setRecording(true);
+    setRecSeconds(0);
+    ticker.current = setInterval(() => {
+      const sec = Math.round((Date.now() - started) / 1000);
+      setRecSeconds(sec);
+      if (sec >= MAX_RECORD_SECONDS && rec.state === 'recording') rec.stop();
+    }, 500);
+  };
+  const stopRecording = (cancel) => {
+    if (recorder.current?.state === 'recording') { recorder.current.cancelled = cancel; recorder.current.stop(); }
+  };
+  const discardVoice = () => {
+    if (voice) URL.revokeObjectURL(voice.url);
+    setVoice(null);
+  };
+  const uploadVoice = async () => {
+    if (!voice) return null;
+    const type = voice.blob.type.split(';')[0] || 'audio/webm';
+    const ext = { 'audio/mp4': 'm4a', 'audio/ogg': 'ogg' }[type] || 'webm';
+    const body = new FormData();
+    body.append('file', new File([voice.blob], `voice.${ext}`, { type }));
+    return { url: (await api.post(`/admin/tasks/${task.id}/audio`, body)).data.url, seconds: voice.seconds };
+  };
   // Pictures finish loading after the scroll to the newest message; follow them
   // down only if the reader is already near the bottom.
   const keepAtBottom = () => {
@@ -197,21 +291,24 @@ function TaskChat({ task, me, perms, people, onChanged }) {
       setText('');
       pending.forEach(p => URL.revokeObjectURL(p.preview));
       setPending([]);
+      discardVoice();
       onChanged();
     } catch (err) { setError(errorText(err)); }
     setSending(false);
   };
-  const canSend = (text.trim() || pending.length) && !sending;
+  const canSend = (text.trim() || pending.length || voice) && !sending && !recording;
   const sendNote = () => canSend && run(async () => {
     const images = await uploadPending();
-    await api.post(`/admin/tasks/${task.id}/messages`, { text, images });
+    const audio = await uploadVoice();
+    await api.post(`/admin/tasks/${task.id}/messages`, { text, images, audio });
   });
   const quick = (r) => {
-    if (sending) return;
-    if (r.status === 'need_help' && !text.trim()) { setError('Type what help you need, then tap Need help.'); return; }
+    if (sending || recording) return;
+    if (r.status === 'need_help' && !text.trim() && !voice) { setError('Type or record what help you need, then tap Need help.'); return; }
     run(async () => {
       const images = await uploadPending();
-      await api.post(`/admin/tasks/${task.id}/status`, { status: r.status, text, images });
+      const audio = await uploadVoice();
+      await api.post(`/admin/tasks/${task.id}/status`, { status: r.status, text, images, audio });
     });
   };
 
@@ -225,7 +322,7 @@ function TaskChat({ task, me, perms, people, onChanged }) {
         </p>
         {task.details && <p className="mx-auto max-w-[90%] text-center text-xs text-[#5D4037] bg-white border border-[#F0E8D8] rounded-lg px-2 py-1.5 whitespace-pre-line">{task.details}</p>}
         {(task.thread || []).map(m => {
-          if (m.kind === 'change' || (m.kind === 'status' && !m.text && !m.images?.length)) {
+          if (m.kind === 'change' || (m.kind === 'status' && !m.text && !m.images?.length && !m.audio)) {
             return (
               <p key={m.id} className="text-center text-[11px] text-[#8D6E63]">
                 {m.by_name} · {m.kind === 'change' ? m.text : STATUS[m.status][0]} · {fmtWhen(m.at)}
@@ -245,6 +342,12 @@ function TaskChat({ task, me, perms, people, onChanged }) {
                         <img src={url} alt="Attached" onLoad={keepAtBottom} className="w-full max-h-40 object-cover rounded-lg" />
                       </a>
                     ))}
+                  </div>
+                )}
+                {m.audio && (
+                  <div className="flex items-center gap-1.5 my-1">
+                    <audio controls preload="none" src={m.audio.url} className="h-9 w-52 max-w-full" />
+                    {m.audio.seconds > 0 && <span className={`text-[10px] ${mine ? 'text-white/80' : 'text-[#8D6E63]'}`}>{clock(m.audio.seconds)}</span>}
                   </div>
                 )}
                 {m.text && <p className="whitespace-pre-line">{m.text}</p>}
@@ -300,21 +403,57 @@ function TaskChat({ task, me, perms, people, onChanged }) {
             ))}
           </div>
         )}
-        <div className="flex items-end gap-1.5">
+        {voice && !recording && (
+          <div className="flex items-center gap-1.5 px-1" data-testid="task-voice-preview">
+            <audio controls src={voice.url} className="h-8 flex-1 min-w-0" />
+            <span className="text-[11px] text-[#8D6E63]">{clock(voice.seconds)}</span>
+            <button onClick={discardVoice} aria-label="Delete recording" title="Delete recording" className="p-1 text-[#8D6E63] hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+          </div>
+        )}
+        {recording ? (
+          <div className="flex items-center gap-2 px-2 h-9 rounded-2xl bg-red-50 border border-red-200" data-testid="task-recording">
+            <span className="h-2.5 w-2.5 rounded-full bg-red-600 animate-pulse" />
+            <span className="flex-1 text-sm text-red-700">Recording {clock(recSeconds)} <span className="text-[11px] text-red-400">/ {clock(MAX_RECORD_SECONDS)}</span></span>
+            <button onClick={() => stopRecording(true)} className="text-xs text-[#8D6E63] hover:text-red-700 px-1">Cancel</button>
+            <button onClick={() => stopRecording(false)} aria-label="Stop recording" title="Stop" className="h-7 w-7 flex items-center justify-center rounded-full bg-red-600 text-white" data-testid="task-stop-recording"><Square className="h-3 w-3 fill-current" /></button>
+          </div>
+        ) : (
+        <div className="flex items-end gap-1">
           <input ref={picker} type="file" accept="image/*" multiple className="hidden"
             onChange={e => { addImages(e.target.files); e.target.value = ''; }} data-testid="task-image-input" />
           <button onClick={() => picker.current?.click()} aria-label="Add image" title="Add image (or paste a screenshot)"
             className="h-8 w-8 shrink-0 flex items-center justify-center rounded-full text-[#8D6E63] hover:text-[#C43E00] hover:bg-[#FFF3E0]" data-testid="task-add-image">
             <ImagePlus className="h-5 w-5" />
           </button>
-          <textarea rows={1} className="flex-1 resize-none max-h-20 px-3 py-1.5 bg-[#FFFCF5] border border-[#E6DCCA] rounded-2xl text-sm outline-none focus:border-[#C43E00]"
-            value={text} onChange={e => setText(e.target.value)} placeholder={task.is_mine ? 'Note / Say something · ఏదైనా చెప్పండి' : 'Reply…'}
-            onPaste={e => { if ([...e.clipboardData.files].some(f => f.type.startsWith('image/'))) { e.preventDefault(); addImages(e.clipboardData.files); } }}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendNote(); } }} data-testid="task-message-input" />
+          {canRecordVoice && !voice && (
+            <button onClick={startRecording} aria-label="Record voice message" title="Record voice message (up to 2 min)"
+              className="h-8 w-8 shrink-0 flex items-center justify-center rounded-full text-[#8D6E63] hover:text-[#C43E00] hover:bg-[#FFF3E0]" data-testid="task-record-voice">
+              <AudioLines className="h-5 w-5" />
+            </button>
+          )}
+          <div className="relative flex-1 min-w-0">
+            <textarea rows={1} className={`w-full resize-none max-h-20 pl-3 ${SpeechRecognitionApi ? 'pr-16' : 'pr-3'} py-1.5 bg-[#FFFCF5] border rounded-2xl text-sm outline-none focus:border-[#C43E00] ${listening ? 'border-red-400' : 'border-[#E6DCCA]'}`}
+              value={text} onChange={e => setText(e.target.value)}
+              placeholder={listening ? (dictLang === 'te-IN' ? 'మాట్లాడండి…' : 'Speak now…') : task.is_mine ? 'Note / Say something · ఏదైనా చెప్పండి' : 'Reply…'}
+              onPaste={e => { if ([...e.clipboardData.files].some(f => f.type.startsWith('image/'))) { e.preventDefault(); addImages(e.clipboardData.files); } }}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendNote(); } }} data-testid="task-message-input" />
+            {SpeechRecognitionApi && (
+              <span className="absolute right-1.5 bottom-1 flex items-center gap-0.5">
+                <button onClick={switchDictLang} title="Speech language" className="px-1 text-[10px] font-medium text-[#8D6E63] hover:text-[#C43E00]" data-testid="task-dictation-lang">
+                  {dictLang === 'te-IN' ? 'తె' : 'EN'}
+                </button>
+                <button onClick={toggleDictation} aria-label={listening ? 'Stop speaking' : 'Speak to type'} title={listening ? 'Stop' : 'Speak to type'}
+                  className={`h-6 w-6 flex items-center justify-center rounded-full ${listening ? 'bg-red-600 text-white animate-pulse' : 'text-[#8D6E63] hover:text-[#C43E00]'}`} data-testid="task-dictation">
+                  <Mic className="h-4 w-4" />
+                </button>
+              </span>
+            )}
+          </div>
           <button onClick={sendNote} disabled={!canSend} aria-label="Send" className="h-8 w-8 shrink-0 flex items-center justify-center rounded-full bg-[#C43E00] text-white disabled:opacity-40">
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </button>
         </div>
+        )}
       </div>
       {manager && (
         <button onClick={() => setMenu(!menu)} aria-label="Task options" className="absolute top-2.5 right-[4.25rem] p-1 text-[#FFE0B2]/80 hover:text-white" data-testid="task-options">

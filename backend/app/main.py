@@ -3640,15 +3640,25 @@ class TaskUpdate(BaseModel):
 TASK_IMAGE_TYPES = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
 TASK_IMAGE_MAX_BYTES = 5 * 1024 * 1024
 TASK_IMAGES_PER_MESSAGE = 4
+# Voice messages: browsers record WebM/Ogg (Chrome, Firefox) or MP4 (Safari).
+# The page stops recording at 2 minutes; 4 MB leaves room for that in any format.
+TASK_AUDIO_TYPES = {"audio/webm": ".webm", "audio/ogg": ".ogg", "audio/mp4": ".m4a", "audio/mpeg": ".mp3"}
+TASK_AUDIO_MAX_BYTES = 4 * 1024 * 1024
+
+class TaskAudio(BaseModel):
+    url: str
+    seconds: int = Field(default=0, ge=0, le=600)
 
 class TaskStatusUpdate(BaseModel):
     status: str
     text: Optional[str] = ""
     images: List[str] = []
+    audio: Optional[TaskAudio] = None
 
 class TaskMessage(BaseModel):
     text: Optional[str] = Field(default="", max_length=2000)
     images: List[str] = []
+    audio: Optional[TaskAudio] = None
 
 async def _task_permissions(admin: dict) -> tuple:
     role = await db.roles.find_one({"name": admin.get("role")}, {"_id": 0}) or {}
@@ -3680,14 +3690,23 @@ async def _resolve_assignee(user_id: Optional[str], role: Optional[str]) -> dict
         return {"assigned_user_id": None, "assigned_user_name": None, "assigned_role": role}
     return {"assigned_user_id": None, "assigned_user_name": None, "assigned_role": None}
 
-def _thread_entry(admin: dict, kind: str, text: str = "", status: Optional[str] = None, images: Optional[list] = None) -> dict:
+def _thread_entry(admin: dict, kind: str, text: str = "", status: Optional[str] = None, images: Optional[list] = None, audio: Optional[dict] = None) -> dict:
     entry = {"id": str(uuid.uuid4()), "by_id": admin.get("sub"), "by_name": admin.get("name"),
              "kind": kind, "text": text, "at": _now_iso()}
     if status:
         entry["status"] = status
     if images:
         entry["images"] = images
+    if audio:
+        entry["audio"] = audio
     return entry
+
+def _check_task_audio(task_id: str, audio: Optional[TaskAudio]) -> Optional[dict]:
+    if not audio:
+        return None
+    if not R2_PUBLIC_URL or not audio.url.startswith(f"{R2_PUBLIC_URL}/tasks/{task_id}/"):
+        raise HTTPException(status_code=400, detail="Voice message link must come from this task's uploads")
+    return {"url": audio.url, "seconds": audio.seconds}
 
 def _check_task_images(task_id: str, images: list) -> list:
     """Only links to this task's own uploads (see upload_task_image) are accepted."""
@@ -3796,7 +3815,8 @@ async def set_task_status(task_id: str, data: TaskStatusUpdate, background_tasks
         raise HTTPException(status_code=403, detail="Only the person assigned can update this task")
     text = (data.text or "").strip()
     images = _check_task_images(task_id, data.images)
-    if data.status == "need_help" and not text:
+    audio = _check_task_audio(task_id, data.audio)
+    if data.status == "need_help" and not text and not audio:
         raise HTTPException(status_code=400, detail="Please write what help you need")
     by_assignee = _is_task_assignee(task, admin)
     changes = {"status": data.status, "updated_at": _now_iso(),
@@ -3805,7 +3825,7 @@ async def set_task_status(task_id: str, data: TaskStatusUpdate, background_tasks
         changes["new_for_managers"] = True
     else:
         changes["new_for_assignee"] = True
-    await db.tasks.update_one({"id": task_id}, {"$set": changes, "$push": {"thread": _thread_entry(admin, "status", text, data.status, images)}})
+    await db.tasks.update_one({"id": task_id}, {"$set": changes, "$push": {"thread": _thread_entry(admin, "status", text, data.status, images, audio)}})
     if data.status == "need_help":
         background_tasks.add_task(_email_need_help, task, admin, text)
     return await db.tasks.find_one({"id": task_id}, {"_id": 0})
@@ -3815,8 +3835,9 @@ async def add_task_message(task_id: str, data: TaskMessage, admin=Depends(get_cu
     task, _ = await _visible_task(task_id, admin)
     text = (data.text or "").strip()
     images = _check_task_images(task_id, data.images)
-    if not text and not images:
-        raise HTTPException(status_code=400, detail="Write a message or add an image")
+    audio = _check_task_audio(task_id, data.audio)
+    if not text and not images and not audio:
+        raise HTTPException(status_code=400, detail="Write a message, add an image or record a voice message")
     by_assignee = _is_task_assignee(task, admin)
     changes = {"updated_at": _now_iso()}
     if by_assignee:
@@ -3824,7 +3845,7 @@ async def add_task_message(task_id: str, data: TaskMessage, admin=Depends(get_cu
     else:
         # A manager's reply answers the "Need help" flag.
         changes.update(new_for_assignee=True, needs_attention=False)
-    await db.tasks.update_one({"id": task_id}, {"$set": changes, "$push": {"thread": _thread_entry(admin, "note", text, images=images)}})
+    await db.tasks.update_one({"id": task_id}, {"$set": changes, "$push": {"thread": _thread_entry(admin, "note", text, images=images, audio=audio)}})
     return await db.tasks.find_one({"id": task_id}, {"_id": 0})
 
 @api_router.post("/admin/tasks/{task_id}/images")
@@ -3843,6 +3864,23 @@ async def upload_task_image(task_id: str, file: UploadFile = File(...), admin=De
         raise HTTPException(status_code=400, detail="Image is larger than 5 MB")
     key = f"tasks/{task_id}/{uuid.uuid4()}{extension}"
     await asyncio.to_thread(_r2_client().upload_fileobj, io.BytesIO(body), R2_BUCKET_NAME, key, ExtraArgs={"ContentType": file.content_type})
+    return {"url": f"{R2_PUBLIC_URL}/{key}"}
+
+@api_router.post("/admin/tasks/{task_id}/audio")
+async def upload_task_audio(task_id: str, file: UploadFile = File(...), admin=Depends(get_current_admin)):
+    """Voice messages for a task's conversation, stored next to its images."""
+    await _visible_task(task_id, admin)
+    if not R2_ACCOUNT_ID or not R2_ACCESS_KEY_ID or not R2_SECRET_ACCESS_KEY or not R2_PUBLIC_URL:
+        raise HTTPException(status_code=500, detail="Storage is not configured")
+    content_type = (file.content_type or "").split(";")[0].strip()
+    extension = TASK_AUDIO_TYPES.get(content_type)
+    if not extension:
+        raise HTTPException(status_code=400, detail="This recording format isn't supported")
+    body = await file.read(TASK_AUDIO_MAX_BYTES + 1)
+    if len(body) > TASK_AUDIO_MAX_BYTES:
+        raise HTTPException(status_code=400, detail="Voice message is too long")
+    key = f"tasks/{task_id}/{uuid.uuid4()}{extension}"
+    await asyncio.to_thread(_r2_client().upload_fileobj, io.BytesIO(body), R2_BUCKET_NAME, key, ExtraArgs={"ContentType": content_type})
     return {"url": f"{R2_PUBLIC_URL}/{key}"}
 
 @api_router.post("/admin/tasks/{task_id}/seen")

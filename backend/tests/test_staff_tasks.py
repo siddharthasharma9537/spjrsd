@@ -248,3 +248,29 @@ def test_image_rules(env, r2):
     assert client.post(msg, json={"images": [mine] * 5}, headers=RAMESH).status_code == 400
     t = client.post(f"/api/admin/tasks/{task['id']}/status", json={"status": "completed", "images": [mine]}, headers=RAMESH).json()
     assert t["thread"][-1]["images"] == [mine]
+
+
+def test_voice_message_upload_and_send(env, r2):
+    client, _, _ = env
+    task = _create(client, assigned_user_id="ramesh")
+    up = f"/api/admin/tasks/{task['id']}/audio"
+    r = client.post(up, files={"file": ("voice.webm", b"OggS...", "audio/webm;codecs=opus")}, headers=RAMESH)
+    assert r.status_code == 200 and r.json()["url"].endswith(".webm")
+    assert r2[-1][2] == "audio/webm"
+    url = r.json()["url"]
+
+    t = client.post(f"/api/admin/tasks/{task['id']}/messages", json={"audio": {"url": url, "seconds": 12}}, headers=RAMESH).json()
+    assert t["thread"][-1]["audio"] == {"url": url, "seconds": 12}
+    # A voice message alone is enough for Need help.
+    t = client.post(f"/api/admin/tasks/{task['id']}/status", json={"status": "need_help", "audio": {"url": url, "seconds": 5}}, headers=RAMESH).json()
+    assert t["needs_attention"] and t["thread"][-1]["audio"]["seconds"] == 5
+
+
+def test_voice_message_rules(env, r2):
+    client, _, _ = env
+    task = _create(client, assigned_user_id="ramesh")
+    up = f"/api/admin/tasks/{task['id']}/audio"
+    assert client.post(up, files={"file": ("a.wav", b"RIFF", "audio/wav")}, headers=RAMESH).status_code == 400
+    assert client.post(up, files={"file": ("a.webm", b"x" * (4 * 1024 * 1024 + 1), "audio/webm")}, headers=RAMESH).status_code == 400
+    bad = {"url": "https://elsewhere.example/a.webm", "seconds": 3}
+    assert client.post(f"/api/admin/tasks/{task['id']}/messages", json={"audio": bad}, headers=RAMESH).status_code == 400
