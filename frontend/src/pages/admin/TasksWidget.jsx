@@ -224,6 +224,7 @@ export default function TasksWidget() {
     try { return sessionStorage.getItem(BIG_KEY) === 'true'; } catch { return false; }
   });
   const { user } = useAuth();
+  const widget = useRef(null);
 
   const load = () => api.get('/admin/tasks').then(r => setData(r.data)).catch(() => setData(d => d || { tasks: [] }));
   useEffect(() => {
@@ -235,6 +236,19 @@ export default function TasksWidget() {
   useEffect(() => {
     if (data?.can_create) api.get('/admin/tasks/assignees').then(r => setPeople(r.data)).catch(() => {});
   }, [data?.can_create]);
+
+  const minimise = () => {
+    setPanelOpen(false);
+    try { sessionStorage.setItem(OPEN_KEY, 'false'); } catch { /* fine */ }
+  };
+  // A tap or click anywhere outside the box tucks it back into the corner.
+  // The box stays mounted while minimised, so a half-typed message is kept.
+  useEffect(() => {
+    if (!panelOpen) return undefined;
+    const onDown = (e) => { if (widget.current && !widget.current.contains(e.target)) minimise(); };
+    document.addEventListener('pointerdown', onDown);
+    return () => document.removeEventListener('pointerdown', onDown);
+  }, [panelOpen]);
 
   if (!data) return null;
   const openTask = data.tasks.find(t => t.id === view);
@@ -258,9 +272,9 @@ export default function TasksWidget() {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3" data-testid="tasks-widget">
-      {panelOpen && (
-        <section className={`relative flex flex-col ${big ? 'w-[min(48rem,calc(100vw-2rem))] h-[calc(100vh-6rem)]' : 'w-[min(24rem,calc(100vw-2rem))] h-[min(26rem,calc(100vh-6rem))]'} bg-white border border-[#E6DCCA] rounded-xl overflow-hidden shadow-2xl transition-all duration-200`} data-testid="tasks-card">
+    <div ref={widget} className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3" data-testid="tasks-widget">
+      {(
+        <section className={`relative ${panelOpen ? 'flex' : 'hidden'} flex-col ${big ? 'w-[min(48rem,calc(100vw-2rem))] h-[calc(100vh-6rem)]' : 'w-[min(24rem,calc(100vw-2rem))] h-[min(26rem,calc(100vh-6rem))]'} bg-white border border-[#E6DCCA] rounded-xl overflow-hidden shadow-2xl transition-all duration-200`} data-testid="tasks-card">
           <header className="flex items-center gap-2 px-3 py-2.5 bg-[#2D1B0E] text-[#FFE0B2]">
             {openTask ? (
               <>
@@ -287,7 +301,7 @@ export default function TasksWidget() {
             <button onClick={toggleBig} aria-label={big ? 'Make smaller' : 'Maximise'} title={big ? 'Make smaller' : 'Maximise'} className="p-1 rounded-full hover:bg-white/10" data-testid="tasks-maximise">
               {big ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             </button>
-            <button onClick={togglePanel} aria-label="Minimise" title="Minimise" className="p-1 rounded-full hover:bg-white/10" data-testid="tasks-minimise"><Minus className="h-4 w-4" /></button>
+            <button onClick={minimise} aria-label="Minimise" title="Minimise" className="p-1 rounded-full hover:bg-white/10" data-testid="tasks-minimise"><Minus className="h-4 w-4" /></button>
           </header>
 
           {openTask ? <TaskChat task={openTask} me={user?.id} perms={data} people={people} onChanged={load} />
