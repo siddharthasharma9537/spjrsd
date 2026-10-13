@@ -363,12 +363,13 @@ async def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-def require_permission(permission: str):
-    """Dependency factory: gates an endpoint on one resource:action grant
+def require_permission(*permissions: str):
+    """Dependency factory: gates an endpoint on a resource:action grant
     (e.g. "bookings:create"), looked up fresh from the role's document on
-    every request - see docs/ROLES_AND_PERMISSIONS.md. EO (is_superuser)
-    always passes, without needing every permission enumerated on its role,
-    so EO can never be accidentally locked out as new permissions are added."""
+    every request - see docs/ROLES_AND_PERMISSIONS.md. Given several, any one
+    of them is enough. EO (is_superuser) always passes, without needing every
+    permission enumerated on its role, so EO can never be accidentally locked
+    out as new permissions are added."""
     async def check(credentials: HTTPAuthorizationCredentials = Depends(security)):
         if not credentials:
             raise HTTPException(status_code=401, detail="Not authenticated")
@@ -381,9 +382,10 @@ def require_permission(permission: str):
         role = await db.roles.find_one({"name": payload.get("role")}, {"_id": 0})
         if not role:
             raise HTTPException(status_code=403, detail="Role not found")
-        if role.get("is_superuser") or permission in role.get("permissions", []):
+        granted = role.get("permissions", [])
+        if role.get("is_superuser") or any(p in granted for p in permissions):
             return payload
-        raise HTTPException(status_code=403, detail=f"Missing permission: {permission}")
+        raise HTTPException(status_code=403, detail=f"Missing permission: {' or '.join(permissions)}")
     return check
 
 def require_superuser():
@@ -2719,6 +2721,25 @@ async def move_live_blog_post_to_draft(post_id: str, user=Depends(require_permis
     if result.matched_count != 1:
         raise HTTPException(status_code=409, detail="Only a post that is still scheduled can be moved to drafts")
     return await db.live_blog.find_one({"id": post_id}, {"_id": 0})
+
+@api_router.post("/admin/live-blog/upload")
+async def upload_live_blog_image(file: UploadFile = File(...), user=Depends(require_permission("live_blog:create", "live_blog:edit"))):
+    """A post's photo, uploaded from the post form (typically straight from a
+    phone camera) to R2 under live-blog/. Anyone who can write or edit a post
+    can upload - not gated on gallery permissions. The browser shrinks photos
+    to a JPEG first, which also keeps them eligible for Instagram sharing;
+    this enforces the same type and size rules as Staff To-do images."""
+    if not R2_ACCOUNT_ID or not R2_ACCESS_KEY_ID or not R2_SECRET_ACCESS_KEY or not R2_PUBLIC_URL:
+        raise HTTPException(status_code=500, detail="Image storage is not configured")
+    extension = TASK_IMAGE_TYPES.get(file.content_type)
+    if not extension:
+        raise HTTPException(status_code=400, detail="Only JPEG, PNG or WebP images can be uploaded")
+    body = await file.read(TASK_IMAGE_MAX_BYTES + 1)
+    if len(body) > TASK_IMAGE_MAX_BYTES:
+        raise HTTPException(status_code=400, detail="Image is larger than 5 MB")
+    key = f"live-blog/{uuid.uuid4()}{extension}"
+    await asyncio.to_thread(_r2_client().upload_fileobj, io.BytesIO(body), R2_BUCKET_NAME, key, ExtraArgs={"ContentType": file.content_type})
+    return {"url": f"{R2_PUBLIC_URL}/{key}"}
 
 @api_router.delete("/admin/live-blog/{post_id}")
 async def delete_live_blog_post(post_id: str, user=Depends(require_permission("live_blog:delete"))):
