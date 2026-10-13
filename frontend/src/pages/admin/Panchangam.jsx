@@ -131,7 +131,7 @@ export default function AdminPanchangam() {
       </div>
 
       <p className="text-xs text-[#8D6E63] mb-4">
-        Bulk-load a full year at once. Expected columns: <code className="bg-[#F5EDE0] px-1 rounded">gregorian_date, weekday, telugu_masamu, pakshamu, suryodayam, suryasthamayam, festivals_or_notes, tithi_tithi_name_english, tithi_tithi_name_telugu, tithi_source_text, nakshatra_nakshatra_name_english, nakshatra_nakshatra_name_telugu, nakshatra_source_text, varjyam_source_text, durmuhurtham_source_text</code>. Existing entries for the same date are updated in place.
+        Bulk-load a full year at once. Expected columns: <code className="bg-[#F5EDE0] px-1 rounded">gregorian_date, weekday, telugu_masamu, pakshamu, suryodayam, suryasthamayam, festivals_or_notes, tithi_tithi_name_english, tithi_tithi_name_telugu, tithi_source_text, nakshatra_nakshatra_name_english, nakshatra_nakshatra_name_telugu, nakshatra_source_text, varjyam_source_text, durmuhurtham_source_text</code>. Existing entries for the same date are updated in place. This file cannot carry Yoga, Karana, Rahu Kalam, Yamagandam, Gulika Kalam or Abhijit: rows it creates leave those blank, and rows it updates keep whatever those fields already hold. The yearly upload from the panchangam engine fills them (see the engine README, &ldquo;Yearly upload to the temple site&rdquo;).
       </p>
 
       {importResult && (

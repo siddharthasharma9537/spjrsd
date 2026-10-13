@@ -18,42 +18,64 @@ export function stripLeadingName(timing, names) {
   return result.replace(/^[:\-–,]+\s*/, '');
 }
 
-/* Telugu day-period markers used throughout the source data (e.g. tithi/
-   nakshatra timing, varjyam, durmuhurtham): ఉదయం (morning) is before noon,
-   మధ్యాహ్నం/సాయంత్రం/రాత్రి (noon/evening/night) are all after noon before the
-   next midnight - so in strict 12-hour-clock terms ఉ maps to AM and the other
-   three all map to PM. */
-const PERIOD_TO_AMPM = {
-  'ఉ': 'AM', 'ఉదయం': 'AM',
-  'మ': 'PM', 'మధ్యాహ్నం': 'PM',
-  'సా': 'PM', 'సాయంత్రం': 'PM',
-  'రా': 'PM', 'రాత్రి': 'PM',
+/* Day-period letters in the timing texts, as the engine writes them (sohum-contracts, docs/PANCHANGAM_DAY_SHAPE.md section 3):
+     ఉ  sunrise to noon            ప  noon to 4 pm            సా  4 pm to 7 pm
+     రా  7 pm until the last quarter of the night (so రా 12-04 is 12:04 am, after midnight)
+     రా తె  the last quarter of the night, up to sunrise (always am, after midnight)
+   A 12-hour clock needs the letter to say which half of the day it is. Older hand-entered rows use మ / మధ్యాహ్నం for midday
+   and the spelled-out ఉదయం / సాయంత్రం / రాత్రి, and write a second time with no letter of its own ("మ 1-58 మొదలు 3-40 వరకు"),
+   so a time without a letter takes the last one seen. */
+const LETTERS = {
+  'ఉ': 'morning', 'ఉదయం': 'morning',
+  'ప': 'midday', 'పగలు': 'midday', 'మ': 'midday', 'మధ్యాహ్నం': 'midday',
+  'సా': 'evening', 'సాయంత్రం': 'evening',
+  'రా': 'night', 'రాత్రి': 'night',
 };
-const TIME_TOKEN_RE = /^\d{1,2}-\d{2}$/;
+const TIME_TOKEN_RE = /^(\d{1,2})-(\d{2})$/;
+
+/* One "h-mm" time with its letter -> { text: "h:mm AM", nextDay }. nextDay is true for times after midnight. */
+function renderTime(letter, token) {
+  const [, hour, minute] = token.match(TIME_TOKEN_RE);
+  const h = Number(hour);
+  const clock = `${h}:${minute}`;
+  switch (letter) {
+    case 'morning': return { text: `${clock} AM`, nextDay: false };
+    case 'midday':
+    case 'evening': return { text: `${clock} PM`, nextDay: false };
+    case 'night': return h >= 7 && h <= 11 ? { text: `${clock} PM`, nextDay: false } : { text: `${clock} AM`, nextDay: true };
+    case 'small-hours': return { text: `${clock} AM`, nextDay: true };
+    default: return { text: token, nextDay: false }; // no letter seen: leave the time as written
+  }
+}
+
+function toEnglishSpan(span) {
+  const tokens = span.trim().split(/\s+/);
+  const times = [];
+  let letter = null;
+  for (let i = 0; i < tokens.length; i += 1) {
+    const tok = tokens[i];
+    if (tok === 'రా' && tokens[i + 1] === 'తె') { letter = 'small-hours'; i += 1; }
+    else if (LETTERS[tok]) letter = LETTERS[tok];
+    else if (TIME_TOKEN_RE.test(tok)) times.push(renderTime(letter, tok));
+  }
+  if (times.length === 0) return null;
+  const last = times[times.length - 1];
+  return `${times.map(t => t.text).join(' to ')}${last.nextDay ? ' (next day)' : ''}`;
+}
 
 /**
- * Converts a Telugu-formatted timing string like "మ 1-58 మొదలు 3-40 వరకు"
- * (period-marker, start time, "from", end time, "until") into "1-58 PM to
- * 3-40 PM" for English mode. Only the recognized period markers, "HH-MM"
- * time tokens, and the from/until connector words are interpreted; any
- * other token (e.g. a redundant field-name-letter prefix some entries
- * carry) is dropped once a time or period token has been seen, and the
- * whole string is returned unchanged if no time token is found at all -
- * this only ever narrows/reformats recognized time data, never guesses.
+ * Converts a Telugu-formatted timing string like "ప 1-35 - ప 3-04" or the older
+ * "మ 1-58 మొదలు 3-40 వరకు" into "1:35 PM to 3:04 PM" for English mode. Several
+ * windows separated by ";" are each converted ("ఉ 10-05 - ఉ 10-53; ప 2-52 - ప 3-40"),
+ * and a time after midnight is marked "(next day)". Only recognized letters,
+ * "h-mm" tokens and the from/until words are interpreted; the whole string is
+ * returned unchanged if no time token is found at all - this only ever
+ * reformats recognized time data, never guesses.
  */
 export function toEnglishTiming(timing) {
   if (!timing) return '';
-  const tokens = timing.trim().split(/\s+/);
-  const times = [];
-  let period = null;
-  for (const tok of tokens) {
-    if (PERIOD_TO_AMPM[tok] && !period) period = PERIOD_TO_AMPM[tok];
-    else if (TIME_TOKEN_RE.test(tok)) times.push(tok);
-  }
-  if (times.length === 0) return timing;
-  const suffix = period ? ` ${period}` : '';
-  if (times.length === 1) return `${times[0]}${suffix}`;
-  return `${times[0]}${suffix} to ${times[1]}${suffix}`;
+  const spans = timing.split(';').map(toEnglishSpan).filter(Boolean);
+  return spans.length === 0 ? timing : spans.join('; ');
 }
 
 /* Applies toEnglishTiming only when the site is in English; Telugu mode
