@@ -4,6 +4,7 @@ import TopStrip from '@/components/TopStrip';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import api from '@/lib/api';
+import { isLong } from '@/lib/utils';
 import LoadState from '@/components/LoadState';
 import { useT } from '@/contexts/LanguageContext';
 import { Radio, Pin } from 'lucide-react';
@@ -19,11 +20,6 @@ function timeAgo(iso, t) {
   if (hours < 24) return t(`${hours}h ago`, `${hours} గంటల క్రితం`);
   const days = Math.floor(hours / 24);
   return t(`${days}d ago`, `${days} రోజుల క్రితం`);
-}
-
-// Roughly whether a post overflows the 6-line preview in the list.
-function isLong(text) {
-  return !!text && (text.split('\n').length > 6 || text.length > 420);
 }
 
 export default function LiveBlog() {
