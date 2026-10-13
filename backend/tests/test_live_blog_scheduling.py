@@ -29,9 +29,18 @@ def _matches(doc, q):
                     return False
                 if op == "$lte" and not (key in doc and doc[key] <= val):
                     return False
+                if op == "$gt" and not (key in doc and doc[key] > val):
+                    return False
+                if op == "$ne" and doc.get(key) == val:
+                    return False
         elif doc.get(key) != cond:
             return False
     return True
+
+
+def _project(doc, proj):
+    hidden = {k for k, v in (proj or {}).items() if v == 0}
+    return {k: v for k, v in doc.items() if k not in hidden}
 
 
 class Cursor:
@@ -55,10 +64,10 @@ class LiveBlog:
         self.docs = [dict(d) for d in docs]
 
     def find(self, q, proj=None):
-        return Cursor([dict(d) for d in self.docs if _matches(d, q)])
+        return Cursor([_project(d, proj) for d in self.docs if _matches(d, q)])
 
     async def find_one(self, q, proj=None):
-        return next((dict(d) for d in self.docs if _matches(d, q)), None)
+        return next((_project(d, proj) for d in self.docs if _matches(d, q)), None)
 
     async def distinct(self, field, q):
         return sorted({d[field] for d in self.docs if _matches(d, q)})
@@ -69,18 +78,31 @@ class LiveBlog:
     async def update_one(self, q, update):
         for d in self.docs:
             if _matches(d, q):
-                d.update(update["$set"])
+                d.update(update.get("$set", {}))
+                for k in update.get("$unset", {}):
+                    d.pop(k, None)
                 return UpdateResult(1)
         return UpdateResult(0)
 
 
 POSTS = [
-    {"id": "live", "event_name": "E", "title": "Already out", "active_flag": True, "posted_at": _iso(-60)},
+    {"id": "live", "event_name": "E", "title": "Already out", "active_flag": True, "posted_at": _iso(-60),
+     "note": "staff only"},
+    {"id": "draft", "event_name": "Draft event", "title": "Unfinished", "content": "x", "active_flag": True, "posted_at": _iso(-5),
+     "is_draft": True, "post_to_instagram": False, "also_show_in_ticker": True},
     {"id": "due", "event_name": "E", "title": "Due now", "active_flag": True, "publish_at": _iso(-2),
      "posted_at": _iso(-2), "syndication_pending": True},
     {"id": "future", "event_name": "Later", "title": "Tomorrow", "active_flag": True, "publish_at": _iso(600),
      "posted_at": _iso(600), "syndication_pending": True},
 ]
+
+
+class News:
+    def __init__(self):
+        self.docs = []
+
+    async def insert_one(self, doc):
+        self.docs.append(dict(doc))
 
 
 class Roles:
@@ -97,13 +119,21 @@ def env(monkeypatch):
 
     class DB:
         live_blog = blog
+        news = News()
         roles = Roles()
 
-    published = []
+    published, channels = [], {}
+
+    def publish(item, path, **kw):
+        published.append((item["id"], path))
+        channels[item["id"]] = kw
+
     monkeypatch.setattr(main, "db", DB())
     monkeypatch.setattr(main, "CRON_SECRET", SECRET)
-    monkeypatch.setattr(main.syndication, "publish", lambda item, path, **kw: published.append((item["id"], path)))
-    return TestClient(main.app), blog, published
+    monkeypatch.setattr(main.syndication, "publish", publish)
+    client = TestClient(main.app)
+    client.news, client.channels = DB.news, channels
+    return client, blog, published
 
 
 def test_public_reads_hide_posts_until_their_time(env):
@@ -160,3 +190,97 @@ def test_create_without_publish_at_still_mirrors_immediately(env):
     created = r.json()
     assert "publish_at" not in created and "syndication_pending" not in created
     assert published == [(created["id"], f"/live-blog/{created['id']}")]
+
+
+def _get(blog, post_id):
+    return next(d for d in blog.docs if d["id"] == post_id)
+
+
+def test_drafts_stay_hidden_and_are_never_mirrored(env):
+    client, _, published = env
+    assert "draft" not in [p["id"] for p in client.get("/api/live-blog").json()]
+    assert client.get("/api/live-blog/draft").status_code == 404
+    assert "Draft event" not in client.get("/api/live-blog/events").json()
+    client.post("/api/cron/live-blog-publish", headers={"X-Cron-Secret": SECRET})
+    assert "draft" not in [p[0] for p in published]
+
+
+def test_create_as_draft_stores_it_without_mirroring(env):
+    client, blog, published = env
+    body = {"event_name": "E", "title": "Later", "content": "x", "mode": "draft", "note": "Day 4 poster"}
+    created = client.post("/api/admin/live-blog", json=body, headers=ADMIN).json()
+    assert created["is_draft"] is True and "publish_at" not in created
+    assert _get(blog, created["id"])["note"] == "Day 4 poster"
+    assert published == []
+
+
+def test_note_is_never_in_public_responses(env):
+    client, _, _ = env
+    assert all("note" not in p for p in client.get("/api/live-blog").json())
+    assert "note" not in client.get("/api/live-blog/live").json()
+
+
+def test_publish_now_on_a_draft_goes_live_with_its_saved_channels_and_news(env):
+    client, blog, published = env
+    r = client.post("/api/admin/live-blog/draft/publish-now", headers=ADMIN)
+    assert r.status_code == 200, r.text
+    doc = _get(blog, "draft")
+    assert "is_draft" not in doc and "publish_at" not in doc
+    assert published == [("draft", "/live-blog/draft")]
+    assert client.channels["draft"] == {"facebook": True, "google": True, "instagram": False}
+    assert [n["title"] for n in client.news.docs] == ["Unfinished"]
+    assert "draft" in [p["id"] for p in client.get("/api/live-blog").json()]
+
+
+def test_publish_now_beats_the_cron_and_is_not_repeated(env):
+    client, _, published = env
+    assert client.post("/api/admin/live-blog/future/publish-now", headers=ADMIN).status_code == 200
+    client.post("/api/cron/live-blog-publish", headers={"X-Cron-Secret": SECRET})
+    assert client.post("/api/admin/live-blog/future/publish-now", headers=ADMIN).status_code == 409
+    assert [p for p in published if p[0] == "future"] == [("future", "/live-blog/future")]
+
+
+def test_publish_now_refuses_an_already_published_post(env):
+    client, _, published = env
+    assert client.post("/api/admin/live-blog/live/publish-now", headers=ADMIN).status_code == 409
+    assert published == []
+
+
+def test_reschedule_and_schedule_a_draft(env):
+    client, blog, _ = env
+    r = client.post("/api/admin/live-blog/future/schedule", json={"publish_at": "2099-02-01T07:30:00+05:30"}, headers=ADMIN)
+    assert r.status_code == 200, r.text
+    assert _get(blog, "future")["publish_at"] == "2099-02-01T02:00:00+00:00"
+    assert _get(blog, "future")["posted_at"] == "2099-02-01T02:00:00+00:00"
+
+    r = client.post("/api/admin/live-blog/draft/schedule", json={"publish_at": "2099-02-02T06:05:00+05:30"}, headers=ADMIN)
+    assert r.status_code == 200, r.text
+    doc = _get(blog, "draft")
+    assert "is_draft" not in doc and doc["syndication_pending"] is True
+
+
+def test_scheduling_in_the_past_or_a_published_post_is_refused(env):
+    client, _, _ = env
+    past = {"publish_at": "2020-01-01T06:05:00+05:30"}
+    assert client.post("/api/admin/live-blog/draft/schedule", json=past, headers=ADMIN).status_code == 400
+    future = {"publish_at": "2099-01-01T06:05:00+05:30"}
+    assert client.post("/api/admin/live-blog/live/schedule", json=future, headers=ADMIN).status_code == 409
+
+
+def test_move_to_draft_cancels_a_schedule_but_not_a_due_post(env):
+    client, blog, published = env
+    assert client.post("/api/admin/live-blog/future/move-to-draft", headers=ADMIN).status_code == 200
+    doc = _get(blog, "future")
+    assert doc["is_draft"] is True and "publish_at" not in doc and doc["syndication_pending"] is False
+    assert client.post("/api/admin/live-blog/due/move-to-draft", headers=ADMIN).status_code == 409
+    client.post("/api/cron/live-blog-publish", headers={"X-Cron-Secret": SECRET})
+    assert "future" not in [p[0] for p in published]
+
+
+def test_editing_a_scheduled_post_changes_what_goes_out(env):
+    client, blog, _ = env
+    body = {"title": "Corrected title", "post_to_google": False, "note": "fixed typo"}
+    assert client.put("/api/admin/live-blog/due", json=body, headers=ADMIN).status_code == 200
+    client.post("/api/cron/live-blog-publish", headers={"X-Cron-Secret": SECRET})
+    assert client.channels["due"] == {"facebook": True, "google": False, "instagram": True}
+    assert _get(blog, "due")["title"] == "Corrected title"

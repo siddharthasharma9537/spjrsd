@@ -835,8 +835,16 @@ class LiveBlogPostCreate(BaseModel):
     is_pinned: bool = False
     active_flag: bool = True
     also_show_in_ticker: bool = False
-    # ISO date-time with timezone; a future value schedules the post.
+    # "publish" (now), "schedule" (needs publish_at) or "draft" (saved, hidden, not shared).
+    mode: str = "publish"
+    # ISO date-time with timezone. With mode="publish" a future value still
+    # schedules the post, for clients that predate `mode`.
     publish_at: Optional[str] = None
+    post_to_facebook: bool = True
+    post_to_google: bool = True
+    post_to_instagram: bool = True
+    # Staff-only: never returned by the public API or mirrored anywhere.
+    note: Optional[str] = ""
 
 class LiveBlogPostUpdate(BaseModel):
     event_name: Optional[str] = None
@@ -848,6 +856,14 @@ class LiveBlogPostUpdate(BaseModel):
     image_url: Optional[str] = None
     is_pinned: Optional[bool] = None
     active_flag: Optional[bool] = None
+    also_show_in_ticker: Optional[bool] = None
+    post_to_facebook: Optional[bool] = None
+    post_to_google: Optional[bool] = None
+    post_to_instagram: Optional[bool] = None
+    note: Optional[str] = None
+
+class LiveBlogSchedule(BaseModel):
+    publish_at: str
 
 # ==================== AUTH ROUTES ====================
 async def _find_devotee_by_identifier(identifier: str):
@@ -2452,17 +2468,28 @@ async def bulk_import_panchangam(file: UploadFile = File(...), user=Depends(requ
     return {"total_rows": len(df), "imported": imported, "updated": updated, "errors": errors}
 
 # ==================== LIVE BLOG ROUTES ====================
-# A post can be scheduled: it carries publish_at (UTC ISO, second precision)
-# and stays out of every public read until then, so it appears on the site at
-# exactly that time with nothing having to run. Mirroring it to Facebook /
-# Google / Instagram can't happen by itself on a sleeping free-tier server, so
-# scheduled posts also carry syndication_pending=True until
-# /cron/live-blog-publish picks them up.
+# A post is in one of three states:
+#   draft      - is_draft=True: saved but hidden everywhere and never mirrored.
+#   scheduled  - publish_at in the future + syndication_pending=True: hidden
+#                from every public read until then, so it appears on the site
+#                at exactly that time with nothing having to run. Mirroring to
+#                Facebook / Google / Instagram can't happen by itself on a
+#                sleeping free-tier server, so /cron/live-blog-publish picks
+#                it up (and "Publish now" can do it early).
+#   published  - everything else.
+# The channels it goes to (post_to_*), whether it's also added to the News
+# ticker, and a staff-only note are stored on the post, so a draft or
+# scheduled post goes out exactly as it was last saved.
+PUBLIC_LIVE_BLOG_FIELDS = {"_id": 0, "note": 0}
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 def _published_filter() -> dict:
-    return {"$or": [{"publish_at": {"$exists": False}}, {"publish_at": {"$lte": _now_iso()}}]}
+    return {
+        "is_draft": {"$ne": True},
+        "$or": [{"publish_at": {"$exists": False}}, {"publish_at": {"$lte": _now_iso()}}],
+    }
 
 def _parse_publish_at(value: str) -> str:
     try:
@@ -2473,6 +2500,34 @@ def _parse_publish_at(value: str) -> str:
         raise HTTPException(status_code=400, detail="publish_at must include a timezone")
     return dt.astimezone(timezone.utc).isoformat(timespec="seconds")
 
+def _future_publish_at(value: str) -> str:
+    publish_at = _parse_publish_at(value)
+    if publish_at <= _now_iso():
+        raise HTTPException(status_code=400, detail="That time has already passed")
+    return publish_at
+
+async def _go_live(post: dict):
+    """What happens once when a post is published, whether straight away, by
+    "Publish now", or by the cron for a scheduled post."""
+    if post.get("also_show_in_ticker"):
+        await db.news.insert_one({
+            "id": str(uuid.uuid4()),
+            "title": post["title"],
+            "title_telugu": post.get("title_telugu", ""),
+            "content": post["content"],
+            "content_telugu": post.get("content_telugu", ""),
+            "is_important": False,
+            "active_flag": True,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+    if post.get("active_flag"):
+        await asyncio.to_thread(
+            syndication.publish, post, f"/live-blog/{post['id']}",
+            facebook=post.get("post_to_facebook", True),
+            google=post.get("post_to_google", True),
+            instagram=post.get("post_to_instagram", True),
+        )
+
 @api_router.get("/live-blog")
 async def list_live_blog(active_only: bool = True, event_name: Optional[str] = None, limit: int = 50):
     query = _published_filter()
@@ -2480,7 +2535,7 @@ async def list_live_blog(active_only: bool = True, event_name: Optional[str] = N
         query["active_flag"] = True
     if event_name:
         query["event_name"] = event_name
-    return await db.live_blog.find(query, {"_id": 0}).sort([("is_pinned", -1), ("posted_at", -1)]).to_list(limit)
+    return await db.live_blog.find(query, PUBLIC_LIVE_BLOG_FIELDS).sort([("is_pinned", -1), ("posted_at", -1)]).to_list(limit)
 
 @api_router.get("/live-blog/events")
 async def list_live_blog_events():
@@ -2489,7 +2544,7 @@ async def list_live_blog_events():
 
 @api_router.get("/live-blog/{post_id}")
 async def get_live_blog_post(post_id: str):
-    item = await db.live_blog.find_one({"id": post_id, **_published_filter()}, {"_id": 0})
+    item = await db.live_blog.find_one({"id": post_id, **_published_filter()}, PUBLIC_LIVE_BLOG_FIELDS)
     if not item:
         raise HTTPException(status_code=404, detail="Live blog post not found")
     return item
@@ -2500,38 +2555,27 @@ async def admin_list_live_blog(user=Depends(require_permission("live_blog:view")
 
 @api_router.post("/admin/live-blog")
 async def create_live_blog_post(data: LiveBlogPostCreate, background_tasks: BackgroundTasks, user=Depends(require_permission("live_blog:create"))):
-    publish_at = _parse_publish_at(data.publish_at) if data.publish_at else None
-    scheduled = publish_at is not None and publish_at > _now_iso()
-    if scheduled and data.also_show_in_ticker:
-        raise HTTPException(status_code=400, detail="A scheduled post can't also be added to the News ticker yet")
+    mode = data.mode
+    if mode not in ("publish", "schedule", "draft"):
+        raise HTTPException(status_code=400, detail="mode must be publish, schedule or draft")
+    if mode == "publish" and data.publish_at and _parse_publish_at(data.publish_at) > _now_iso():
+        mode = "schedule"
+    if mode == "schedule" and not data.publish_at:
+        raise HTTPException(status_code=400, detail="Choose a date and time to schedule the post")
+    now = datetime.now(timezone.utc).isoformat()
     item = {
-        "id": str(uuid.uuid4()), **data.model_dump(exclude={"also_show_in_ticker", "publish_at"}),
-        "posted_at": publish_at if scheduled else datetime.now(timezone.utc).isoformat(),
-        "posted_by": user.get("name", "")
+        "id": str(uuid.uuid4()), **data.model_dump(exclude={"mode", "publish_at"}),
+        "posted_at": now, "posted_by": user.get("name", ""), "updated_at": now,
     }
-    if scheduled:
-        item.update({"publish_at": publish_at, "syndication_pending": True})
+    if mode == "draft":
+        item["is_draft"] = True
+    elif mode == "schedule":
+        publish_at = _future_publish_at(data.publish_at)
+        item.update({"publish_at": publish_at, "posted_at": publish_at, "syndication_pending": True})
     await db.live_blog.insert_one(item)
-    if scheduled:
-        return {k: v for k, v in item.items() if k != "_id"}
-    if data.also_show_in_ticker:
-        news_item = {
-            "id": str(uuid.uuid4()),
-            "title": data.title,
-            "title_telugu": data.title_telugu,
-            "content": data.content,
-            "content_telugu": data.content_telugu,
-            "is_important": False,
-            "active_flag": True,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        }
-        await db.news.insert_one(news_item)
     result = {k: v for k, v in item.items() if k != "_id"}
-    # Every Live Blog post mirrors to Facebook/Google Business Profile once,
-    # regardless of also_show_in_ticker - that flag only controls whether it
-    # also appears in the on-site News ticker, not whether it's syndicated.
-    if result.get("active_flag"):
-        background_tasks.add_task(syndication.publish, result, f"/live-blog/{item['id']}")
+    if mode == "publish":
+        background_tasks.add_task(_go_live, result)
     return result
 
 @api_router.put("/admin/live-blog/{post_id}")
@@ -2539,9 +2583,55 @@ async def update_live_blog_post(post_id: str, data: LiveBlogPostUpdate, user=Dep
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     result = await db.live_blog.update_one({"id": post_id}, {"$set": update_data})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Live blog post not found")
+    return await db.live_blog.find_one({"id": post_id}, {"_id": 0})
+
+# Draft/scheduled -> other states. Each is a single conditional update, so a
+# post can't be published twice by "Publish now" racing the cron.
+_UNPUBLISHED = {"$or": [{"is_draft": True}, {"syndication_pending": True}]}
+
+@api_router.post("/admin/live-blog/{post_id}/publish-now")
+async def publish_live_blog_post_now(post_id: str, background_tasks: BackgroundTasks, user=Depends(require_permission("live_blog:edit"))):
+    now = datetime.now(timezone.utc).isoformat()
+    claim = await db.live_blog.update_one(
+        {"id": post_id, **_UNPUBLISHED},
+        {"$set": {"syndication_pending": False, "posted_at": now, "updated_at": now},
+         "$unset": {"is_draft": "", "publish_at": ""}},
+    )
+    if claim.modified_count != 1:
+        raise HTTPException(status_code=409, detail="This post isn't a draft or scheduled post (it may already be published)")
+    post = await db.live_blog.find_one({"id": post_id}, {"_id": 0})
+    background_tasks.add_task(_go_live, post)
+    return post
+
+@api_router.post("/admin/live-blog/{post_id}/schedule")
+async def schedule_live_blog_post(post_id: str, data: LiveBlogSchedule, user=Depends(require_permission("live_blog:edit"))):
+    """Schedule a draft, or move a scheduled post to a new time."""
+    publish_at = _future_publish_at(data.publish_at)
+    result = await db.live_blog.update_one(
+        {"id": post_id, **_UNPUBLISHED},
+        {"$set": {"publish_at": publish_at, "posted_at": publish_at, "syndication_pending": True,
+                  "updated_at": datetime.now(timezone.utc).isoformat()},
+         "$unset": {"is_draft": ""}},
+    )
+    if result.matched_count != 1:
+        raise HTTPException(status_code=409, detail="Only drafts and scheduled posts can be scheduled")
+    return await db.live_blog.find_one({"id": post_id}, {"_id": 0})
+
+@api_router.post("/admin/live-blog/{post_id}/move-to-draft")
+async def move_live_blog_post_to_draft(post_id: str, user=Depends(require_permission("live_blog:edit"))):
+    """Cancel a schedule. Only while it's still in the future - once due, the
+    post is live on the site and the cron may already be mirroring it."""
+    result = await db.live_blog.update_one(
+        {"id": post_id, "syndication_pending": True, "publish_at": {"$gt": _now_iso()}},
+        {"$set": {"is_draft": True, "syndication_pending": False, "updated_at": datetime.now(timezone.utc).isoformat()},
+         "$unset": {"publish_at": ""}},
+    )
+    if result.matched_count != 1:
+        raise HTTPException(status_code=409, detail="Only a post that is still scheduled can be moved to drafts")
     return await db.live_blog.find_one({"id": post_id}, {"_id": 0})
 
 @api_router.delete("/admin/live-blog/{post_id}")
@@ -2559,7 +2649,7 @@ async def cron_publish_due_live_blog_posts(request: Request):
     if not CRON_SECRET or request.headers.get("X-Cron-Secret") != CRON_SECRET:
         raise HTTPException(status_code=401, detail="Invalid or missing cron secret")
     due = await db.live_blog.find(
-        {"syndication_pending": True, "active_flag": True, "publish_at": {"$lte": _now_iso()}}, {"_id": 0}
+        {"syndication_pending": True, "publish_at": {"$lte": _now_iso()}}, {"_id": 0}
     ).to_list(50)
     published = []
     for post in due:
@@ -2568,7 +2658,7 @@ async def cron_publish_due_live_blog_posts(request: Request):
         )
         if claim.modified_count != 1:
             continue
-        await asyncio.to_thread(syndication.publish, post, f"/live-blog/{post['id']}")
+        await _go_live(post)
         published.append(post["id"])
     return {"published": published}
 
