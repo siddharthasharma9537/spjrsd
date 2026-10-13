@@ -1,9 +1,29 @@
 import { useState } from 'react';
-import AdminLayout from './AdminLayout';
+import { Link } from 'react-router-dom';
+import AdminLayout, { settingsSections, canSee, getSidebarHoverMode, setSidebarHoverMode } from './AdminLayout';
+import { Switch } from '@/components/ui/switch';
+import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, ChevronRight } from 'lucide-react';
+
+// One line under each set-up card, so staff know what they'll find there.
+const DESCRIPTIONS = {
+  '/admin/sevas': 'Seva names, prices and timings',
+  '/admin/profiles': 'Which sevas run on which kind of day',
+  '/admin/slots': 'Daily slot times and capacity',
+  '/admin/accommodations': 'Rooms and room prices',
+  '/admin/staff': 'Staff logins',
+  '/admin/roles': 'What each role is allowed to do',
+  '/admin/counters': 'Ticket counters and who runs them',
+};
 
 export default function AdminSettings() {
+  const { user } = useAuth();
+  const [hoverOpen, setHoverOpen] = useState(getSidebarHoverMode);
+  const toggleHoverOpen = (on) => { setHoverOpen(on); setSidebarHoverMode(on); };
+  const sections = settingsSections
+    .map(sec => ({ ...sec, items: sec.items.filter(item => canSee(user, item)) }))
+    .filter(sec => sec.items.length > 0);
   const [form, setForm] = useState({ current_password: '', new_password: '', confirm_password: '' });
   const [showPw, setShowPw] = useState({ current_password: false, new_password: false, confirm_password: false });
   const [submitting, setSubmitting] = useState(false);
@@ -35,6 +55,34 @@ export default function AdminSettings() {
 
   return (
     <AdminLayout title="Settings">
+      {sections.map(sec => (
+        <section key={sec.label} className="mb-8" data-testid={`settings-section-${sec.label.toLowerCase().replace(/[^a-z]+/g, '-')}`}>
+          <h2 className="font-english-heading text-lg text-[#621B00] mb-3">{sec.label}</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+            {sec.items.map(item => (
+              <Link key={item.path} to={item.path} className="group bg-white border border-[#E6DCCA] rounded-xl p-4 flex items-start gap-3 hover:border-[#C43E00] transition-colors">
+                <span className="p-2 rounded-lg bg-[#FFF3E0] text-[#C43E00]"><item.icon className="h-5 w-5" /></span>
+                <span className="flex-1">
+                  <span className="block text-sm font-medium text-[#2D1B0E]">{item.label}</span>
+                  <span className="block text-xs text-[#8D6E63] mt-0.5">{DESCRIPTIONS[item.path]}</span>
+                </span>
+                <ChevronRight className="h-4 w-4 text-[#BCAAA4] group-hover:text-[#C43E00] mt-1" />
+              </Link>
+            ))}
+          </div>
+        </section>
+      ))}
+      <h2 className="font-english-heading text-lg text-[#621B00] mb-3">My account</h2>
+      <div className="bg-white border border-[#E6DCCA] rounded-xl p-5 max-w-md mb-4 flex items-start justify-between gap-4" data-testid="sidebar-hover-setting">
+        <label htmlFor="sidebar-hover-open" className="cursor-pointer">
+          <span className="block text-sm font-medium text-[#2D1B0E]">Open sidebar on hover</span>
+          <span className="block text-xs text-[#8D6E63] mt-0.5">
+            {hoverOpen ? 'ON' : 'OFF'} — when on, the sidebar stays as icons and opens while the mouse is over it. Saved in this browser.
+          </span>
+        </label>
+        <Switch id="sidebar-hover-open" checked={hoverOpen} onCheckedChange={toggleHoverOpen}
+          className="mt-0.5 data-[state=checked]:bg-[#C43E00] data-[state=unchecked]:bg-[#E6DCCA]" data-testid="sidebar-hover-switch" />
+      </div>
       <div className="bg-white border border-[#E6DCCA] rounded-xl p-6 max-w-md" data-testid="change-password-form">
         <h2 className="font-english-heading text-lg text-[#621B00] mb-4">Change Password</h2>
         <form onSubmit={handleSubmit} className="space-y-4">

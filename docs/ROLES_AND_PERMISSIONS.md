@@ -73,6 +73,7 @@ grants instead of one:
 | `contact_messages` | Contact Messages | view, edit (mark handled) |
 | `aashirvachanam` | Aashirvachanam | view, edit |
 | `reviews` | Google Reviews | view, edit (sync from Google, edit/approve/reject the AI-drafted reply to a review - approving actually posts it to Google Business Profile) |
+| `tasks` | Staff to-do (dashboard) | view (see every task, not just your own), create (add tasks), edit (change due date, reassign), delete. Anyone can see and answer tasks assigned to them or their role without any `tasks` permission |
 | `staff` | User Accounts screen | view, create, edit (name/username/role/counter/active status), delete (blocked while the account is still assigned to a counter - unassign it or disable the account instead) |
 | `counters` | Counters screen | view, create, edit (rename), delete |
 | `roles` | Roles screen (new) | view, create, edit, delete |
