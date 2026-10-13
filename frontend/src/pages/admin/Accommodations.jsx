@@ -1,17 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
+import { useCachedGet, invalidateCached } from '@/lib/cachedGet';
 import { Plus, Pencil, Trash2, X } from 'lucide-react';
 
 export default function AdminAccommodations() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data, loading } = useCachedGet('/accommodations', { active_only: 'false' });
+  const items = data || [];
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: '', name_telugu: '', description: '', description_telugu: '', room_type: 'AC', capacity: 2, price_per_day: 0, amenities: '', total_rooms: 10, active_flag: true });
 
-  const load = () => api.get('/accommodations?active_only=false').then(r => { setItems(r.data); setLoading(false); });
-  useEffect(() => { load(); }, []);
+  const load = () => invalidateCached('/accommodations');
 
   const resetForm = () => { setForm({ name: '', name_telugu: '', description: '', description_telugu: '', room_type: 'AC', capacity: 2, price_per_day: 0, amenities: '', total_rooms: 10, active_flag: true }); setEditing(null); setShowForm(false); };
 

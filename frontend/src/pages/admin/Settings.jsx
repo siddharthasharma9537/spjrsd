@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import AdminLayout, { settingsSections, canSee, getSidebarHoverMode, setSidebarHoverMode } from './AdminLayout';
+import AdminLayout, { settingsSections, canSee, getSidebarHoverMode, setSidebarHoverMode, usePrefetchOnRest } from './AdminLayout';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/contexts/AuthContext';
 import api from '@/lib/api';
@@ -21,6 +21,7 @@ export default function AdminSettings() {
   const { user } = useAuth();
   const [hoverOpen, setHoverOpen] = useState(getSidebarHoverMode);
   const toggleHoverOpen = (on) => { setHoverOpen(on); setSidebarHoverMode(on); };
+  const prefetch = usePrefetchOnRest();
   const sections = settingsSections
     .map(sec => ({ ...sec, items: sec.items.filter(item => canSee(user, item)) }))
     .filter(sec => sec.items.length > 0);
@@ -60,7 +61,7 @@ export default function AdminSettings() {
           <h2 className="font-english-heading text-lg text-[#621B00] mb-3">{sec.label}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
             {sec.items.map(item => (
-              <Link key={item.path} to={item.path} className="group bg-white border border-[#E6DCCA] rounded-xl p-4 flex items-start gap-3 hover:border-[#C43E00] transition-colors">
+              <Link key={item.path} to={item.path} onPointerEnter={() => prefetch.start(item)} onPointerLeave={prefetch.stop} onFocus={() => prefetch.start(item)} onBlur={prefetch.stop} className="group bg-white border border-[#E6DCCA] rounded-xl p-4 flex items-start gap-3 hover:border-[#C43E00] transition-colors">
                 <span className="p-2 rounded-lg bg-[#FFF3E0] text-[#C43E00]"><item.icon className="h-5 w-5" /></span>
                 <span className="flex-1">
                   <span className="block text-sm font-medium text-[#2D1B0E]">{item.label}</span>

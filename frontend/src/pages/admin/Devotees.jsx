@@ -1,18 +1,19 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from './AdminLayout';
 import EmailReplyModal from './EmailReplyModal';
 import DateInput from '@/components/ui/date-input';
-import api from '@/lib/api';
+import { useCachedGet } from '@/lib/cachedGet';
 import { Users, Phone, Mail, Search, ArrowUpDown } from 'lucide-react';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
 export default function AdminDevotees() {
   const navigate = useNavigate();
-  const [devotees, setDevotees] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  const { data, loading, error } = useCachedGet('/admin/devotees');
+  const devotees = useMemo(() => data || [], [data]);
+  // An error only matters when there's nothing cached to show instead.
+  const loadError = !!error && !data;
 
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('created_at');
@@ -20,10 +21,6 @@ export default function AdminDevotees() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [replyTarget, setReplyTarget] = useState(null);
-
-  useEffect(() => {
-    api.get('/admin/devotees').then(r => setDevotees(r.data)).catch(() => setLoadError(true)).finally(() => setLoading(false));
-  }, []);
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();

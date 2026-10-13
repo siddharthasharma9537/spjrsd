@@ -1,22 +1,19 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import AdminLayout from './AdminLayout';
-import api from '@/lib/api';
+import { useCachedGet } from '@/lib/cachedGet';
 import { Mail, Search, ArrowUpDown, Gift } from 'lucide-react';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
 export default function AdminAashirvachanam() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  const { data, loading, error } = useCachedGet('/admin/aashirvachanam');
+  const items = useMemo(() => data || [], [data]);
+  // An error only matters when there's nothing cached to show instead.
+  const loadError = !!error && !data;
 
   const [search, setSearch] = useState('');
   const [occasionFilter, setOccasionFilter] = useState('all');
   const [sortDir, setSortDir] = useState('desc');
-
-  useEffect(() => {
-    api.get('/admin/aashirvachanam').then(r => setItems(r.data)).catch(() => setLoadError(true)).finally(() => setLoading(false));
-  }, []);
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();

@@ -1,16 +1,19 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
+import { useCachedGet, invalidateCached } from '@/lib/cachedGet';
 import { Plus, KeyRound, X, Pencil, Trash2 } from 'lucide-react';
 
 const inputCls = "h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-1 focus:ring-[#C43E00]/20 outline-none text-sm text-[#2D1B0E] w-full";
 const emptyForm = { name: '', username: '', password: '', role: '', counter_id: '' };
 
 export default function AdminStaff() {
-  const [staff, setStaff] = useState([]);
-  const [roles, setRoles] = useState([]);
-  const [counters, setCounters] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data: staffData, loading } = useCachedGet('/admin/staff');
+  const { data: rolesData } = useCachedGet('/admin/roles');
+  const { data: countersData } = useCachedGet('/admin/counters');
+  const staff = staffData || [];
+  const roles = rolesData || [];
+  const counters = countersData || [];
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState('');
@@ -21,16 +24,11 @@ export default function AdminStaff() {
   const [editForm, setEditForm] = useState({ name: '', username: '' });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const load = () => {
-    Promise.all([api.get('/admin/staff'), api.get('/admin/roles'), api.get('/admin/counters')]).then(([s, r, c]) => {
-      setStaff(s.data);
-      setRoles(r.data);
-      setCounters(c.data);
-      setLoading(false);
-      setForm(f => f.role ? f : { ...f, role: r.data[0]?.name || '' });
-    }).catch(() => setLoading(false));
-  };
-  useEffect(() => { load(); }, []);
+  const load = () => invalidateCached('/admin/staff');
+  // New accounts default to the first role once the roles are known.
+  useEffect(() => {
+    if (rolesData) setForm(f => f.role ? f : { ...f, role: rolesData[0]?.name || '' });
+  }, [rolesData]);
 
   const handleCreate = async (e) => {
     e.preventDefault();

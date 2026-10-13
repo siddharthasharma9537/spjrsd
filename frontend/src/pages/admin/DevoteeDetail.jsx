@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AdminLayout from './AdminLayout';
 import EmailReplyModal from './EmailReplyModal';
 import api from '@/lib/api';
+import { useCachedGet, invalidateCached } from '@/lib/cachedGet';
 import { Phone, Mail, ArrowLeft, Flame, BedDouble, HandCoins, MessageSquare, HeartHandshake, Mail as MailIcon, Pencil, Trash2 } from 'lucide-react';
 
 function Section({ icon: Icon, title, count, children }) {
@@ -19,18 +20,19 @@ function Section({ icon: Icon, title, count, children }) {
 export default function AdminDevoteeDetail() {
   const { devoteeId } = useParams();
   const navigate = useNavigate();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  const activityUrl = `/admin/devotees/${devoteeId}/activity`;
+  const { data: fetched, loading, error } = useCachedGet(activityUrl);
+  const loadError = !!error && !fetched;
+  // A saved edit shows at once, before the refetch below comes back.
+  const [savedDevotee, setSavedDevotee] = useState(null);
+  const saved = savedDevotee?.id === devoteeId ? savedDevotee.fields : null;
+  const data = fetched && saved ? { ...fetched, devotee: { ...fetched.devotee, ...saved } } : fetched;
   const [showReply, setShowReply] = useState(false);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ name: '', mobile: '', email: '', gotram: '' });
   const [saveError, setSaveError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    api.get(`/admin/devotees/${devoteeId}/activity`).then(r => setData(r.data)).catch(() => setLoadError(true)).finally(() => setLoading(false));
-  }, [devoteeId]);
 
   const fmt = (d) => d ? new Date(d).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 
@@ -48,7 +50,9 @@ export default function AdminDevoteeDetail() {
     setSaveError('');
     try {
       const res = await api.put(`/admin/devotees/${devoteeId}`, form);
-      setData(d => ({ ...d, devotee: { ...d.devotee, ...res.data } }));
+      setSavedDevotee({ id: devoteeId, fields: res.data });
+      invalidateCached(activityUrl);
+      invalidateCached('/admin/devotees');
       setEditing(false);
     } catch (err) {
       setSaveError(err.response?.data?.detail || 'Could not save changes');
@@ -60,6 +64,7 @@ export default function AdminDevoteeDetail() {
   const handleDelete = async () => {
     if (!window.confirm(`Delete ${data.devotee.name}'s devotee account? This cannot be undone.`)) return;
     await api.delete(`/admin/devotees/${devoteeId}`);
+    invalidateCached('/admin/devotees');
     navigate('/admin/devotees');
   };
 

@@ -1,17 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
+import { useCachedGet } from '@/lib/cachedGet';
 import { Send } from 'lucide-react';
 
 export default function AdminNewsletter() {
-  const [count, setCount] = useState(null);
+  const count = useCachedGet('/admin/newsletter/subscribers').data?.count ?? null;
   const [form, setForm] = useState({ subject: '', message: '' });
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState(null);
-
-  useEffect(() => {
-    api.get('/admin/newsletter/subscribers').then(r => setCount(r.data.count)).catch(() => setCount(null));
-  }, []);
 
   const inputCls = "w-full h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-1 focus:ring-[#C43E00]/20 outline-none text-sm text-[#2D1B0E]";
 

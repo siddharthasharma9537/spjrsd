@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
+import { useCachedGet, invalidateCached } from '@/lib/cachedGet';
 import { Star, RefreshCw, Check, X, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 const STATUS_FILTERS = [
@@ -29,24 +30,19 @@ function StarRow({ rating }) {
 }
 
 export default function AdminReviews() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState(null);
   const [drafts, setDrafts] = useState({});
   const [filter, setFilter] = useState('pending');
   const [actioning, setActioning] = useState(null);
 
-  const load = () => {
-    setLoading(true);
-    api.get('/admin/reviews', { params: filter ? { status: filter } : {} })
-      .then(r => {
-        setItems(r.data);
-        setDrafts(prev => ({ ...Object.fromEntries(r.data.map(x => [x.id, x.draft_reply])), ...prev }));
-      })
-      .finally(() => setLoading(false));
-  };
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [filter]);
+  const { data, loading } = useCachedGet('/admin/reviews', { status: filter });
+  const items = data || [];
+  // Fill in drafts from the server without overwriting any reply being typed.
+  useEffect(() => {
+    if (data) setDrafts(prev => ({ ...Object.fromEntries(data.map(x => [x.id, x.draft_reply])), ...prev }));
+  }, [data]);
+  const load = () => invalidateCached('/admin/reviews');
 
   const handleSync = async () => {
     setSyncing(true);

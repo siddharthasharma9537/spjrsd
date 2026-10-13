@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
+import { useCachedGet, invalidateCached } from '@/lib/cachedGet';
 import { Plus, X, Lock } from 'lucide-react';
 
 // One row per resource, only the actions that endpoint actually supports -
@@ -60,18 +61,14 @@ function GroupCheckbox({ keys, permissions, onToggle, testId }) {
 }
 
 export default function AdminRoles() {
-  const [roles, setRoles] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data, loading } = useCachedGet('/admin/roles');
+  const roles = data || [];
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [newName, setNewName] = useState('');
   const [editing, setEditing] = useState(null); // role being edited in the matrix, or null
 
-  const load = () => {
-    api.get('/admin/roles').then(r => { setRoles(r.data); setLoading(false); })
-      .catch(() => setLoading(false));
-  };
-  useEffect(() => { load(); }, []);
+  const load = () => invalidateCached('/admin/roles');
 
   const createRole = async (e) => {
     e.preventDefault();

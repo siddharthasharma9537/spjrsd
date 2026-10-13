@@ -1,19 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
+import { useCachedGet, invalidateCached } from '@/lib/cachedGet';
 import { Plus, Pencil, Trash2, X, UploadCloud } from 'lucide-react';
 
 export default function AdminGallery() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data, loading } = useCachedGet('/gallery', { active_only: 'false' });
+  const items = data || [];
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ title: '', image_url: '', category: 'Temple', active_flag: true });
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
 
-  const load = () => api.get('/gallery?active_only=false').then(r => { setItems(r.data); setLoading(false); });
-  useEffect(() => { load(); }, []);
+  const load = () => invalidateCached('/gallery');
 
   const resetForm = () => { setForm({ title: '', image_url: '', category: 'Temple', active_flag: true }); setEditing(null); setShowForm(false); };
   const handleEdit = (g) => { setForm({ title: g.title, image_url: g.image_url, category: g.category || 'Temple', active_flag: g.active_flag }); setEditing(g.id); setShowForm(true); };

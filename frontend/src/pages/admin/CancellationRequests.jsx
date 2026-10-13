@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
+import { useCachedGet, invalidateCached } from '@/lib/cachedGet';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function AdminCancellationRequests() {
@@ -9,20 +10,20 @@ export default function AdminCancellationRequests() {
   // require_superuser() in the backend), even though anyone with
   // bookings:edit can see this queue and reject an obviously bad request.
   const canApprove = !!user?.is_superuser;
-  const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filterStatus, setFilterStatus] = useState('Pending');
+  const { data, loading, error: fetchError } = useCachedGet('/admin/cancellation-requests', { status: filterStatus });
+  const requests = data || [];
+  const listError = fetchError && !data ? (fetchError.response?.data?.detail || 'Could not load cancellation requests.') : '';
   const [rejectingId, setRejectingId] = useState(null);
   const [noteDraft, setNoteDraft] = useState('');
 
+  // Approving cancels the booking, so Bookings and the Dashboard figures move too.
   const load = () => {
-    const params = filterStatus ? `?status=${filterStatus}` : '';
-    api.get(`/admin/cancellation-requests${params}`).then(r => { setRequests(r.data); setLoading(false); })
-      .catch(err => { setError(err.response?.data?.detail || 'Could not load cancellation requests.'); setLoading(false); });
+    invalidateCached('/admin/cancellation-requests');
+    invalidateCached('/admin/bookings');
+    invalidateCached('/admin/stats');
   };
-
-  useEffect(() => { load(); }, [filterStatus]);
 
   const approve = async (id) => {
     setError('');
@@ -66,7 +67,7 @@ export default function AdminCancellationRequests() {
         </select>
       </div>
 
-      {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4" data-testid="cancellation-requests-error">{error}</p>}
+      {(error || listError) && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4" data-testid="cancellation-requests-error">{error || listError}</p>}
 
       {loading ? <p className="text-[#8D6E63]">Loading...</p> : requests.length === 0 ? (
         <p className="text-center py-12 text-[#8D6E63]">No cancellation requests found</p>
