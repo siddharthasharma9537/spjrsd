@@ -193,3 +193,12 @@ def test_completed_tasks_sort_last_and_bad_input_is_rejected(env):
     assert [t["id"] for t in client.get("/api/admin/tasks", headers=EO).json()["tasks"]] == [later["id"], done["id"]]
     assert client.post("/api/admin/tasks", json={"title": "x", "due_date": "20-10-2026"}, headers=EO).status_code == 400
     assert client.post(f"/api/admin/tasks/{done['id']}/status", json={"status": "cancelled"}, headers=RAMESH).status_code == 400
+
+
+def test_eo_can_mark_a_task_completed_and_the_assignee_is_told(env):
+    client, _, emails = env
+    task = _create(client, assigned_user_id="sita")
+    client.post(f"/api/admin/tasks/{task['id']}/seen", headers=SITA)
+    t = client.post(f"/api/admin/tasks/{task['id']}/status", json={"status": "completed"}, headers=EO).json()
+    assert t["status"] == "completed" and t["new_for_assignee"] and not t["needs_attention"]
+    assert t["thread"][-1]["by_name"] == "Temple EO" and emails == []

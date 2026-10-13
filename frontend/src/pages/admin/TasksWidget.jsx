@@ -166,6 +166,12 @@ function TaskChat({ task, me, perms, people, onChanged }) {
 
       {manager && menu && (
         <div className="border-t border-[#E6DCCA] p-3 space-y-2 bg-white">
+          {task.status !== 'completed' && (
+            <button onClick={() => window.confirm(`Mark "${task.title}" as completed?`) && run(() => api.post(`/admin/tasks/${task.id}/status`, { status: 'completed', text: '' }))}
+              className="flex items-center gap-1.5 text-sm text-green-700 hover:text-green-800" data-testid="task-mark-completed">
+              <CheckCircle2 className="h-4 w-4" /> Mark completed
+            </button>
+          )}
           <label className="flex items-center gap-2 text-xs text-[#5D4037]">Due
             <input type="date" className={field} value={task.due_date || ''} onChange={e => run(() => api.put(`/admin/tasks/${task.id}`, { due_date: e.target.value || null }))} />
           </label>
