@@ -202,3 +202,49 @@ def test_eo_can_mark_a_task_completed_and_the_assignee_is_told(env):
     t = client.post(f"/api/admin/tasks/{task['id']}/status", json={"status": "completed"}, headers=EO).json()
     assert t["status"] == "completed" and t["new_for_assignee"] and not t["needs_attention"]
     assert t["thread"][-1]["by_name"] == "Temple EO" and emails == []
+
+
+@pytest.fixture
+def r2(monkeypatch):
+    uploads = []
+
+    class FakeR2:
+        def upload_fileobj(self, fileobj, bucket, key, ExtraArgs=None):
+            uploads.append((key, fileobj.read(), ExtraArgs["ContentType"]))
+
+    for name, value in {"R2_ACCOUNT_ID": "a", "R2_ACCESS_KEY_ID": "k", "R2_SECRET_ACCESS_KEY": "s",
+                        "R2_PUBLIC_URL": "https://cdn.example"}.items():
+        monkeypatch.setattr(main, name, value)
+    monkeypatch.setattr(main, "_r2_client", lambda: FakeR2())
+    return uploads
+
+
+def test_assignee_attaches_an_image_and_sends_it(env, r2):
+    client, _, _ = env
+    task = _create(client, assigned_user_id="ramesh")
+    r = client.post(f"/api/admin/tasks/{task['id']}/images", files={"file": ("shot.png", b"\x89PNG...", "image/png")}, headers=RAMESH)
+    assert r.status_code == 200
+    url = r.json()["url"]
+    assert url.startswith(f"https://cdn.example/tasks/{task['id']}/") and url.endswith(".png")
+    assert r2[0][1] == b"\x89PNG..." and r2[0][2] == "image/png"
+
+    t = client.post(f"/api/admin/tasks/{task['id']}/messages", json={"images": [url]}, headers=RAMESH).json()
+    assert t["thread"][-1]["images"] == [url] and t["thread"][-1]["text"] == ""
+
+
+def test_image_rules(env, r2):
+    client, _, _ = env
+    task = _create(client, assigned_user_id="ramesh")
+    other = _create(client, assigned_user_id="sita")
+    up = f"/api/admin/tasks/{task['id']}/images"
+    assert client.post(up, files={"file": ("a.gif", b"GIF8", "image/gif")}, headers=RAMESH).status_code == 400
+    assert client.post(up, files={"file": ("a.jpg", b"x" * (5 * 1024 * 1024 + 1), "image/jpeg")}, headers=RAMESH).status_code == 400
+    assert client.post(up, files={"file": ("a.jpg", b"x", "image/jpeg")}, headers=SITA).status_code == 404
+    msg = f"/api/admin/tasks/{task['id']}/messages"
+    assert client.post(msg, json={"text": ""}, headers=RAMESH).status_code == 400
+    foreign = f"https://cdn.example/tasks/{other['id']}/x.jpg"
+    assert client.post(msg, json={"images": [foreign]}, headers=RAMESH).status_code == 400
+    mine = f"https://cdn.example/tasks/{task['id']}/x.jpg"
+    assert client.post(msg, json={"images": [mine] * 5}, headers=RAMESH).status_code == 400
+    t = client.post(f"/api/admin/tasks/{task['id']}/status", json={"status": "completed", "images": [mine]}, headers=RAMESH).json()
+    assert t["thread"][-1]["images"] == [mine]

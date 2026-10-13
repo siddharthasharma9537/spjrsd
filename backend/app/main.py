@@ -3637,12 +3637,18 @@ class TaskUpdate(BaseModel):
     assigned_user_id: Optional[str] = None
     assigned_role: Optional[str] = None
 
+TASK_IMAGE_TYPES = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
+TASK_IMAGE_MAX_BYTES = 5 * 1024 * 1024
+TASK_IMAGES_PER_MESSAGE = 4
+
 class TaskStatusUpdate(BaseModel):
     status: str
     text: Optional[str] = ""
+    images: List[str] = []
 
 class TaskMessage(BaseModel):
-    text: str = Field(min_length=1, max_length=2000)
+    text: Optional[str] = Field(default="", max_length=2000)
+    images: List[str] = []
 
 async def _task_permissions(admin: dict) -> tuple:
     role = await db.roles.find_one({"name": admin.get("role")}, {"_id": 0}) or {}
@@ -3674,12 +3680,23 @@ async def _resolve_assignee(user_id: Optional[str], role: Optional[str]) -> dict
         return {"assigned_user_id": None, "assigned_user_name": None, "assigned_role": role}
     return {"assigned_user_id": None, "assigned_user_name": None, "assigned_role": None}
 
-def _thread_entry(admin: dict, kind: str, text: str = "", status: Optional[str] = None) -> dict:
+def _thread_entry(admin: dict, kind: str, text: str = "", status: Optional[str] = None, images: Optional[list] = None) -> dict:
     entry = {"id": str(uuid.uuid4()), "by_id": admin.get("sub"), "by_name": admin.get("name"),
              "kind": kind, "text": text, "at": _now_iso()}
     if status:
         entry["status"] = status
+    if images:
+        entry["images"] = images
     return entry
+
+def _check_task_images(task_id: str, images: list) -> list:
+    """Only links to this task's own uploads (see upload_task_image) are accepted."""
+    if len(images) > TASK_IMAGES_PER_MESSAGE:
+        raise HTTPException(status_code=400, detail=f"Up to {TASK_IMAGES_PER_MESSAGE} images per message")
+    prefix = f"{R2_PUBLIC_URL}/tasks/{task_id}/"
+    if any(not R2_PUBLIC_URL or not url.startswith(prefix) for url in images):
+        raise HTTPException(status_code=400, detail="Image links must come from this task's uploads")
+    return images
 
 async def _visible_task(task_id: str, admin: dict) -> tuple:
     task = await db.tasks.find_one({"id": task_id}, {"_id": 0})
@@ -3778,6 +3795,7 @@ async def set_task_status(task_id: str, data: TaskStatusUpdate, background_tasks
     if not (_is_task_assignee(task, admin) or can("tasks:edit")):
         raise HTTPException(status_code=403, detail="Only the person assigned can update this task")
     text = (data.text or "").strip()
+    images = _check_task_images(task_id, data.images)
     if data.status == "need_help" and not text:
         raise HTTPException(status_code=400, detail="Please write what help you need")
     by_assignee = _is_task_assignee(task, admin)
@@ -3787,7 +3805,7 @@ async def set_task_status(task_id: str, data: TaskStatusUpdate, background_tasks
         changes["new_for_managers"] = True
     else:
         changes["new_for_assignee"] = True
-    await db.tasks.update_one({"id": task_id}, {"$set": changes, "$push": {"thread": _thread_entry(admin, "status", text, data.status)}})
+    await db.tasks.update_one({"id": task_id}, {"$set": changes, "$push": {"thread": _thread_entry(admin, "status", text, data.status, images)}})
     if data.status == "need_help":
         background_tasks.add_task(_email_need_help, task, admin, text)
     return await db.tasks.find_one({"id": task_id}, {"_id": 0})
@@ -3795,6 +3813,10 @@ async def set_task_status(task_id: str, data: TaskStatusUpdate, background_tasks
 @api_router.post("/admin/tasks/{task_id}/messages")
 async def add_task_message(task_id: str, data: TaskMessage, admin=Depends(get_current_admin)):
     task, _ = await _visible_task(task_id, admin)
+    text = (data.text or "").strip()
+    images = _check_task_images(task_id, data.images)
+    if not text and not images:
+        raise HTTPException(status_code=400, detail="Write a message or add an image")
     by_assignee = _is_task_assignee(task, admin)
     changes = {"updated_at": _now_iso()}
     if by_assignee:
@@ -3802,8 +3824,26 @@ async def add_task_message(task_id: str, data: TaskMessage, admin=Depends(get_cu
     else:
         # A manager's reply answers the "Need help" flag.
         changes.update(new_for_assignee=True, needs_attention=False)
-    await db.tasks.update_one({"id": task_id}, {"$set": changes, "$push": {"thread": _thread_entry(admin, "note", data.text.strip())}})
+    await db.tasks.update_one({"id": task_id}, {"$set": changes, "$push": {"thread": _thread_entry(admin, "note", text, images=images)}})
     return await db.tasks.find_one({"id": task_id}, {"_id": 0})
+
+@api_router.post("/admin/tasks/{task_id}/images")
+async def upload_task_image(task_id: str, file: UploadFile = File(...), admin=Depends(get_current_admin)):
+    """Anyone who can see the task can attach images to its conversation - not
+    gated on gallery permissions. Files go to R2 under tasks/<task id>/; the
+    browser shrinks photos before upload, this just enforces type and size."""
+    await _visible_task(task_id, admin)
+    if not R2_ACCOUNT_ID or not R2_ACCESS_KEY_ID or not R2_SECRET_ACCESS_KEY or not R2_PUBLIC_URL:
+        raise HTTPException(status_code=500, detail="Image storage is not configured")
+    extension = TASK_IMAGE_TYPES.get(file.content_type)
+    if not extension:
+        raise HTTPException(status_code=400, detail="Only JPEG, PNG or WebP images can be attached")
+    body = await file.read(TASK_IMAGE_MAX_BYTES + 1)
+    if len(body) > TASK_IMAGE_MAX_BYTES:
+        raise HTTPException(status_code=400, detail="Image is larger than 5 MB")
+    key = f"tasks/{task_id}/{uuid.uuid4()}{extension}"
+    await asyncio.to_thread(_r2_client().upload_fileobj, io.BytesIO(body), R2_BUCKET_NAME, key, ExtraArgs={"ContentType": file.content_type})
+    return {"url": f"{R2_PUBLIC_URL}/{key}"}
 
 @api_router.post("/admin/tasks/{task_id}/seen")
 async def mark_task_seen(task_id: str, admin=Depends(get_current_admin)):

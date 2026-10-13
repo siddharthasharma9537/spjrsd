@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, Clock, CheckCircle2, Hand, ChevronLeft, MoreVertical, Send, ListTodo, Trash2, X, Minus, Maximize2, Minimize2 } from 'lucide-react';
+import { Plus, Clock, CheckCircle2, Hand, ChevronLeft, MoreVertical, Send, ListTodo, Trash2, X, Minus, Maximize2, Minimize2, ImagePlus, Loader2 } from 'lucide-react';
 
 // Staff to-do: a round button floating in the bottom-right corner of every
 // admin page, opening a small box that works like a chat. The list of tasks;
@@ -129,34 +129,103 @@ function AddTask({ people, onDone, onCancel }) {
   );
 }
 
+// Photos are shrunk in the browser before upload (long side 1600px, JPEG), so
+// phone pictures upload quickly and storage stays small.
+const MAX_IMAGES = 4;
+const MAX_SIDE = 1600;
+async function shrinkImage(file) {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+    return blob ? new File([blob], 'image.jpg', { type: 'image/jpeg' }) : file;
+  } catch {
+    return file;
+  }
+}
+
 function TaskChat({ task, me, perms, people, onChanged }) {
   const [text, setText] = useState('');
   const [error, setError] = useState('');
   const [menu, setMenu] = useState(false);
+  const [pending, setPending] = useState([]); // [{ file, preview }]
+  const [sending, setSending] = useState(false);
   const bottom = useRef(null);
+  const picker = useRef(null);
+  const scroller = useRef(null);
+  // Pictures finish loading after the scroll to the newest message; follow them
+  // down only if the reader is already near the bottom.
+  const keepAtBottom = () => {
+    const c = scroller.current;
+    if (c && c.scrollHeight - c.scrollTop - c.clientHeight < 250) bottom.current?.scrollIntoView({ block: 'end' });
+  };
   const manager = perms.can_edit && !task.is_mine;
   useEffect(() => { bottom.current?.scrollIntoView({ block: 'end' }); }, [task.thread?.length]);
 
+  const addImages = (files) => {
+    const images = [...files].filter(f => f.type.startsWith('image/'));
+    if (!images.length) return;
+    setError('');
+    setPending(prev => {
+      const room = MAX_IMAGES - prev.length;
+      if (images.length > room) setError(`Up to ${MAX_IMAGES} images per message.`);
+      return [...prev, ...images.slice(0, Math.max(0, room)).map(file => ({ file, preview: URL.createObjectURL(file) }))];
+    });
+  };
+  const removeImage = (i) => setPending(prev => {
+    URL.revokeObjectURL(prev[i].preview);
+    return prev.filter((_, j) => j !== i);
+  });
+  const uploadPending = async () => {
+    const urls = [];
+    for (const { file } of pending) {
+      const body = new FormData();
+      body.append('file', await shrinkImage(file));
+      urls.push((await api.post(`/admin/tasks/${task.id}/images`, body)).data.url);
+    }
+    return urls;
+  };
   const run = async (fn) => {
     setError('');
-    try { await fn(); setText(''); onChanged(); } catch (err) { setError(errorText(err)); }
+    setSending(true);
+    try {
+      await fn();
+      setText('');
+      pending.forEach(p => URL.revokeObjectURL(p.preview));
+      setPending([]);
+      onChanged();
+    } catch (err) { setError(errorText(err)); }
+    setSending(false);
   };
-  const sendNote = () => text.trim() && run(() => api.post(`/admin/tasks/${task.id}/messages`, { text }));
+  const canSend = (text.trim() || pending.length) && !sending;
+  const sendNote = () => canSend && run(async () => {
+    const images = await uploadPending();
+    await api.post(`/admin/tasks/${task.id}/messages`, { text, images });
+  });
   const quick = (r) => {
+    if (sending) return;
     if (r.status === 'need_help' && !text.trim()) { setError('Type what help you need, then tap Need help.'); return; }
-    run(() => api.post(`/admin/tasks/${task.id}/status`, { status: r.status, text }));
+    run(async () => {
+      const images = await uploadPending();
+      await api.post(`/admin/tasks/${task.id}/status`, { status: r.status, text, images });
+    });
   };
 
   return (
     <>
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2 bg-[#FFFCF5]">
+      <div ref={scroller} className="flex-1 overflow-y-auto px-3 py-2 space-y-2 bg-[#FFFCF5]"
+        onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); addImages(e.dataTransfer.files); }}>
         <p className="text-center text-[11px] text-[#8D6E63]">
           {task.created_by_name} added this · {fmtWhen(task.created_at)}
           {task.due_date && <> · due {shortDate(task.due_date)}</>}
         </p>
         {task.details && <p className="mx-auto max-w-[90%] text-center text-xs text-[#5D4037] bg-white border border-[#F0E8D8] rounded-lg px-2 py-1.5 whitespace-pre-line">{task.details}</p>}
         {(task.thread || []).map(m => {
-          if (m.kind === 'change' || (m.kind === 'status' && !m.text)) {
+          if (m.kind === 'change' || (m.kind === 'status' && !m.text && !m.images?.length)) {
             return (
               <p key={m.id} className="text-center text-[11px] text-[#8D6E63]">
                 {m.by_name} · {m.kind === 'change' ? m.text : STATUS[m.status][0]} · {fmtWhen(m.at)}
@@ -169,7 +238,16 @@ function TaskChat({ task, me, perms, people, onChanged }) {
               <div className={`max-w-[80%] rounded-2xl px-3 py-1.5 text-sm ${mine ? 'bg-[#C43E00] text-white rounded-br-sm' : 'bg-white border border-[#E6DCCA] text-[#2D1B0E] rounded-bl-sm'}`}>
                 {!mine && <p className="text-[11px] font-medium text-[#8D6E63]">{m.by_name}</p>}
                 {m.status && <p className={`text-[11px] font-medium ${mine ? 'text-white/80' : 'text-red-600'}`}>{STATUS[m.status][0]}</p>}
-                <p className="whitespace-pre-line">{m.text}</p>
+                {m.images?.length > 0 && (
+                  <div className={`grid gap-1 my-1 ${m.images.length > 1 ? 'grid-cols-2' : ''}`}>
+                    {m.images.map(url => (
+                      <a key={url} href={url} target="_blank" rel="noopener noreferrer" title="Open full size">
+                        <img src={url} alt="Attached" onLoad={keepAtBottom} className="w-full max-h-40 object-cover rounded-lg" />
+                      </a>
+                    ))}
+                  </div>
+                )}
+                {m.text && <p className="whitespace-pre-line">{m.text}</p>}
                 <p className={`text-[10px] text-right ${mine ? 'text-white/70' : 'text-[#BCAAA4]'}`}>{fmtWhen(m.at)}</p>
               </div>
             </div>
@@ -211,12 +289,30 @@ function TaskChat({ task, me, perms, people, onChanged }) {
           </div>
         )}
         {error && <p className="text-[11px] text-red-600 px-1">{error}</p>}
+        {pending.length > 0 && (
+          <div className="flex gap-1.5 px-1" data-testid="task-pending-images">
+            {pending.map((p, i) => (
+              <span key={p.preview} className="relative">
+                <img src={p.preview} alt="To send" className="h-12 w-12 object-cover rounded-md border border-[#E6DCCA]" />
+                <button onClick={() => removeImage(i)} aria-label="Remove image"
+                  className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-[#2D1B0E] text-white flex items-center justify-center"><X className="h-3 w-3" /></button>
+              </span>
+            ))}
+          </div>
+        )}
         <div className="flex items-end gap-1.5">
+          <input ref={picker} type="file" accept="image/*" multiple className="hidden"
+            onChange={e => { addImages(e.target.files); e.target.value = ''; }} data-testid="task-image-input" />
+          <button onClick={() => picker.current?.click()} aria-label="Add image" title="Add image (or paste a screenshot)"
+            className="h-8 w-8 shrink-0 flex items-center justify-center rounded-full text-[#8D6E63] hover:text-[#C43E00] hover:bg-[#FFF3E0]" data-testid="task-add-image">
+            <ImagePlus className="h-5 w-5" />
+          </button>
           <textarea rows={1} className="flex-1 resize-none max-h-20 px-3 py-1.5 bg-[#FFFCF5] border border-[#E6DCCA] rounded-2xl text-sm outline-none focus:border-[#C43E00]"
             value={text} onChange={e => setText(e.target.value)} placeholder={task.is_mine ? 'Note / Say something · ఏదైనా చెప్పండి' : 'Reply…'}
+            onPaste={e => { if ([...e.clipboardData.files].some(f => f.type.startsWith('image/'))) { e.preventDefault(); addImages(e.clipboardData.files); } }}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendNote(); } }} data-testid="task-message-input" />
-          <button onClick={sendNote} disabled={!text.trim()} aria-label="Send" className="h-8 w-8 shrink-0 flex items-center justify-center rounded-full bg-[#C43E00] text-white disabled:opacity-40">
-            <Send className="h-4 w-4" />
+          <button onClick={sendNote} disabled={!canSend} aria-label="Send" className="h-8 w-8 shrink-0 flex items-center justify-center rounded-full bg-[#C43E00] text-white disabled:opacity-40">
+            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </button>
         </div>
       </div>
