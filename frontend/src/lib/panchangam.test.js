@@ -1,4 +1,4 @@
-import { toEnglishTiming, stripLeadingName } from './panchangam';
+import { toEnglishTiming, stripLeadingName, tithiNumber, karanaEnd } from './panchangam';
 
 describe('toEnglishTiming', () => {
   test.each([
@@ -35,5 +35,26 @@ describe('toEnglishTiming', () => {
 describe('stripLeadingName', () => {
   test('removes the tithi name the timing already carries', () => {
     expect(stripLeadingName('పంచమి ప 2-36', ['Panchami', 'పంచమి'])).toBe('ప 2-36');
+  });
+});
+
+describe('tithiNumber', () => {
+  test.each([['Tadiya', 3], ['Pournami', 15], ['Amavasya', 15], ['Chaturdashi', 14], ['Padyami', 1], ['Thadiya', null], ['', null]])(
+    '%s -> %s', (name, n) => expect(tithiNumber(name)).toBe(n));
+});
+
+describe('karanaEnd', () => {
+  const day = '2026-10-13';
+  test('the last karana that ends the next morning is marked in English', () => {
+    expect(karanaEnd({ timing: 'ఉ 10-32', ends_at: '2026-10-14T10:32+05:30' }, day, true)).toBe('10:32 AM (next day)');
+  });
+  test('a karana that ends the same day is not', () => {
+    expect(karanaEnd({ timing: 'రా 9-51', ends_at: '2026-10-13T21:51+05:30' }, day, true)).toBe('9:51 PM');
+  });
+  test('an end after midnight is marked once', () => {
+    expect(karanaEnd({ timing: 'రా 1-20', ends_at: '2026-10-14T01:20+05:30' }, day, true)).toBe('1:20 AM (next day)');
+  });
+  test('Telugu shows the book text', () => {
+    expect(karanaEnd({ timing: 'ఉ 10-32', ends_at: '2026-10-14T10:32+05:30' }, day, false)).toBe('ఉ 10-32');
   });
 });
