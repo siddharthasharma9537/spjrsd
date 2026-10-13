@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import AdminLayout from './AdminLayout';
 import api from '@/lib/api';
+import { useCachedGet, invalidateCached } from '@/lib/cachedGet';
 import DateInput from '@/components/ui/date-input';
 import { Search, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,9 +16,6 @@ export default function AdminBookings() {
   // else can only *request* a cancellation, reviewed on the Cancellation
   // Requests screen. See require_superuser() in the backend.
   const canCancelDirectly = !!user?.is_superuser;
-  const [bookings, setBookings] = useState([]);
-  const [sevas, setSevas] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filterDate, setFilterDate] = useState('');
   const [filterSeva, setFilterSeva] = useState('');
@@ -25,22 +23,12 @@ export default function AdminBookings() {
   const [requestingId, setRequestingId] = useState(null);
   const [reasonDraft, setReasonDraft] = useState('');
 
-  const load = () => {
-    const params = new URLSearchParams();
-    if (filterDate) params.append('date', filterDate);
-    if (filterSeva) params.append('seva_id', filterSeva);
-    if (filterStatus) params.append('status', filterStatus);
-    Promise.all([
-      api.get(`/admin/bookings?${params.toString()}`),
-      api.get('/sevas?active_only=false')
-    ]).then(([b, s]) => {
-      setBookings(b.data);
-      setSevas(sortByPriority(s.data));
-      setLoading(false);
-    });
-  };
-
-  useEffect(() => { load(); }, [filterDate, filterSeva, filterStatus]);
+  const { data: bookingsData, loading } = useCachedGet('/admin/bookings', { date: filterDate, seva_id: filterSeva, status: filterStatus });
+  const { data: sevasData } = useCachedGet('/sevas', { active_only: 'false' });
+  const bookings = bookingsData || [];
+  const sevas = sortByPriority(sevasData || []);
+  // A status change also moves the Dashboard's booking/revenue figures.
+  const load = () => { invalidateCached('/admin/bookings'); invalidateCached('/admin/stats'); };
 
   const updateStatus = async (bookingId, newStatus) => {
     setError('');

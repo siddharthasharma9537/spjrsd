@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasAnyPermission, hasPermission } from '@/lib/permissions';
+import { prefetchCached } from '@/lib/cachedGet';
 import TasksWidget from './TasksWidget';
 import { ShieldCheck, LayoutDashboard, Flame as FlameIcon, Calendar, Clock, BookOpen, Users, LogOut, HandCoins, BedDouble, Newspaper, Camera, Sun, Radio, Mail, MessageSquare, Gift, ScrollText, Settings, Receipt, UserCog, KeyRound, PanelLeftClose, PanelLeftOpen, Store, BarChart3, Ban, ScanLine, Star, ChevronDown, Globe, ExternalLink } from 'lucide-react';
 
@@ -28,12 +29,15 @@ export function setSidebarHoverMode(on) {
 // (see docs/ROLES_AND_PERMISSIONS.md). No `resource` = always shown to any
 // logged-in staff member (Dashboard, Settings - nothing role-specific there).
 // Daily work, shown in the sidebar under folding group headings.
+// `prefetch` lists the GETs (url, params) the screen opens with - the same
+// ones it passes to useCachedGet - so resting the pointer on the link warms
+// the cache and the screen usually opens with its data already there.
 const navGroups = [
   { items: [
-    { path: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
+    { path: '/admin', icon: LayoutDashboard, label: 'Dashboard', prefetch: [['/admin/stats']] },
   ] },
   { label: 'Bookings & Counter', items: [
-    { path: '/admin/bookings', icon: BookOpen, label: 'Bookings', resource: 'bookings' },
+    { path: '/admin/bookings', icon: BookOpen, label: 'Bookings', resource: 'bookings', prefetch: [['/admin/bookings'], ['/sevas', { active_only: 'false' }]] },
     // The approval queue for cancellation requests a bookings:view-only
     // account raises from the Bookings screen (they can't cancel directly -
     // see request_booking_cancellation in the backend). Gated on
@@ -56,10 +60,10 @@ const navGroups = [
     { path: '/admin/counter-reports', icon: BarChart3, label: 'Counter Reports', permission: 'bookings:reconcile' },
   ] },
   { label: 'Content', items: [
-    { path: '/admin/live-blog', icon: Radio, label: 'Live Blog', resource: 'live_blog' },
+    { path: '/admin/live-blog', icon: Radio, label: 'Live Blog', resource: 'live_blog', prefetch: [['/admin/live-blog']] },
     { path: '/admin/news', icon: Newspaper, label: 'News', resource: 'news' },
     { path: '/admin/gallery', icon: Camera, label: 'Gallery', resource: 'gallery' },
-    { path: '/admin/panchangam', icon: Sun, label: 'Panchangam', resource: 'panchangam' },
+    { path: '/admin/panchangam', icon: Sun, label: 'Panchangam', resource: 'panchangam', prefetch: [['/admin/panchangam']] },
     { path: '/admin/stotrams', icon: ScrollText, label: 'Stotrams', resource: 'stotrams' },
     { path: '/admin/aashirvachanam', icon: Gift, label: 'Aashirvachanam', resource: 'aashirvachanam' },
   ] },
@@ -103,12 +107,19 @@ export default function AdminLayout({ children, title }) {
   const [collapsedPref, setCollapsed] = useState(() => localStorage.getItem(COLLAPSE_KEY) === 'true');
   const [hoverMode, setHoverMode] = useState(getSidebarHoverMode);
   const [hovered, setHovered] = useState(false);
+  const closeTimer = useRef(null);
+  const prefetchTimer = useRef(null);
   useEffect(() => {
     const onChange = (e) => setHoverMode(e.detail);
     window.addEventListener(HOVER_MODE_EVENT, onChange);
     return () => window.removeEventListener(HOVER_MODE_EVENT, onChange);
   }, []);
-  const collapsed = hoverMode ? !hovered : collapsedPref;
+  useEffect(() => () => { clearTimeout(closeTimer.current); clearTimeout(prefetchTimer.current); }, []);
+  // "Pinned" = open and holding its full width in the layout. Otherwise the
+  // layout only ever holds the icon rail, and the full panel opens over the
+  // page (hover mode), so the content never jumps sideways.
+  const pinned = !hoverMode && !collapsedPref;
+  const panelOpen = pinned || (hoverMode && hovered);
   const [closedGroups, setClosedGroups] = useState(() => {
     try { return JSON.parse(localStorage.getItem(GROUPS_CLOSED_KEY)) || []; } catch { return []; }
   });
@@ -129,12 +140,46 @@ export default function AdminLayout({ children, title }) {
   };
   const mobileItems = [...groups.flatMap(g => g.items), settingsItem];
 
-  const navLink = (item) => (
-    <Link key={item.path} to={item.path} title={collapsed ? item.label : undefined} className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-all ${collapsed ? 'justify-center px-2' : ''} ${
+  // Opens at once; closes a beat later so a diagonal move towards a link
+  // that briefly leaves the panel doesn't snap it shut.
+  const onSidebarEnter = () => { clearTimeout(closeTimer.current); setHovered(true); };
+  const onSidebarLeave = () => { closeTimer.current = setTimeout(() => setHovered(false), 120); };
+
+  const startPrefetch = (item) => {
+    if (!item.prefetch) return;
+    clearTimeout(prefetchTimer.current);
+    prefetchTimer.current = setTimeout(() => item.prefetch.forEach(([url, params]) => prefetchCached(url, params)), 80);
+  };
+  const stopPrefetch = () => clearTimeout(prefetchTimer.current);
+
+  // Shown at once on hover/keyboard focus of a rail icon (a `title` takes
+  // about a second). It's `fixed` so the rail's scroll box doesn't clip it,
+  // which means CSS alone can't know where the (possibly scrolled) row is:
+  // placeTip hands it the row's height on screen as --tip-y.
+  const placeTip = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.style.setProperty('--tip-y', `${r.top + r.height / 2}px`);
+  };
+  const tip = (label) => (
+    <span aria-hidden="true" className="pointer-events-none fixed left-[5.5rem] top-[var(--tip-y)] -translate-y-1/2 z-50 hidden group-hover:block group-focus-visible:block whitespace-nowrap rounded-md bg-[#1E1209] px-2.5 py-1 text-xs text-[#FFE0B2] shadow-lg ring-1 ring-[#5D4037]/60">
+      {label}
+    </span>
+  );
+
+  // The sidebar is drawn twice: the icon rail (collapsed) and the full panel.
+  // Only the one on screen is `live` - it carries the data-testids, and the
+  // other is `inert` so keyboard focus and tests never land on a hidden copy.
+  const testId = (live, id) => (live ? id : undefined);
+
+  const navLink = (item, collapsed, live) => (
+    <Link key={item.path} to={item.path} aria-label={collapsed ? item.label : undefined}
+      onPointerEnter={(e) => { placeTip(e); startPrefetch(item); }} onPointerLeave={stopPrefetch}
+      onFocus={(e) => { placeTip(e); startPrefetch(item); }} onBlur={stopPrefetch}
+      className={`group flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-colors ${collapsed ? 'justify-center px-2' : ''} ${
       isActive(item) ? 'bg-[#C43E00] text-white' : 'hover:bg-white/5 text-[#FFE0B2]/80'
-    }`} data-testid={`admin-nav-${item.label.toLowerCase().replace(' ', '-')}`}>
+    }`} data-testid={testId(live, `admin-nav-${item.label.toLowerCase().replace(' ', '-')}`)}>
       <item.icon className="h-4 w-4 shrink-0" />
-      {!collapsed && item.label}
+      {collapsed ? tip(item.label) : item.label}
     </Link>
   );
 
@@ -146,15 +191,8 @@ export default function AdminLayout({ children, title }) {
     });
   };
 
-  return (
-    <div className="min-h-screen bg-[#FFFCF5] flex">
-      {/* Sidebar - collapsible on desktop only; the mobile header below has
-          its own always-compact, icon-only layout so it isn't affected. */}
-      {/* In hover mode the aside keeps its icon width in the layout and the
-          panel inside opens over the page, so the content doesn't jump. */}
-      <aside className={`${hoverMode || collapsed ? 'w-20' : 'w-64'} hidden md:block shrink-0 transition-all duration-200 md:sticky md:top-0 md:h-screen z-40`}
-        onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} data-testid="admin-sidebar">
-       <div className={`${collapsed ? 'w-20' : 'w-64'} h-full bg-[#2D1B0E] text-[#FFE0B2] flex flex-col transition-all duration-200 ${hoverMode ? 'absolute inset-y-0 left-0' : ''} ${hoverMode && !collapsed ? 'shadow-2xl' : ''}`}>
+  const sidebar = (collapsed, live) => (
+    <>
         <div className="p-5 border-b border-[#5D4037]/30 flex items-start justify-between gap-2">
           <div className={collapsed ? 'sr-only' : ''}>
             <div className="flex items-center gap-2 mb-1">
@@ -168,7 +206,7 @@ export default function AdminLayout({ children, title }) {
             onClick={toggleCollapsed}
             className="text-[#FFE0B2]/60 hover:text-white transition-colors shrink-0"
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            data-testid="admin-sidebar-toggle"
+            data-testid={testId(live, 'admin-sidebar-toggle')}
           >
             {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
           </button>}
@@ -177,12 +215,12 @@ export default function AdminLayout({ children, title }) {
           {groups.map((g, i) => (
             <div key={g.label || i} className={g.label ? (collapsed ? 'pt-2 mt-2 border-t border-[#5D4037]/40 space-y-1' : 'pt-3 space-y-1') : 'space-y-1'}>
               {g.label && !collapsed && (
-                <button onClick={() => toggleGroup(g.label)} className="w-full flex items-center justify-between px-4 pb-1 text-[11px] uppercase tracking-wider text-[#D4AF37]/70 hover:text-[#D4AF37]" aria-expanded={isOpen(g)} data-testid={`admin-nav-group-${g.label.toLowerCase().replace(/[^a-z]+/g, '-')}`}>
+                <button onClick={() => toggleGroup(g.label)} className="w-full flex items-center justify-between px-4 pb-1 text-[11px] uppercase tracking-wider text-[#D4AF37]/70 hover:text-[#D4AF37]" aria-expanded={isOpen(g)} data-testid={testId(live, `admin-nav-group-${g.label.toLowerCase().replace(/[^a-z]+/g, '-')}`)}>
                   {g.label}
                   <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isOpen(g) ? '' : '-rotate-90'}`} />
                 </button>
               )}
-              {(collapsed || isOpen(g)) && g.items.map(navLink)}
+              {(collapsed || isOpen(g)) && g.items.map(item => navLink(item, collapsed, live))}
             </div>
           ))}
         </nav>
@@ -190,17 +228,37 @@ export default function AdminLayout({ children, title }) {
             "View website" opens the public site in a new tab, so the admin
             screen (and anything half-edited on it) stays where it was. */}
         <div className="p-3 border-t border-[#5D4037]/30 space-y-1">
-          <a href="/" target="_blank" rel="noopener" title={collapsed ? 'View website (opens in a new tab)' : 'Opens in a new tab'}
-            className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm hover:bg-white/5 text-[#FFE0B2]/80 transition-all ${collapsed ? 'justify-center px-2' : ''}`} data-testid="admin-view-website">
+          <a href="/" target="_blank" rel="noopener" onPointerEnter={placeTip} onFocus={placeTip} aria-label={collapsed ? 'View website (opens in a new tab)' : undefined} title={collapsed ? undefined : 'Opens in a new tab'}
+            className={`group flex items-center gap-3 px-4 py-2 rounded-lg text-sm hover:bg-white/5 text-[#FFE0B2]/80 transition-colors ${collapsed ? 'justify-center px-2' : ''}`} data-testid={testId(live, 'admin-view-website')}>
             <Globe className="h-4 w-4 shrink-0" />
-            {!collapsed && <><span className="flex-1">View website</span><ExternalLink className="h-3 w-3 opacity-60" /></>}
+            {collapsed ? tip('View website') : <><span className="flex-1">View website</span><ExternalLink className="h-3 w-3 opacity-60" /></>}
           </a>
-          {navLink(settingsItem)}
-          <button onClick={logout} title={collapsed ? 'Logout' : undefined} className={`flex items-center gap-3 px-4 py-2.5 text-sm text-[#FFE0B2]/60 hover:text-white transition-colors w-full ${collapsed ? 'justify-center px-2' : ''}`} data-testid="admin-logout">
-            <LogOut className="h-4 w-4 shrink-0" /> {!collapsed && 'Logout'}
+          {navLink(settingsItem, collapsed, live)}
+          <button onClick={logout} onPointerEnter={placeTip} onFocus={placeTip} aria-label={collapsed ? 'Logout' : undefined} className={`group flex items-center gap-3 px-4 py-2.5 text-sm text-[#FFE0B2]/60 hover:text-white transition-colors w-full ${collapsed ? 'justify-center px-2' : ''}`} data-testid={testId(live, 'admin-logout')}>
+            <LogOut className="h-4 w-4 shrink-0" /> {collapsed ? tip('Logout') : 'Logout'}
           </button>
         </div>
-       </div>
+    </>
+  );
+
+  return (
+    <div className="min-h-screen bg-[#FFFCF5] flex">
+      {/* Sidebar - desktop only; the mobile header below has its own
+          always-compact, icon-only layout so it isn't affected.
+          Its width never animates: pinned/collapsed snaps the layout between
+          w-64 and w-20 in one step, and only the panel on top fades/slides
+          (transform + opacity, which the browser composites without
+          re-laying out the page). */}
+      <aside className={`${pinned ? 'w-64' : 'w-20'} hidden md:block shrink-0 md:sticky md:top-0 md:h-screen z-40`}
+        onMouseEnter={onSidebarEnter} onMouseLeave={onSidebarLeave} data-testid="admin-sidebar">
+        <div className="w-20 h-full bg-[#2D1B0E] text-[#FFE0B2] flex flex-col" inert={panelOpen}>
+          {sidebar(true, !panelOpen)}
+        </div>
+        <div className={`absolute inset-y-0 left-0 w-64 bg-[#2D1B0E] text-[#FFE0B2] flex flex-col transition-[transform,opacity] duration-150 ease-out ${
+          panelOpen ? 'translate-x-0 opacity-100' : '-translate-x-3 opacity-0 pointer-events-none'} ${pinned ? '' : 'shadow-2xl'}`}
+          inert={!panelOpen}>
+          {sidebar(false, panelOpen)}
+        </div>
       </aside>
 
       {/* Mobile header */}
