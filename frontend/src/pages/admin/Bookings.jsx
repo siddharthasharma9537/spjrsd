@@ -7,6 +7,7 @@ import { Search, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasPermission } from '@/lib/permissions';
 import { sortByPriority } from '@/lib/sevaSamagri';
+import useIsPhone from '@/hooks/useIsPhone';
 
 export default function AdminBookings() {
   const { user } = useAuth();
@@ -63,6 +64,46 @@ export default function AdminBookings() {
 
   const inputCls = "h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-1 focus:ring-[#C43E00]/20 outline-none text-sm text-[#2D1B0E]";
 
+  const statusBadge = (b) => (
+    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${b.prasadam_redeemed ? 'bg-green-100 text-green-800' : statusColors[b.status] || ''}`}>{b.prasadam_redeemed ? 'Free Prasadam Redeemed' : b.status}</span>
+  );
+
+  // The same buttons in the desktop table and on the phone cards.
+  const actions = (b, align = '') => (
+    <div className={`flex gap-1 items-center flex-wrap ${align}`}>
+      {canEdit && b.status === 'Confirmed' && (
+        <button onClick={() => updateStatus(b.id, 'Completed')} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full hover:bg-blue-200" data-testid={`complete-booking-${b.id}`}>Complete</button>
+      )}
+      {canEdit && b.status === 'Pending' && (
+        <button onClick={() => updateStatus(b.id, 'Confirmed')} className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full hover:bg-green-200">Confirm</button>
+      )}
+      {['Confirmed', 'Pending'].includes(b.status) && (
+        canCancelDirectly ? (
+          <button onClick={() => updateStatus(b.id, 'Cancelled')} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full hover:bg-red-200" data-testid={`cancel-booking-${b.id}`}>Cancel</button>
+        ) : b.cancellation_requested ? (
+          <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full" data-testid={`cancellation-pending-${b.id}`}>Cancellation Requested</span>
+        ) : requestingId === b.id ? (
+          <>
+            <input
+              autoFocus
+              className="h-8 px-2 text-xs border border-[#E6DCCA] rounded-lg outline-none focus:border-[#C43E00]"
+              placeholder="Reason..."
+              value={reasonDraft}
+              onChange={e => setReasonDraft(e.target.value)}
+              data-testid={`cancellation-reason-${b.id}`}
+            />
+            <button onClick={() => submitCancellationRequest(b.id)} className="px-2 py-1 bg-[#621B00] text-white text-xs rounded-full hover:bg-[#4a1400]" data-testid={`submit-cancellation-${b.id}`}>Submit</button>
+            <button onClick={() => { setRequestingId(null); setReasonDraft(''); }} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full hover:bg-gray-200">Cancel</button>
+          </>
+        ) : (
+          <button onClick={() => { setRequestingId(b.id); setReasonDraft(''); }} className="px-2 py-1 bg-[#E6DCCA] text-[#621B00] text-xs rounded-full hover:bg-[#D4AF37]/40" data-testid={`request-cancellation-${b.id}`}>Request Cancellation</button>
+        )
+      )}
+    </div>
+  );
+
+  const isPhone = useIsPhone();
+
   return (
     <AdminLayout title="Booking Management">
       <div className="flex flex-wrap items-center gap-3 mb-6">
@@ -86,6 +127,31 @@ export default function AdminBookings() {
 
       {loading ? <p className="text-[#8D6E63]">Loading...</p> : bookings.length === 0 ? (
         <p className="text-center py-12 text-[#8D6E63]">No bookings found</p>
+      ) : isPhone ? (
+        // Phones get one card per booking instead of a 9-column table that
+        // would need sideways scrolling to reach the status and buttons.
+        <div className="space-y-3" data-testid="bookings-cards">
+          {bookings.map(b => (
+            <div key={b.id} className="bg-white border border-[#E6DCCA] rounded-xl p-4" data-testid={`booking-row-${b.id}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-medium text-[#2D1B0E]">{b.devotee_name}</p>
+                  <a href={`tel:${b.devotee_mobile}`} className="text-sm text-[#C43E00]">{b.devotee_mobile}</a>
+                </div>
+                {statusBadge(b)}
+              </div>
+              <p className="mt-2 text-sm text-[#2D1B0E]">{b.seva_name_english}</p>
+              <p className="text-sm text-[#5D4037]">{b.for_date} · {b.slot_start_time}-{b.slot_end_time}</p>
+              <p className="text-xs text-[#8D6E63] mt-1">
+                {b.gotram && <>Gotram {b.gotram} · </>}Rs.{b.amount} · <span className="font-mono">{b.booking_number}</span>
+              </p>
+              {/* Bigger tap targets than the table's compact buttons. */}
+              <div className="mt-3 [&_button]:px-3 [&_button]:py-2 [&_button]:text-sm [&_input]:h-10 [&_input]:text-sm [&_input]:flex-1">
+                {actions(b)}
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="bg-white border border-[#E6DCCA] rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
@@ -116,41 +182,8 @@ export default function AdminBookings() {
                     <td className="px-4 py-3 text-[#8D6E63]">{b.slot_start_time}-{b.slot_end_time}</td>
                     <td className="px-4 py-3 text-[#2D1B0E]">{b.gotram}</td>
                     <td className="px-4 py-3 text-[#2D1B0E]">Rs.{b.amount}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${b.prasadam_redeemed ? 'bg-green-100 text-green-800' : statusColors[b.status] || ''}`}>{b.prasadam_redeemed ? 'Free Prasadam Redeemed' : b.status}</span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex gap-1 justify-end items-center flex-wrap">
-                        {canEdit && b.status === 'Confirmed' && (
-                          <button onClick={() => updateStatus(b.id, 'Completed')} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full hover:bg-blue-200" data-testid={`complete-booking-${b.id}`}>Complete</button>
-                        )}
-                        {canEdit && b.status === 'Pending' && (
-                          <button onClick={() => updateStatus(b.id, 'Confirmed')} className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full hover:bg-green-200">Confirm</button>
-                        )}
-                        {['Confirmed', 'Pending'].includes(b.status) && (
-                          canCancelDirectly ? (
-                            <button onClick={() => updateStatus(b.id, 'Cancelled')} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full hover:bg-red-200" data-testid={`cancel-booking-${b.id}`}>Cancel</button>
-                          ) : b.cancellation_requested ? (
-                            <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full" data-testid={`cancellation-pending-${b.id}`}>Cancellation Requested</span>
-                          ) : requestingId === b.id ? (
-                            <>
-                              <input
-                                autoFocus
-                                className="h-8 px-2 text-xs border border-[#E6DCCA] rounded-lg outline-none focus:border-[#C43E00]"
-                                placeholder="Reason..."
-                                value={reasonDraft}
-                                onChange={e => setReasonDraft(e.target.value)}
-                                data-testid={`cancellation-reason-${b.id}`}
-                              />
-                              <button onClick={() => submitCancellationRequest(b.id)} className="px-2 py-1 bg-[#621B00] text-white text-xs rounded-full hover:bg-[#4a1400]" data-testid={`submit-cancellation-${b.id}`}>Submit</button>
-                              <button onClick={() => { setRequestingId(null); setReasonDraft(''); }} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full hover:bg-gray-200">Cancel</button>
-                            </>
-                          ) : (
-                            <button onClick={() => { setRequestingId(b.id); setReasonDraft(''); }} className="px-2 py-1 bg-[#E6DCCA] text-[#621B00] text-xs rounded-full hover:bg-[#D4AF37]/40" data-testid={`request-cancellation-${b.id}`}>Request Cancellation</button>
-                          )
-                        )}
-                      </div>
-                    </td>
+                    <td className="px-4 py-3">{statusBadge(b)}</td>
+                    <td className="px-4 py-3 text-right">{actions(b, 'justify-end')}</td>
                   </tr>
                 ))}
               </tbody>

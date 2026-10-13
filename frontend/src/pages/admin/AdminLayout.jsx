@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { hasAnyPermission, hasPermission } from '@/lib/permissions';
 import { prefetchCached } from '@/lib/cachedGet';
 import TasksWidget from './TasksWidget';
-import { ShieldCheck, LayoutDashboard, Flame as FlameIcon, Calendar, Clock, BookOpen, Users, LogOut, HandCoins, BedDouble, Newspaper, Camera, Sun, Radio, Mail, MessageSquare, Gift, ScrollText, Settings, Receipt, UserCog, KeyRound, PanelLeftClose, PanelLeftOpen, Store, BarChart3, Ban, ScanLine, Star, ChevronDown, Globe, ExternalLink, Ticket, FileText, HeartHandshake } from 'lucide-react';
+import { ShieldCheck, LayoutDashboard, Flame as FlameIcon, Calendar, Clock, BookOpen, Users, LogOut, HandCoins, BedDouble, Newspaper, Camera, Sun, Radio, Mail, MessageSquare, Gift, ScrollText, Settings, Receipt, UserCog, KeyRound, PanelLeftClose, PanelLeftOpen, Store, BarChart3, Ban, ScanLine, Star, ChevronDown, Globe, ExternalLink, Ticket, FileText, HeartHandshake, Menu, X } from 'lucide-react';
 
 // Remembered across page loads/navigations, not just component state - so
 // the sidebar doesn't snap back open every time an admin clicks between
@@ -160,7 +160,11 @@ export default function AdminLayout({ children, title }) {
       return next;
     });
   };
-  const mobileItems = [...groups.flatMap(g => g.items), settingsItem];
+  // Phone menu (below md). Each screen mounts its own AdminLayout, so it
+  // starts closed again after every navigation.
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const currentItem = [...groups.flatMap(g => g.items), ...settingsSections.flatMap(s => s.items), settingsItem]
+    .find(item => location.pathname === item.path);
 
   // Opens at once; closes a beat later so a diagonal move towards a link
   // that briefly leaves the panel doesn't snap it shut.
@@ -355,22 +359,43 @@ export default function AdminLayout({ children, title }) {
 
       {/* Mobile header */}
       <div className="flex-1 min-w-0 flex flex-col">
-        <header className="md:hidden bg-[#2D1B0E] text-white p-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-[#D4AF37]" />
-            <span className="text-sm font-english-heading">Admin</span>
+        {/* Phone header: a short bar with a menu, not a row of every screen's
+            icon (19 icons forced the whole page to lay out ~884px wide, so
+            phones shrank every admin screen to fit). */}
+        <header className={`md:hidden sticky top-0 bg-[#2D1B0E] text-[#FFE0B2] ${mobileMenuOpen ? 'z-[60]' : 'z-40'}`} data-testid="admin-mobile-header">
+          <div className="h-14 px-4 flex items-center gap-3">
+            <ShieldCheck className="h-5 w-5 text-[#D4AF37] shrink-0" />
+            <span className="flex-1 min-w-0 truncate text-sm font-english-heading text-white">{currentItem?.label || 'Admin'}</span>
+            <button type="button" onClick={() => setMobileMenuOpen(o => !o)} aria-expanded={mobileMenuOpen} aria-controls="admin-mobile-menu"
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'} className="-mr-2 h-11 w-11 flex items-center justify-center rounded-lg hover:bg-white/10"
+              data-testid="admin-mobile-menu-toggle">
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </div>
-          <div className="flex items-center gap-2 text-xs">
-            {mobileItems.map(item => (
-              <Link key={item.path} to={item.path} className={`p-2 rounded ${isActive(item) ? 'bg-[#C43E00]' : ''}`}>
-                <item.icon className="h-4 w-4" />
-              </Link>
-            ))}
-            <a href="/" target="_blank" rel="noopener" aria-label="View website (opens in a new tab)" className="p-2"><Globe className="h-4 w-4" /></a>
-            <button onClick={logout} className="p-2"><LogOut className="h-4 w-4" /></button>
-          </div>
+          {mobileMenuOpen && (
+            <nav id="admin-mobile-menu" className="border-t border-[#5D4037]/40 px-3 pb-4 max-h-[calc(100dvh-3.5rem)] overflow-y-auto" data-testid="admin-mobile-menu">
+              <p className="px-3 pt-3 pb-1 text-xs text-[#8D6E63]">{user?.name} ({user?.role})</p>
+              {[...groups, { label: 'More', items: [settingsItem] }].map((g, i) => (
+                <div key={g.label || i} className="pt-2">
+                  {g.label && <p className="px-3 pb-1 text-[11px] uppercase tracking-wider text-[#D4AF37]/70">{g.label}</p>}
+                  {g.items.map(item => (
+                    <Link key={item.path} to={item.path} aria-current={isActive(item) ? 'page' : undefined}
+                      className={`flex items-center gap-3 px-3 h-11 rounded-lg text-sm ${isActive(item) ? 'bg-[#C43E00] text-white' : 'active:bg-white/10'}`}>
+                      <item.icon className="h-4 w-4 shrink-0" />{item.label}
+                    </Link>
+                  ))}
+                </div>
+              ))}
+              <a href="/" target="_blank" rel="noopener" className="flex items-center gap-3 px-3 h-11 rounded-lg text-sm active:bg-white/10">
+                <Globe className="h-4 w-4 shrink-0" /><span className="flex-1">View website</span><ExternalLink className="h-3 w-3 opacity-60" />
+              </a>
+              <button type="button" onClick={logout} className="w-full flex items-center gap-3 px-3 h-11 rounded-lg text-sm active:bg-white/10">
+                <LogOut className="h-4 w-4 shrink-0" />Logout
+              </button>
+            </nav>
+          )}
         </header>
-        <main className="flex-1 p-6 md:p-8">
+        <main className="flex-1 min-w-0 p-4 sm:p-6 md:p-8">
           {title && <h1 className="font-english-heading text-2xl text-[#621B00] mb-6" data-testid="admin-page-title">{title}</h1>}
           {children}
         </main>
