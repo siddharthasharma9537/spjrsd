@@ -38,17 +38,21 @@ const errorText = (err) => err?.response?.data?.detail || 'Something went wrong.
 
 function DateTimePicker({ value, onChange, testid }) {
   const sel = 'h-9 px-2 bg-white border border-[#E6DCCA] rounded-lg text-sm text-[#2D1B0E]';
+  const timeSel = 'h-9 w-14 pl-2 pr-0 bg-white border border-[#E6DCCA] rounded-lg text-sm text-[#2D1B0E]';
   return (
     <div className="flex items-center gap-1.5 flex-wrap" data-testid={testid}>
       <input type="date" className={sel} value={value.date} onChange={e => onChange({ ...value, date: e.target.value })} aria-label="Date" />
-      <select className={sel} value={value.hh} onChange={e => onChange({ ...value, hh: e.target.value })} aria-label="Hour (HH)">
-        {HOURS.map(h => <option key={h}>{h}</option>)}
-      </select>
-      <span className="text-[#8D6E63]">:</span>
-      <select className={sel} value={value.mm} onChange={e => onChange({ ...value, mm: e.target.value })} aria-label="Minute (MM)">
-        {MINUTES.map(m => <option key={m}>{m}</option>)}
-      </select>
-      <span className="text-xs text-[#8D6E63]">IST</span>
+      {/* HH : MM IST wraps as one unit, so the minute never ends up alone on the next line. */}
+      <span className="flex items-center gap-1 whitespace-nowrap">
+        <select className={timeSel} value={value.hh} onChange={e => onChange({ ...value, hh: e.target.value })} aria-label="Hour (HH)">
+          {HOURS.map(h => <option key={h}>{h}</option>)}
+        </select>
+        <span className="text-[#8D6E63]">:</span>
+        <select className={timeSel} value={value.mm} onChange={e => onChange({ ...value, mm: e.target.value })} aria-label="Minute (MM)">
+          {MINUTES.map(m => <option key={m}>{m}</option>)}
+        </select>
+        <span className="text-xs text-[#8D6E63] ml-0.5">IST</span>
+      </span>
     </div>
   );
 }
