@@ -45,6 +45,17 @@
     <link rel="icon" href="/favicon-192.png" type="image/png" sizes="192x192" />
     <link rel="icon" href="/favicon-512.png" type="image/png" sizes="512x512" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- Installable app ("Install" in Chrome's menu). The admin gets its own
+         manifest - name, icon and start page /admin - so staff install the
+         admin, while visitors installing from the public site get the site.
+         Picked here, before Chrome reads it; AdminLayout also switches it
+         when someone navigates into the admin without a page load. -->
+    <link rel="manifest" id="app-manifest" href="/manifest.webmanifest" />
+    <script>
+      if (location.pathname === '/admin' || location.pathname.indexOf('/admin/') === 0) {
+        document.getElementById('app-manifest').setAttribute('href', '/admin.webmanifest');
+      }
+    </script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
