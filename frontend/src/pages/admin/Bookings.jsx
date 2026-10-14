@@ -24,7 +24,10 @@ export default function AdminBookings() {
   const [requestingId, setRequestingId] = useState(null);
   const [reasonDraft, setReasonDraft] = useState('');
 
-  const { data: bookingsData, loading } = useCachedGet('/admin/bookings', { date: filterDate, seva_id: filterSeva, status: filterStatus });
+  // "PrasadamPending" isn't a real status - it asks the backend for Completed
+  // tickets whose free prasadam hasn't been collected yet.
+  const statusParams = filterStatus === 'PrasadamPending' ? { prasadam: 'pending' } : { status: filterStatus };
+  const { data: bookingsData, loading } = useCachedGet('/admin/bookings', { date: filterDate, seva_id: filterSeva, ...statusParams });
   const { data: sevasData } = useCachedGet('/sevas', { active_only: 'false' });
   const bookings = bookingsData || [];
   const sevas = sortByPriority(sevasData || []);
@@ -64,8 +67,11 @@ export default function AdminBookings() {
 
   const inputCls = "h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-1 focus:ring-[#C43E00]/20 outline-none text-sm text-[#2D1B0E]";
 
+  const prasadamPending = (b) => b.status === 'Completed' && b.prasadam_eligible && !b.prasadam_redeemed;
   const statusBadge = (b) => (
-    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${b.prasadam_redeemed ? 'bg-green-100 text-green-800' : statusColors[b.status] || ''}`}>{b.prasadam_redeemed ? 'Free Prasadam Redeemed' : b.status}</span>
+    <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${b.prasadam_redeemed ? 'bg-green-100 text-green-800' : prasadamPending(b) ? 'bg-amber-100 text-amber-800' : statusColors[b.status] || ''}`} data-testid={`booking-status-${b.id}`}>
+      {b.prasadam_redeemed ? 'Free Prasadam Redeemed' : prasadamPending(b) ? 'Completed · Prasadam pending' : b.status}
+    </span>
   );
 
   // The same buttons in the desktop table and on the phone cards.
@@ -116,9 +122,10 @@ export default function AdminBookings() {
           <option value="">All Sevas</option>
           {sevas.map(s => <option key={s.id} value={s.id}>{s.name_english}</option>)}
         </select>
-        <select className={`${inputCls} w-36`} value={filterStatus} onChange={e => setFilterStatus(e.target.value)} data-testid="filter-status">
+        <select className={`${inputCls} w-44`} value={filterStatus} onChange={e => setFilterStatus(e.target.value)} data-testid="filter-status">
           <option value="">All Status</option>
           {['Pending','Confirmed','Completed','Cancelled','NoShow'].map(s => <option key={s} value={s}>{s}</option>)}
+          <option value="PrasadamPending">Prasadam pending</option>
         </select>
         <span className="text-sm text-[#8D6E63]">{bookings.length} results</span>
       </div>

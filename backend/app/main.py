@@ -1871,11 +1871,15 @@ async def lookup_ticket(background_tasks: BackgroundTasks, booking_number: Optio
     raise HTTPException(status_code=400, detail="Provide booking_number or mobile")
 
 @api_router.get("/admin/bookings")
-async def admin_list_bookings(date: Optional[str] = None, seva_id: Optional[str] = None, status: Optional[str] = None, user=Depends(require_permission("bookings:view"))):
+async def admin_list_bookings(date: Optional[str] = None, seva_id: Optional[str] = None, status: Optional[str] = None, prasadam: Optional[str] = None, user=Depends(require_permission("bookings:view"))):
     query = {}
     if date: query["for_date"] = date
     if seva_id: query["seva_id"] = seva_id
     if status: query["status"] = status
+    # prasadam=pending: seva done (scanned Completed) but the free prasadam
+    # not yet collected at the Prasadam Counter.
+    if prasadam == "pending":
+        query.update({"status": "Completed", "prasadam_eligible": True, "prasadam_redeemed": {"$ne": True}})
     account = await db.user_accounts.find_one({"id": user["sub"]}, {"_id": 0})
     own_counter_id = account.get("counter_id") if account else None
     if own_counter_id:
