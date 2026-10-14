@@ -1916,6 +1916,7 @@ async def request_booking_cancellation(booking_id: str, data: CancellationReques
         raise HTTPException(status_code=404, detail="Booking not found")
     if booking["status"] in ["Cancelled", "Completed"]:
         raise HTTPException(status_code=400, detail=f"Booking is already {booking['status']}")
+    _refuse_expired_ticket(booking, "cancelled")
 
     account = await db.user_accounts.find_one({"id": user["sub"]}, {"_id": 0})
     own_counter_id = account.get("counter_id") if account else None
@@ -1984,20 +1985,20 @@ async def reject_cancellation_request(request_id: str, data: CancellationReview,
     }})
     return await db.cancellation_requests.find_one({"id": request_id}, {"_id": 0})
 
-# Once a ticket's date has passed it stays a No-show - neither the Complete
-# button nor the pooja scan can turn it into Completed afterwards.
-def _refuse_completing_a_past_ticket(booking):
+# Once a ticket's date has passed it has expired: it stays a No-show, and
+# can no longer be completed (button or pooja scan) or cancelled.
+def _refuse_expired_ticket(booking, action):
     if booking and booking.get("for_date") and booking["for_date"] < datetime.now(IST).date().isoformat():
-        raise HTTPException(status_code=400, detail=f"This ticket was for {booking['for_date']} - a past ticket can't be marked Completed")
+        raise HTTPException(status_code=400, detail=f"This ticket was for {booking['for_date']} and has expired - it can't be {action}")
 
 @api_router.put("/admin/bookings/{booking_id}/status")
 async def update_booking_status(booking_id: str, data: BookingStatusUpdate, user=Depends(require_permission("bookings:edit"))):
     valid_statuses = ["Pending", "Confirmed", "Completed", "Cancelled", "NoShow"]
     if data.status not in valid_statuses:
         raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
-    if data.status == "Completed":
+    if data.status in ("Completed", "Cancelled"):
         booking = await db.bookings.find_one({"id": booking_id}, {"_id": 0, "for_date": 1})
-        _refuse_completing_a_past_ticket(booking)
+        _refuse_expired_ticket(booking, "marked Completed" if data.status == "Completed" else "cancelled")
     if data.status == "Cancelled":
         role = await db.roles.find_one({"name": user.get("role")}, {"_id": 0})
         if not role or not role.get("is_superuser"):
@@ -2030,7 +2031,7 @@ async def scan_complete_booking(data: TicketScan, user=Depends(require_permissio
         raise HTTPException(status_code=400, detail="This ticket was already marked Completed")
     if booking["status"] != "Confirmed":
         raise HTTPException(status_code=400, detail=f"This ticket is {booking['status']}, not Confirmed - it can't be completed")
-    _refuse_completing_a_past_ticket(booking)
+    _refuse_expired_ticket(booking, "marked Completed")
     await db.bookings.update_one({"id": booking["id"]}, {"$set": {"status": "Completed"}})
     return await db.bookings.find_one({"id": booking["id"]}, {"_id": 0})
 
