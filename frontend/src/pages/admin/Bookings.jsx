@@ -8,10 +8,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { hasPermission } from '@/lib/permissions';
 import { sortByPriority } from '@/lib/sevaSamagri';
 import useIsPhone from '@/hooks/useIsPhone';
-import { ticketBadge, todayIst } from '@/lib/ticketBadge';
+import { statusBadge as statusOf, ticketRemark, todayIst } from '@/lib/ticketBadge';
 
 // Filter options worked out by the backend from the ticket's date and
-// prasadam state rather than a stored status (see ticketBadge).
+// prasadam state rather than a stored status (see ticketRemark).
 const VIEWS = { PrasadamPending: 'prasadam_pending', NoShow: 'no_show' };
 
 export default function AdminBookings() {
@@ -62,9 +62,14 @@ export default function AdminBookings() {
 
   const inputCls = "h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-1 focus:ring-[#C43E00]/20 outline-none text-sm text-[#2D1B0E]";
 
+  const pill = 'px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap';
   const statusBadge = (b) => {
-    const { label, cls } = ticketBadge(b);
-    return <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${cls}`} data-testid={`booking-status-${b.id}`}>{label}</span>;
+    const { label, cls } = statusOf(b);
+    return <span className={`${pill} ${cls}`} data-testid={`booking-status-${b.id}`}>{label}</span>;
+  };
+  const remarkBadge = (b) => {
+    const r = ticketRemark(b, today);
+    return r && <span className={`${pill} ${r.cls}`} data-testid={`booking-remark-${b.id}`}>{r.label}</span>;
   };
 
   // The same buttons in the desktop table and on the phone cards.
@@ -73,7 +78,7 @@ export default function AdminBookings() {
   const isExpired = (b) => ['Confirmed', 'Pending'].includes(b.status) && b.for_date < today;
   const actions = (b, align = '') => isExpired(b) ? (
     <div className={`flex gap-1 items-center flex-wrap ${align}`}>
-      <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full" data-testid={`ticket-expired-${b.id}`}>Ticket expired</span>
+      <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full whitespace-nowrap" data-testid={`ticket-expired-${b.id}`}>Ticket expired</span>
     </div>
   ) : (
     <div className={`flex gap-1 items-center flex-wrap ${align}`}>
@@ -147,7 +152,10 @@ export default function AdminBookings() {
                   <p className="font-medium text-[#2D1B0E]">{b.devotee_name}</p>
                   <a href={`tel:${b.devotee_mobile}`} className="text-sm text-[#C43E00]">{b.devotee_mobile}</a>
                 </div>
-                {statusBadge(b)}
+                <div className="flex flex-col items-end gap-1">
+                  {statusBadge(b)}
+                  {remarkBadge(b)}
+                </div>
               </div>
               <p className="mt-2 text-sm text-[#2D1B0E]">{b.seva_name_english}</p>
               <p className="text-sm text-[#5D4037]">{b.for_date} · {b.slot_start_time}-{b.slot_end_time}</p>
@@ -175,6 +183,7 @@ export default function AdminBookings() {
                   <th className="text-left px-4 py-3 font-medium text-[#5D4037]">Gotram</th>
                   <th className="text-left px-4 py-3 font-medium text-[#5D4037]">Amount</th>
                   <th className="text-left px-4 py-3 font-medium text-[#5D4037]">Status</th>
+                  <th className="text-left px-4 py-3 font-medium text-[#5D4037]">Remarks</th>
                   <th className="text-right px-4 py-3 font-medium text-[#5D4037]">Actions</th>
                 </tr>
               </thead>
@@ -192,6 +201,7 @@ export default function AdminBookings() {
                     <td className="px-4 py-3 text-[#2D1B0E]">{b.gotram}</td>
                     <td className="px-4 py-3 text-[#2D1B0E]">Rs.{b.amount}</td>
                     <td className="px-4 py-3">{statusBadge(b)}</td>
+                    <td className="px-4 py-3">{remarkBadge(b)}</td>
                     <td className="px-4 py-3 text-right">{actions(b, 'justify-end')}</td>
                   </tr>
                 ))}

@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import api from '@/lib/api';
 import { Flame, Printer, ArrowLeft, CheckCircle, Gift } from 'lucide-react';
 import TicketQRCode from '@/components/TicketQRCode';
-import { ticketBadge } from '@/lib/ticketBadge';
+import { statusBadge, ticketRemark } from '@/lib/ticketBadge';
 
 export default function BookingTicket() {
   const { bookingId } = useParams();
@@ -153,7 +153,10 @@ export default function BookingTicket() {
 
             {/* Status */}
             <div className="text-center">
-              <span className={`inline-block px-4 py-1.5 rounded-full text-sm font-medium ${ticketBadge(booking).cls}`} data-testid="ticket-status">Status: {ticketBadge(booking).label}</span>
+              <span className={`inline-block px-4 py-1.5 rounded-full text-sm font-medium ${statusBadge(booking).cls}`} data-testid="ticket-status">Status: {booking.status}</span>
+              {ticketRemark(booking) && (
+                <p className="mt-2 text-sm text-[#5D4037]" data-testid="ticket-remark">{ticketRemark(booking).label}</p>
+              )}
             </div>
           </div>
 
