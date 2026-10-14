@@ -137,16 +137,20 @@ def test_a_past_ticket_cannot_be_scanned_completed(env):
     assert env.tickets["T1"]["status"] == "Confirmed"
 
 
-def test_a_past_ticket_cannot_be_completed_with_the_button(env):
-    add_ticket(env, for_date=YESTERDAY)
+def test_the_status_button_can_never_complete_a_ticket(env):
+    add_ticket(env)
     r = env.put("/api/admin/bookings/b1/status", json={"status": "Completed"})
-    assert r.status_code == 400
+    assert r.status_code == 400 and "scan it or enter its booking number" in r.json()["detail"]
     assert env.tickets["T1"]["status"] == "Confirmed"
 
 
-def test_todays_ticket_can_be_completed_with_the_button(env):
+def test_completing_from_a_row_needs_that_rows_booking_number(env):
     add_ticket(env)
-    r = env.put("/api/admin/bookings/b1/status", json={"status": "Completed"})
+    add_ticket(env, id="b2", booking_number="T2")
+    r = env.post("/api/admin/bookings/scan-complete", json={"booking_number": "T2", "booking_id": "b1"})
+    assert r.status_code == 400 and "different ticket" in r.json()["detail"]
+    assert env.tickets["T1"]["status"] == env.tickets["T2"]["status"] == "Confirmed"
+    r = env.post("/api/admin/bookings/scan-complete", json={"booking_number": "T1", "booking_id": "b1"})
     assert r.status_code == 200 and r.json()["status"] == "Completed"
 
 

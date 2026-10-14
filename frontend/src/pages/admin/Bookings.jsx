@@ -28,6 +28,11 @@ export default function AdminBookings() {
   const [filterStatus, setFilterStatus] = useState('');
   const [requestingId, setRequestingId] = useState(null);
   const [reasonDraft, setReasonDraft] = useState('');
+  // Completing asks for the ticket's booking number - scanned (a handheld
+  // scanner types into the focused field) or typed - never a bare click.
+  const [completingId, setCompletingId] = useState(null);
+  const [codeDraft, setCodeDraft] = useState('');
+  const [completeError, setCompleteError] = useState('');
 
   const statusParams = VIEWS[filterStatus] ? { view: VIEWS[filterStatus] } : { status: filterStatus };
   const { data: bookingsData, loading } = useCachedGet('/admin/bookings', { date: filterDate, seva_id: filterSeva, ...statusParams });
@@ -44,6 +49,21 @@ export default function AdminBookings() {
       load();
     } catch (err) {
       setError(err.response?.data?.detail || 'Could not update this booking.');
+    }
+  };
+
+  const submitComplete = async (e, bookingId) => {
+    e.preventDefault();
+    if (!codeDraft.trim()) return;
+    setCompleteError('');
+    try {
+      await api.post('/admin/bookings/scan-complete', { booking_number: codeDraft.trim().toUpperCase(), booking_id: bookingId });
+      setCompletingId(null);
+      setCodeDraft('');
+      load();
+    } catch (err) {
+      setCompleteError(err.response?.data?.detail || 'Could not complete this booking.');
+      setCodeDraft('');
     }
   };
 
@@ -82,13 +102,27 @@ export default function AdminBookings() {
     </div>
   ) : (
     <div className={`flex gap-1 items-center flex-wrap ${align}`}>
-      {canEdit && b.status === 'Confirmed' && (
-        <button onClick={() => updateStatus(b.id, 'Completed')} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full hover:bg-blue-200" data-testid={`complete-booking-${b.id}`}>Complete</button>
-      )}
+      {canEdit && b.status === 'Confirmed' && (completingId === b.id ? (
+        <form onSubmit={e => submitComplete(e, b.id)} className="flex gap-1 items-center flex-wrap">
+          <input
+            autoFocus
+            className="h-8 px-2 text-xs font-mono border border-[#E6DCCA] rounded-lg outline-none focus:border-[#C43E00]"
+            placeholder="Scan or enter booking #"
+            value={codeDraft}
+            onChange={e => setCodeDraft(e.target.value)}
+            data-testid={`complete-code-${b.id}`}
+          />
+          <button type="submit" className="px-2 py-1 bg-blue-600 text-white text-xs rounded-full hover:bg-blue-700" data-testid={`submit-complete-${b.id}`}>Complete</button>
+          <button type="button" onClick={() => { setCompletingId(null); setCodeDraft(''); setCompleteError(''); }} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full hover:bg-gray-200">Back</button>
+          {completeError && <p className="w-full text-xs text-red-600" data-testid={`complete-error-${b.id}`}>{completeError}</p>}
+        </form>
+      ) : (
+        <button onClick={() => { setCompletingId(b.id); setCodeDraft(''); setCompleteError(''); setRequestingId(null); }} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full hover:bg-blue-200" data-testid={`complete-booking-${b.id}`}>Complete</button>
+      ))}
       {canEdit && b.status === 'Pending' && (
         <button onClick={() => updateStatus(b.id, 'Confirmed')} className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full hover:bg-green-200">Confirm</button>
       )}
-      {['Confirmed', 'Pending'].includes(b.status) && (
+      {['Confirmed', 'Pending'].includes(b.status) && completingId !== b.id && (
         canCancelDirectly ? (
           <button onClick={() => updateStatus(b.id, 'Cancelled')} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full hover:bg-red-200" data-testid={`cancel-booking-${b.id}`}>Cancel</button>
         ) : b.cancellation_requested ? (

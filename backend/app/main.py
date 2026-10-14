@@ -609,6 +609,9 @@ class CancellationReview(BaseModel):
 
 class TicketScan(BaseModel):
     booking_number: str
+    # Set when completing from a row on the Bookings screen: the scanned or
+    # typed number must belong to that row's booking.
+    booking_id: Optional[str] = None
 
 class CounterBookingCreate(BaseModel):
     seva_id: str
@@ -1996,9 +1999,13 @@ async def update_booking_status(booking_id: str, data: BookingStatusUpdate, user
     valid_statuses = ["Pending", "Confirmed", "Completed", "Cancelled", "NoShow"]
     if data.status not in valid_statuses:
         raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
-    if data.status in ("Completed", "Cancelled"):
+    # Completing always goes through the booking number (scanned or typed)
+    # - see scan_complete_booking - never a bare status change.
+    if data.status == "Completed":
+        raise HTTPException(status_code=400, detail="To complete a ticket, scan it or enter its booking number")
+    if data.status == "Cancelled":
         booking = await db.bookings.find_one({"id": booking_id}, {"_id": 0, "for_date": 1})
-        _refuse_expired_ticket(booking, "marked Completed" if data.status == "Completed" else "cancelled")
+        _refuse_expired_ticket(booking, "cancelled")
     if data.status == "Cancelled":
         role = await db.roles.find_one({"name": user.get("role")}, {"_id": 0})
         if not role or not role.get("is_superuser"):
@@ -2027,6 +2034,8 @@ async def scan_complete_booking(data: TicketScan, user=Depends(require_permissio
     booking = await db.bookings.find_one({"booking_number": data.booking_number}, {"_id": 0})
     if not booking:
         raise HTTPException(status_code=404, detail="No ticket found with that number")
+    if data.booking_id and booking["id"] != data.booking_id:
+        raise HTTPException(status_code=400, detail="That booking number belongs to a different ticket")
     if booking["status"] == "Completed":
         raise HTTPException(status_code=400, detail="This ticket was already marked Completed")
     if booking["status"] != "Confirmed":
