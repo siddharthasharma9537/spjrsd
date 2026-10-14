@@ -1871,15 +1871,21 @@ async def lookup_ticket(background_tasks: BackgroundTasks, booking_number: Optio
     raise HTTPException(status_code=400, detail="Provide booking_number or mobile")
 
 @api_router.get("/admin/bookings")
-async def admin_list_bookings(date: Optional[str] = None, seva_id: Optional[str] = None, status: Optional[str] = None, prasadam: Optional[str] = None, user=Depends(require_permission("bookings:view"))):
+async def admin_list_bookings(date: Optional[str] = None, seva_id: Optional[str] = None, status: Optional[str] = None, view: Optional[str] = None, user=Depends(require_permission("bookings:view"))):
     query = {}
     if date: query["for_date"] = date
     if seva_id: query["seva_id"] = seva_id
     if status: query["status"] = status
-    # prasadam=pending: seva done (scanned Completed) but the free prasadam
-    # not yet collected at the Prasadam Counter.
-    if prasadam == "pending":
-        query.update({"status": "Completed", "prasadam_eligible": True, "prasadam_redeemed": {"$ne": True}})
+    # Views worked out from the ticket's date (IST) rather than a stored
+    # status - matches frontend/src/lib/ticketBadge.js.
+    #   prasadam_pending: pooja done, free prasadam still collectable today
+    #   no_show: ticket date passed without the pooja scan (or marked NoShow)
+    today = datetime.now(IST).date().isoformat()
+    if view == "prasadam_pending":
+        query.update({"status": "Completed", "prasadam_eligible": True, "prasadam_redeemed": {"$ne": True}, "for_date": today})
+    elif view == "no_show":
+        query.pop("status", None)
+        query["$or"] = [{"status": "NoShow"}, {"status": "Confirmed", "for_date": {"$lt": today}}]
     account = await db.user_accounts.find_one({"id": user["sub"]}, {"_id": 0})
     own_counter_id = account.get("counter_id") if account else None
     if own_counter_id:
@@ -2025,10 +2031,16 @@ async def scan_redeem_prasadam(data: TicketScan, user=Depends(require_permission
         raise HTTPException(status_code=404, detail="No ticket found with that number")
     if not booking.get("prasadam_eligible"):
         raise HTTPException(status_code=400, detail="This ticket is not eligible for free prasadam")
-    if booking["status"] != "Completed":
-        raise HTTPException(status_code=400, detail="This ticket hasn't been scanned as Completed at the seva location yet")
+    # Collectable before or after the pooja, but only on the ticket's own
+    # date - an old ticket can't be brought back for prasadam later.
     if booking.get("prasadam_redeemed"):
-        raise HTTPException(status_code=400, detail=f"Prasadam was already redeemed for this ticket at {booking.get('prasadam_redeemed_at')}")
+        at = datetime.fromisoformat(booking["prasadam_redeemed_at"]).astimezone(IST).strftime("%d %b %Y, %I:%M %p") if booking.get("prasadam_redeemed_at") else "an earlier time"
+        raise HTTPException(status_code=400, detail=f"Prasadam was already collected for this ticket on {at}")
+    if booking["status"] not in ("Confirmed", "Completed"):
+        raise HTTPException(status_code=400, detail=f"This ticket is {booking['status']} - no prasadam")
+    today = datetime.now(IST).date().isoformat()
+    if booking.get("for_date") != today:
+        raise HTTPException(status_code=400, detail=f"This ticket is for {booking.get('for_date')} - prasadam can only be collected on the ticket date")
     await db.bookings.update_one({"id": booking["id"]}, {"$set": {
         "prasadam_redeemed": True,
         "prasadam_redeemed_at": datetime.now(timezone.utc).isoformat(),

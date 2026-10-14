@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import api from '@/lib/api';
 import { Flame, Printer, ArrowLeft, CheckCircle, Gift } from 'lucide-react';
 import TicketQRCode from '@/components/TicketQRCode';
+import { ticketBadge } from '@/lib/ticketBadge';
 
 export default function BookingTicket() {
   const { bookingId } = useParams();
@@ -85,8 +86,8 @@ export default function BookingTicket() {
               <div className={`flex items-center gap-2 rounded-lg p-3 border text-sm ${booking.prasadam_redeemed ? 'bg-gray-50 border-gray-200 text-gray-600' : 'bg-green-50 border-green-200 text-green-800'}`} data-testid="ticket-prasadam-note">
                 <Gift className="h-4 w-4 shrink-0" />
                 {booking.prasadam_redeemed
-                  ? 'Free prasadam already redeemed for this ticket'
-                  : 'Includes free prasadam — redeem at the Prasadam Counter'}
+                  ? 'Free prasadam already collected for this ticket'
+                  : 'Includes free prasadam — collect it at the Prasadam Counter on the ticket date'}
               </div>
             )}
 
@@ -152,13 +153,7 @@ export default function BookingTicket() {
 
             {/* Status */}
             <div className="text-center">
-              <span className={`inline-block px-4 py-1.5 rounded-full text-sm font-medium ${
-                booking.prasadam_redeemed ? 'bg-green-100 text-green-800' :
-                booking.status === 'Confirmed' ? 'bg-green-100 text-green-800' :
-                booking.status === 'Completed' ? 'bg-blue-100 text-blue-800' :
-                booking.status === 'Cancelled' ? 'bg-red-100 text-red-800' :
-                'bg-yellow-100 text-yellow-800'
-              }`} data-testid="ticket-status">Status: {booking.prasadam_redeemed ? 'Free Prasadam Redeemed' : booking.status}</span>
+              <span className={`inline-block px-4 py-1.5 rounded-full text-sm font-medium ${ticketBadge(booking).cls}`} data-testid="ticket-status">Status: {ticketBadge(booking).label}</span>
             </div>
           </div>
 

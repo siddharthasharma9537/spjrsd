@@ -148,7 +148,7 @@ export default function AdminSevas() {
             <div className="md:col-span-2 border-t border-[#E6DCCA] pt-4">
               <label className="flex items-center gap-2 text-sm text-[#5D4037] mb-1">
                 <input type="checkbox" checked={form.prasadam_eligible} onChange={e => setForm({...form, prasadam_eligible: e.target.checked})} className="rounded" data-testid="seva-prasadam-eligible" />
-                Eligible for Free Prasadam (redeemable at the Prasadam Counter)
+                Eligible for Free Prasadam (collected at the Prasadam Counter)
               </label>
               {form.prasadam_eligible && (
                 <div className="mt-2 space-y-2" data-testid="seva-prasadam-items">

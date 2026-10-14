@@ -296,7 +296,7 @@ export default function AdminCounterSale() {
 
               {ticket.prasadam_eligible && (
                 <div className="flex items-center gap-2 rounded-lg p-3 border bg-green-50 border-green-200 text-green-800 text-sm">
-                  <Gift className="h-4 w-4 shrink-0" /> Includes free prasadam — redeem at the Prasadam Counter
+                  <Gift className="h-4 w-4 shrink-0" /> Includes free prasadam — collect it at the Prasadam Counter on the ticket date
                 </div>
               )}
 

@@ -8,6 +8,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { hasPermission } from '@/lib/permissions';
 import { sortByPriority } from '@/lib/sevaSamagri';
 import useIsPhone from '@/hooks/useIsPhone';
+import { ticketBadge } from '@/lib/ticketBadge';
+
+// Filter options worked out by the backend from the ticket's date and
+// prasadam state rather than a stored status (see ticketBadge).
+const VIEWS = { PrasadamPending: 'prasadam_pending', NoShow: 'no_show' };
 
 export default function AdminBookings() {
   const { user } = useAuth();
@@ -24,9 +29,7 @@ export default function AdminBookings() {
   const [requestingId, setRequestingId] = useState(null);
   const [reasonDraft, setReasonDraft] = useState('');
 
-  // "PrasadamPending" isn't a real status - it asks the backend for Completed
-  // tickets whose free prasadam hasn't been collected yet.
-  const statusParams = filterStatus === 'PrasadamPending' ? { prasadam: 'pending' } : { status: filterStatus };
+  const statusParams = VIEWS[filterStatus] ? { view: VIEWS[filterStatus] } : { status: filterStatus };
   const { data: bookingsData, loading } = useCachedGet('/admin/bookings', { date: filterDate, seva_id: filterSeva, ...statusParams });
   const { data: sevasData } = useCachedGet('/sevas', { active_only: 'false' });
   const bookings = bookingsData || [];
@@ -57,22 +60,12 @@ export default function AdminBookings() {
     }
   };
 
-  const statusColors = {
-    Confirmed: 'bg-green-100 text-green-800',
-    Completed: 'bg-blue-100 text-blue-800',
-    Cancelled: 'bg-red-100 text-red-800',
-    Pending: 'bg-yellow-100 text-yellow-800',
-    NoShow: 'bg-gray-100 text-gray-800',
-  };
-
   const inputCls = "h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-1 focus:ring-[#C43E00]/20 outline-none text-sm text-[#2D1B0E]";
 
-  const prasadamPending = (b) => b.status === 'Completed' && b.prasadam_eligible && !b.prasadam_redeemed;
-  const statusBadge = (b) => (
-    <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${b.prasadam_redeemed ? 'bg-green-100 text-green-800' : prasadamPending(b) ? 'bg-amber-100 text-amber-800' : statusColors[b.status] || ''}`} data-testid={`booking-status-${b.id}`}>
-      {b.prasadam_redeemed ? 'Free Prasadam Redeemed' : prasadamPending(b) ? 'Completed · Prasadam pending' : b.status}
-    </span>
-  );
+  const statusBadge = (b) => {
+    const { label, cls } = ticketBadge(b);
+    return <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${cls}`} data-testid={`booking-status-${b.id}`}>{label}</span>;
+  };
 
   // The same buttons in the desktop table and on the phone cards.
   const actions = (b, align = '') => (
@@ -124,7 +117,8 @@ export default function AdminBookings() {
         </select>
         <select className={`${inputCls} w-44`} value={filterStatus} onChange={e => setFilterStatus(e.target.value)} data-testid="filter-status">
           <option value="">All Status</option>
-          {['Pending','Confirmed','Completed','Cancelled','NoShow'].map(s => <option key={s} value={s}>{s}</option>)}
+          {['Pending','Confirmed','Completed','Cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
+          <option value="NoShow">No-show</option>
           <option value="PrasadamPending">Prasadam pending</option>
         </select>
         <span className="text-sm text-[#8D6E63]">{bookings.length} results</span>
