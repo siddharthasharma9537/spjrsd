@@ -1,0 +1,15 @@
+{
+  "id": "/",
+  "name": "Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu",
+  "short_name": "Cheruvugattu",
+  "description": "Sevas, darshan timings, panchangam and news from Cheruvugattu temple.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FFFCF5",
+  "theme_color": "#621B00",
+  "icons": [
+    { "src": "/favicon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/favicon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

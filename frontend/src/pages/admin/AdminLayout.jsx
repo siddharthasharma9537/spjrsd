@@ -131,6 +131,11 @@ export default function AdminLayout({ children, title }) {
   const flyoutRef = useRef(null);
   // Opened from the keyboard: move focus into the menu.
   useEffect(() => { if (flyout?.focusFirst) flyoutRef.current?.querySelector('a')?.focus(); }, [flyout]);
+  // Installing from any admin screen installs the admin app (see index.html),
+  // also when the admin was reached from the public site without a reload.
+  useEffect(() => {
+    document.getElementById('app-manifest')?.setAttribute('href', '/admin.webmanifest');
+  }, []);
   useEffect(() => {
     const onChange = (e) => setHoverMode(e.detail);
     window.addEventListener(HOVER_MODE_EVENT, onChange);
