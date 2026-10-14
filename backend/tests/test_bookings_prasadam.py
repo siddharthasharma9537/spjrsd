@@ -126,3 +126,25 @@ def test_prasadam_cannot_be_collected_twice(env):
     collect(env)
     r = collect(env)
     assert r.status_code == 400 and "already collected for this ticket on " in r.json()["detail"]
+
+
+# ---- completing a past ticket ----
+
+def test_a_past_ticket_cannot_be_scanned_completed(env):
+    add_ticket(env, for_date=YESTERDAY)
+    r = env.post("/api/admin/bookings/scan-complete", json={"booking_number": "T1"})
+    assert r.status_code == 400 and "past ticket can't be marked Completed" in r.json()["detail"]
+    assert env.tickets["T1"]["status"] == "Confirmed"
+
+
+def test_a_past_ticket_cannot_be_completed_with_the_button(env):
+    add_ticket(env, for_date=YESTERDAY)
+    r = env.put("/api/admin/bookings/b1/status", json={"status": "Completed"})
+    assert r.status_code == 400
+    assert env.tickets["T1"]["status"] == "Confirmed"
+
+
+def test_todays_ticket_can_be_completed_with_the_button(env):
+    add_ticket(env)
+    r = env.put("/api/admin/bookings/b1/status", json={"status": "Completed"})
+    assert r.status_code == 200 and r.json()["status"] == "Completed"

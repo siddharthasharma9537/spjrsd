@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { hasPermission } from '@/lib/permissions';
 import { sortByPriority } from '@/lib/sevaSamagri';
 import useIsPhone from '@/hooks/useIsPhone';
-import { ticketBadge } from '@/lib/ticketBadge';
+import { ticketBadge, todayIst } from '@/lib/ticketBadge';
 
 // Filter options worked out by the backend from the ticket's date and
 // prasadam state rather than a stored status (see ticketBadge).
@@ -70,7 +70,7 @@ export default function AdminBookings() {
   // The same buttons in the desktop table and on the phone cards.
   const actions = (b, align = '') => (
     <div className={`flex gap-1 items-center flex-wrap ${align}`}>
-      {canEdit && b.status === 'Confirmed' && (
+      {canEdit && b.status === 'Confirmed' && b.for_date >= today && (
         <button onClick={() => updateStatus(b.id, 'Completed')} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full hover:bg-blue-200" data-testid={`complete-booking-${b.id}`}>Complete</button>
       )}
       {canEdit && b.status === 'Pending' && (
@@ -102,6 +102,8 @@ export default function AdminBookings() {
   );
 
   const isPhone = useIsPhone();
+  // A past ticket can't be marked Completed (the backend refuses too).
+  const today = todayIst();
 
   return (
     <AdminLayout title="Booking Management">
