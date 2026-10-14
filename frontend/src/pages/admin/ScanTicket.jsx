@@ -6,7 +6,7 @@ import { CheckCircle, XCircle, Gift, Flame, Camera, CameraOff } from 'lucide-rea
 
 const MODES = {
   complete: { label: 'Seva Completion', endpoint: '/admin/bookings/scan-complete' },
-  prasadam: { label: 'Prasadam Redemption', endpoint: '/admin/bookings/scan-redeem-prasadam' },
+  prasadam: { label: 'Prasadam Collection', endpoint: '/admin/bookings/scan-redeem-prasadam' },
 };
 
 const QR_READER_ID = 'scan-ticket-qr-reader';
@@ -136,7 +136,7 @@ export default function AdminScanTicket() {
             <div className="bg-green-50 border border-green-200 rounded-xl p-5" data-testid="scan-result-success">
               <div className="flex items-center gap-2 text-green-800 font-medium mb-3">
                 <CheckCircle className="h-5 w-5" />
-                {mode === 'complete' ? 'Marked Completed' : 'Prasadam Redeemed'}
+                {mode === 'complete' ? 'Marked Completed' : 'Prasadam Collected'}
               </div>
               <p className="text-sm text-[#2D1B0E]"><span className="text-[#8D6E63]">Booking #</span> {result.booking.booking_number}</p>
               <p className="text-sm text-[#2D1B0E]"><span className="text-[#8D6E63]">Devotee</span> {result.booking.devotee_name}</p>

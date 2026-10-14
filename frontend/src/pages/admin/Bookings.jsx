@@ -8,6 +8,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { hasPermission } from '@/lib/permissions';
 import { sortByPriority } from '@/lib/sevaSamagri';
 import useIsPhone from '@/hooks/useIsPhone';
+import { statusBadge as statusOf, ticketRemark, todayIst } from '@/lib/ticketBadge';
+
+// Filter options worked out by the backend from the ticket's date and
+// prasadam state rather than a stored status (see ticketRemark).
+const VIEWS = { PrasadamPending: 'prasadam_pending', NoShow: 'no_show' };
 
 export default function AdminBookings() {
   const { user } = useAuth();
@@ -23,8 +28,14 @@ export default function AdminBookings() {
   const [filterStatus, setFilterStatus] = useState('');
   const [requestingId, setRequestingId] = useState(null);
   const [reasonDraft, setReasonDraft] = useState('');
+  // Completing asks for the ticket's booking number - scanned (a handheld
+  // scanner types into the focused field) or typed - never a bare click.
+  const [completingId, setCompletingId] = useState(null);
+  const [codeDraft, setCodeDraft] = useState('');
+  const [completeError, setCompleteError] = useState('');
 
-  const { data: bookingsData, loading } = useCachedGet('/admin/bookings', { date: filterDate, seva_id: filterSeva, status: filterStatus });
+  const statusParams = VIEWS[filterStatus] ? { view: VIEWS[filterStatus] } : { status: filterStatus };
+  const { data: bookingsData, loading } = useCachedGet('/admin/bookings', { date: filterDate, seva_id: filterSeva, ...statusParams });
   const { data: sevasData } = useCachedGet('/sevas', { active_only: 'false' });
   const bookings = bookingsData || [];
   const sevas = sortByPriority(sevasData || []);
@@ -41,6 +52,21 @@ export default function AdminBookings() {
     }
   };
 
+  const submitComplete = async (e, bookingId) => {
+    e.preventDefault();
+    if (!codeDraft.trim()) return;
+    setCompleteError('');
+    try {
+      await api.post('/admin/bookings/scan-complete', { booking_number: codeDraft.trim().toUpperCase(), booking_id: bookingId });
+      setCompletingId(null);
+      setCodeDraft('');
+      load();
+    } catch (err) {
+      setCompleteError(err.response?.data?.detail || 'Could not complete this booking.');
+      setCodeDraft('');
+    }
+  };
+
   const submitCancellationRequest = async (bookingId) => {
     if (!reasonDraft.trim()) return;
     setError('');
@@ -54,30 +80,49 @@ export default function AdminBookings() {
     }
   };
 
-  const statusColors = {
-    Confirmed: 'bg-green-100 text-green-800',
-    Completed: 'bg-blue-100 text-blue-800',
-    Cancelled: 'bg-red-100 text-red-800',
-    Pending: 'bg-yellow-100 text-yellow-800',
-    NoShow: 'bg-gray-100 text-gray-800',
-  };
-
   const inputCls = "h-10 px-3 bg-white border border-[#E6DCCA] rounded-lg focus:border-[#C43E00] focus:ring-1 focus:ring-[#C43E00]/20 outline-none text-sm text-[#2D1B0E]";
 
-  const statusBadge = (b) => (
-    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${b.prasadam_redeemed ? 'bg-green-100 text-green-800' : statusColors[b.status] || ''}`}>{b.prasadam_redeemed ? 'Free Prasadam Redeemed' : b.status}</span>
-  );
+  const pill = 'px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap';
+  const statusBadge = (b) => {
+    const { label, cls } = statusOf(b);
+    return <span className={`${pill} ${cls}`} data-testid={`booking-status-${b.id}`}>{label}</span>;
+  };
+  const remarkBadge = (b) => {
+    const r = ticketRemark(b, today);
+    return r && <span className={`${pill} ${r.cls}`} data-testid={`booking-remark-${b.id}`}>{r.label}</span>;
+  };
 
   // The same buttons in the desktop table and on the phone cards.
-  const actions = (b, align = '') => (
+  // A Confirmed/Pending ticket whose date has passed has expired: no
+  // Complete or Cancel any more (the backend refuses both too).
+  const isExpired = (b) => ['Confirmed', 'Pending'].includes(b.status) && b.for_date < today;
+  const actions = (b, align = '') => isExpired(b) ? (
     <div className={`flex gap-1 items-center flex-wrap ${align}`}>
-      {canEdit && b.status === 'Confirmed' && (
-        <button onClick={() => updateStatus(b.id, 'Completed')} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full hover:bg-blue-200" data-testid={`complete-booking-${b.id}`}>Complete</button>
-      )}
+      <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full whitespace-nowrap" data-testid={`ticket-expired-${b.id}`}>Ticket expired</span>
+    </div>
+  ) : (
+    <div className={`flex gap-1 items-center flex-wrap ${align}`}>
+      {canEdit && b.status === 'Confirmed' && (completingId === b.id ? (
+        <form onSubmit={e => submitComplete(e, b.id)} className="flex gap-1 items-center flex-wrap">
+          <input
+            autoFocus
+            className="h-8 px-2 text-xs font-mono border border-[#E6DCCA] rounded-lg outline-none focus:border-[#C43E00]"
+            placeholder="Scan or enter booking #"
+            value={codeDraft}
+            onChange={e => setCodeDraft(e.target.value)}
+            data-testid={`complete-code-${b.id}`}
+          />
+          <button type="submit" className="px-2 py-1 bg-blue-600 text-white text-xs rounded-full hover:bg-blue-700" data-testid={`submit-complete-${b.id}`}>Complete</button>
+          <button type="button" onClick={() => { setCompletingId(null); setCodeDraft(''); setCompleteError(''); }} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full hover:bg-gray-200">Back</button>
+          {completeError && <p className="w-full text-xs text-red-600" data-testid={`complete-error-${b.id}`}>{completeError}</p>}
+        </form>
+      ) : (
+        <button onClick={() => { setCompletingId(b.id); setCodeDraft(''); setCompleteError(''); setRequestingId(null); }} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full hover:bg-blue-200" data-testid={`complete-booking-${b.id}`}>Complete</button>
+      ))}
       {canEdit && b.status === 'Pending' && (
         <button onClick={() => updateStatus(b.id, 'Confirmed')} className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full hover:bg-green-200">Confirm</button>
       )}
-      {['Confirmed', 'Pending'].includes(b.status) && (
+      {['Confirmed', 'Pending'].includes(b.status) && completingId !== b.id && (
         canCancelDirectly ? (
           <button onClick={() => updateStatus(b.id, 'Cancelled')} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full hover:bg-red-200" data-testid={`cancel-booking-${b.id}`}>Cancel</button>
         ) : b.cancellation_requested ? (
@@ -103,6 +148,7 @@ export default function AdminBookings() {
   );
 
   const isPhone = useIsPhone();
+  const today = todayIst();
 
   return (
     <AdminLayout title="Booking Management">
@@ -116,9 +162,11 @@ export default function AdminBookings() {
           <option value="">All Sevas</option>
           {sevas.map(s => <option key={s.id} value={s.id}>{s.name_english}</option>)}
         </select>
-        <select className={`${inputCls} w-36`} value={filterStatus} onChange={e => setFilterStatus(e.target.value)} data-testid="filter-status">
+        <select className={`${inputCls} w-44`} value={filterStatus} onChange={e => setFilterStatus(e.target.value)} data-testid="filter-status">
           <option value="">All Status</option>
-          {['Pending','Confirmed','Completed','Cancelled','NoShow'].map(s => <option key={s} value={s}>{s}</option>)}
+          {['Pending','Confirmed','Completed','Cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
+          <option value="NoShow">No-show</option>
+          <option value="PrasadamPending">Prasadam pending</option>
         </select>
         <span className="text-sm text-[#8D6E63]">{bookings.length} results</span>
       </div>
@@ -138,7 +186,10 @@ export default function AdminBookings() {
                   <p className="font-medium text-[#2D1B0E]">{b.devotee_name}</p>
                   <a href={`tel:${b.devotee_mobile}`} className="text-sm text-[#C43E00]">{b.devotee_mobile}</a>
                 </div>
-                {statusBadge(b)}
+                <div className="flex flex-col items-end gap-1">
+                  {statusBadge(b)}
+                  {remarkBadge(b)}
+                </div>
               </div>
               <p className="mt-2 text-sm text-[#2D1B0E]">{b.seva_name_english}</p>
               <p className="text-sm text-[#5D4037]">{b.for_date} · {b.slot_start_time}-{b.slot_end_time}</p>
@@ -166,6 +217,7 @@ export default function AdminBookings() {
                   <th className="text-left px-4 py-3 font-medium text-[#5D4037]">Gotram</th>
                   <th className="text-left px-4 py-3 font-medium text-[#5D4037]">Amount</th>
                   <th className="text-left px-4 py-3 font-medium text-[#5D4037]">Status</th>
+                  <th className="text-left px-4 py-3 font-medium text-[#5D4037]">Remarks</th>
                   <th className="text-right px-4 py-3 font-medium text-[#5D4037]">Actions</th>
                 </tr>
               </thead>
@@ -183,6 +235,7 @@ export default function AdminBookings() {
                     <td className="px-4 py-3 text-[#2D1B0E]">{b.gotram}</td>
                     <td className="px-4 py-3 text-[#2D1B0E]">Rs.{b.amount}</td>
                     <td className="px-4 py-3">{statusBadge(b)}</td>
+                    <td className="px-4 py-3">{remarkBadge(b)}</td>
                     <td className="px-4 py-3 text-right">{actions(b, 'justify-end')}</td>
                   </tr>
                 ))}
