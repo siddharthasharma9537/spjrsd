@@ -8,7 +8,7 @@ import { useT } from "@/contexts/LanguageContext";
 import { ArrowLeft, IndianRupee, AlertCircle, Clock, Users, Printer, Info, Globe, Landmark, QrCode, Copy, Check } from 'lucide-react';
 import { BOOKINGS_PAUSED } from '@/lib/bookingStatus';
 import BookingPausedNotice from '@/components/BookingPausedNotice';
-import { SEVA_SAMAGRI } from '@/lib/sevaSamagri';
+import { useSevaSamagri } from '@/lib/sevaSamagri';
 
 // Same official account the Donations page pays into - kept as its own copy
 // here rather than imported, so this page doesn't reach into Donations.jsx's
@@ -72,7 +72,7 @@ function SamagriItem({ item, t }) {
 }
 
 function SamagriSection({ sevaId, t, heading }) {
-  const items = SEVA_SAMAGRI[sevaId];
+  const items = useSevaSamagri(sevaId);
   if (!items) return null;
   return (
     <div className="border-t border-[#E6DCCA] pt-5 mt-6">

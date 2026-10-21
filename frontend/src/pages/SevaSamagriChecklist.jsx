@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import api from '@/lib/api';
 import { useT, useLanguage } from '@/contexts/LanguageContext';
 import { ArrowLeft, Download, ChevronDown } from 'lucide-react';
-import { SEVA_SAMAGRI } from '@/lib/sevaSamagri';
+import { useSevaSamagri } from '@/lib/sevaSamagri';
 
 /* Same open/close pattern as the Navbar dropdown: click to toggle, closes on
    an outside click. */
@@ -92,7 +92,7 @@ export default function SevaSamagriChecklist() {
     }
   }, [docLang]);
 
-  const items = SEVA_SAMAGRI[sevaId];
+  const items = useSevaSamagri(sevaId);
   const toggle = (id) => setChecked(c => ({ ...c, [id]: !c[id] }));
   const d = (en, te) => (docLang === 'te' ? (te || en) : en);
   const dHeading = docLang === 'te' ? 'font-telugu-heading' : 'font-english-heading';
@@ -102,7 +102,7 @@ export default function SevaSamagriChecklist() {
     setDocLang(targetLang);
   };
 
-  if (loading) return <div className="min-h-screen bg-[#FFFCF5] flex items-center justify-center text-[#8D6E63]">{t('Loading...', 'లోడ్ అవుతోంది...')}</div>;
+  if (loading || items === undefined) return <div className="min-h-screen bg-[#FFFCF5] flex items-center justify-center text-[#8D6E63]">{t('Loading...', 'లోడ్ అవుతోంది...')}</div>;
   if (!seva || !items) return (
     <div className="min-h-screen bg-[#FFFCF5] flex flex-col items-center justify-center gap-3 text-center px-4">
       <p className="text-red-600">{t('No printable checklist is available for this seva.', 'ఈ సేవకు ప్రింట్ చెక్‌లిస్ట్ అందుబాటులో లేదు.')}</p>
