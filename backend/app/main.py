@@ -2,6 +2,7 @@ from fastapi import FastAPI, APIRouter, BackgroundTasks, HTTPException, Depends,
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
+import json
 import os
 import io
 import re
@@ -1424,6 +1425,22 @@ async def get_seva(seva_id: str):
     if not seva:
         raise HTTPException(status_code=404, detail="Seva not found")
     return seva
+
+# Samagri (materials) lists, as supplied by the temple: app/data/seva_samagri.json,
+# keyed by seva id. Each item is {en, te, qty?, optional?, note?} or a group with
+# children. Public and read-only; the site's seva pages and the Darshan gateway
+# both read this endpoint, so there is one list.
+_SAMAGRI_PATH = Path(__file__).parent / "data" / "seva_samagri.json"
+SEVA_SAMAGRI = json.loads(_SAMAGRI_PATH.read_text(encoding="utf-8"))
+
+
+@api_router.get("/sevas/{seva_id}/samagri")
+async def get_seva_samagri(seva_id: str):
+    items = SEVA_SAMAGRI.get(seva_id)
+    if not items:
+        raise HTTPException(status_code=404, detail="No samagri list for this seva")
+    return {"seva_id": seva_id, "items": items}
+
 
 @api_router.post("/admin/sevas")
 async def create_seva(data: SevaCreate, user=Depends(require_permission("sevas:create"))):
