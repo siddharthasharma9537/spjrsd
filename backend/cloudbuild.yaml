@@ -1,0 +1,35 @@
+# Builds the spjrsd backend and deploys it to Google Cloud Run (docs/deploy/CLOUD_RUN.md).
+# A Cloud Build trigger on pushes to main that change backend/** runs it, so such a merge is a deploy.
+# `gcloud run deploy --image` keeps the service's existing environment variables and secrets;
+# they are set once on the service, never in this file or the repository.
+steps:
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args: [build, -t, "${_IMAGE}", backend]
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args: [push, "${_IMAGE}"]
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - "${_SERVICE}"
+      - --image=${_IMAGE}
+      - --region=${_REGION}
+      - --min-instances=0
+      - --max-instances=2
+      - --cpu=1
+      - --memory=1Gi
+      - --concurrency=40
+      - --timeout=300
+      - --quiet
+images: ["${_IMAGE}"]
+substitutions:
+  _SERVICE: spjrsd-backend
+  _REGION: asia-south1
+  _IMAGE: ${_REGION}-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/${_SERVICE}:${COMMIT_SHA}
+options:
+  dynamicSubstitutions: true
+  logging: CLOUD_LOGGING_ONLY
