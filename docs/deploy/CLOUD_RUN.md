@@ -1,6 +1,10 @@
 # Moving the spjrsd backend from Render to Google Cloud Run
 
-**Prepared, not deployed.** Nothing here has been run against Google Cloud. The Render service
+**Deployed 2026-10-25, not yet cut over.** The service `spjrsd-backend` runs on Cloud Run (revision `00002`; the first
+revision failed on secret access and serves nothing). Checked on the new address: `GET /api/health` answers `ok` with
+`database: ok`, `GET /api/sevas` returns the 27 sevas, and a cron endpoint without the secret answers 401. **Nothing
+points at it yet:** the cutover steps below are still to do, and until then the website, the Darshan gateway and the
+scheduled jobs still use the suspended Render address. The Cloud Build trigger is also not created yet. The Render service
 `spjrsd-backend` was **suspended on 2026-10-24** ("Free Tier Usage Exceeded"), so every temple question in the
 SoHum chat that reads sevas failed (the Darshan gateway got `502` from `GET /v1/temples/spjrsd/sevas`). Cloud Run
 is where Darshan, Store and the assistant already run. Each step that changes the cloud project, the database
