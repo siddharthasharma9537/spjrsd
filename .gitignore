@@ -67,3 +67,8 @@ coverage/
 # served copies live in frontend/public/Assets, resized for the web.
 frontend/assets-source/
 .vercel
+
+# local copies of Render settings (never commit)
+render.env
+*.render.env
+env.cloudrun.yaml

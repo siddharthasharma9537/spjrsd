@@ -39,31 +39,54 @@ access list, DNS or a live setting happens only on the owner's instruction.
 
 ## Environment values
 
-Set once on the service (console: Cloud Run, the service, Edit and deploy new revision, Variables and secrets, or the
-`--set-secrets` and `--set-env-vars` flags below). Later deploys by Cloud Build **keep them**. Names only here:
+Render's environment for `spjrsd-backend` has **28 keys**, all in the lists below (checked against the names the code
+reads). Names only here; values never go in the repository, a chat or a build log. Set once on the service; later
+deploys by Cloud Build **keep them**.
 
 | Kind | Names |
 |---|---|
-| Required | `MONGO_URL`, `DB_NAME`, `JWT_SECRET` |
-| Secrets (use Secret Manager) | `MONGO_URL`, `JWT_SECRET`, `MSG91_AUTH_KEY`, `WHATSAPP_TOKEN`, `WHATSAPP_VERIFY_TOKEN`, `META_APP_SECRET`, `CRON_SECRET`, `SEED_SECRET`, `GATEWAY_SERVICE_SECRET`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `FB_PAGE_TOKEN`, `GBP_CLIENT_SECRET`, `GBP_REFRESH_TOKEN` |
-| Plain values | `DB_NAME`, `MSG91_EMAIL_DOMAIN`, `MSG91_EMAIL_FROM`, `MSG91_EMAIL_TEMPLATE_SLUG`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_OTP_TEMPLATE_NAME`, `GOOGLE_CLIENT_ID`, `CHAT_AGENT_MODEL`, `INTENT_ROUTER_MODEL`, `R2_ACCOUNT_ID`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`, `TASK_ALERT_EMAIL`, `SITE_URL`, `FB_PAGE_ID`, `FB_GRAPH_VERSION`, `IG_USER_ID`, `GBP_ACCOUNT_ID`, `GBP_LOCATION_ID`, `GBP_CLIENT_ID` |
+| Secrets (14, stored in Secret Manager) | `MONGO_URL`, `JWT_SECRET`, `CRON_SECRET`, `GATEWAY_SERVICE_SECRET`, `MSG91_AUTH_KEY`, `WHATSAPP_TOKEN`, `WHATSAPP_VERIFY_TOKEN`, `META_APP_SECRET`, `GEMINI_API_KEY`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `FB_PAGE_TOKEN`, `GBP_CLIENT_SECRET`, `GBP_REFRESH_TOKEN` |
+| Plain values (14) | `DB_NAME`, `CHAT_AGENT_MODEL`, `GOOGLE_CLIENT_ID`, `MSG91_EMAIL_DOMAIN`, `MSG91_EMAIL_FROM`, `WHATSAPP_PHONE_NUMBER_ID`, `R2_ACCOUNT_ID`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`, `FB_PAGE_ID`, `IG_USER_ID`, `GBP_ACCOUNT_ID`, `GBP_LOCATION_ID`, `GBP_CLIENT_ID` |
+| Optional, not on Render today (code defaults apply) | `SEED_SECRET`, `ANTHROPIC_API_KEY` (without it the intent router falls back to a keyword check), `INTENT_ROUTER_MODEL`, `MSG91_EMAIL_TEMPLATE_SLUG`, `WHATSAPP_OTP_TEMPLATE_NAME`, `TASK_ALERT_EMAIL`, `SITE_URL`, `FB_GRAPH_VERSION` |
 | Leave unset in production | `CORS_EXTRA_ORIGINS` (local development only) |
 
-Copy exactly the set Render has; a name that is not set on Render is not needed. `GATEWAY_SERVICE_SECRET` must be
-**the same value** the Darshan gateway signs with.
+`GATEWAY_SERVICE_SECRET` must be **the same value** the Darshan gateway signs with.
+
+### Copying them without typing or pasting a value
+
+1. Render: the service, Environment, **Edit as .env**. Copy it into a local file `render.env` (git ignores it).
+2. Sign in to `gcloud` (Cloud Shell works) and run the helper. The first run is a **dry run**:
+
+   ```bash
+   python3 ops/cloud-run/render_env_to_cloud_run.py render.env           # shows what it would do
+   python3 ops/cloud-run/render_env_to_cloud_run.py render.env --apply   # creates the 14 secrets
+   ```
+
+   It prints no value, sends each secret to `gcloud` on stdin, writes the plain settings to `env.cloudrun.yaml`, and
+   prints the exact `gcloud run deploy` command for the next section. A key it does not know stops it (add the key to
+   the script's lists on purpose). Delete `render.env` and `env.cloudrun.yaml` afterwards.
+3. If the deploy says a secret is **permission denied**, give the Cloud Run service account access:
+
+   ```bash
+   gcloud projects add-iam-policy-binding sohum-509918 \
+     --member=serviceAccount:1007417351252-compute@developer.gserviceaccount.com --role=roles/secretmanager.secretAccessor
+   ```
+
+   (`1007417351252` is the project number in the other Cloud Run addresses; check it under the project's settings.)
 
 ## First deploy (on the owner's instruction)
 
-From the repository root, once the secrets exist (replace the secret names with yours):
+From the repository root, once the secrets exist, run the command the helper printed. It looks like this
+(the `--set-secrets` list has all 14 secrets):
 
 ```bash
 gcloud run deploy spjrsd-backend --source backend --project sohum-509918 --region asia-south1 \
   --min-instances 0 --max-instances 2 --cpu 1 --memory 1Gi --cpu-boost --timeout 300 --allow-unauthenticated \
-  --set-secrets MONGO_URL=spjrsd-mongo-url:latest,JWT_SECRET=spjrsd-jwt-secret:latest,CRON_SECRET=spjrsd-cron-secret:latest \
-  --set-env-vars DB_NAME=spjrsd
+  --env-vars-file env.cloudrun.yaml \
+  --set-secrets MONGO_URL=spjrsd-mongo-url:latest,JWT_SECRET=spjrsd-jwt-secret:latest,...
 ```
 
-Add every remaining name from the table the same way. Then create the Cloud Build trigger: repository
+Then create the Cloud Build trigger: repository
 `siddharthasharma9537/spjrsd`, branch `main`, included files `backend/**`, configuration `backend/cloudbuild.yaml`.
 
 ## Check before anything points at it
