@@ -109,7 +109,7 @@ Use yarn, not npm: the lockfile is `yarn.lock`. Run the tests with `CI=true yarn
 
 ## Deployment
 
-- **Backend** deploys to [Render](https://render.com); environment variables are managed there.
+- **Backend** deploys to [Render](https://render.com); environment variables are managed there. The Render service was suspended on 2026-10-24 (free usage limit); the backend is deployed on Google Cloud Run (see [`docs/deploy/CLOUD_RUN.md`](docs/deploy/CLOUD_RUN.md)) but **not yet cut over**: the website, Darshan gateway and scheduled jobs still point at Render until the steps in that guide are done.
 - **Frontend** deploys to [Vercel](https://vercel.com); `npm run build` runs `scripts/generate-sitemap.js` first to regenerate `sitemap.xml`, including News and Live Blog detail pages.
 - Three GitHub Actions workflows (`.github/workflows/panchangam-digest.yml`, `.github/workflows/aashirvachanam-blessings.yml`, `.github/workflows/live-blog-publish.yml`) hit backend cron endpoints on a schedule, authenticated via the `CRON_SECRET` repository secret.
 

@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger weekly panchangam digest
+        env:
+          BACKEND_URL: ${{ vars.BACKEND_URL || 'https://spjrsd-backend.onrender.com' }}
         run: |
-          curl -sf -X POST "https://spjrsd-backend.onrender.com/api/cron/panchangam-digest" \
+          curl -sf -X POST "${BACKEND_URL}/api/cron/panchangam-digest" \
             -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}"

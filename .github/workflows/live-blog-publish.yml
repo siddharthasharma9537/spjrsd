@@ -15,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Publish due live blog posts
+        env:
+          BACKEND_URL: ${{ vars.BACKEND_URL || 'https://spjrsd-backend.onrender.com' }}
         run: |
-          curl -sf --max-time 120 -X POST "https://spjrsd-backend.onrender.com/api/cron/live-blog-publish" \
+          curl -sf --max-time 120 -X POST "${BACKEND_URL}/api/cron/live-blog-publish" \
             -H "X-Cron-Secret: ${{ secrets.CRON_SECRET }}"
