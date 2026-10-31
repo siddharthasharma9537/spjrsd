@@ -21,9 +21,9 @@ Facts below were checked on 2026-10-27 unless marked. "Not verified" means exact
 
 1. [#50](https://github.com/siddharthasharma9537/spjrsd/pull/50): the registration password is never stored in plaintext (newsletter asked first; the first password entry kept only as a salted bcrypt hash for the confirmation; the confirmed plaintext goes straight to account creation); an unfinished registration clears after 30 minutes; `menu` / `help` / `options` leave it.
 2. [#51](https://github.com/siddharthasharma9537/spjrsd/pull/51) (on #50): each message handled separately (one failure no longer 500s the delivery), repeated `wa_message_id` skipped, and the webhook refuses when `META_APP_SECRET` is unset (logged; `WHATSAPP_ALLOW_UNSIGNED=true` for local development only).
-3. This pull request (on #51): non-text messages (audio, image, location, reaction, sticker, empty) get a short bilingual note and never reach the model; per-number limit of 30 messages per 10 minutes (one notice, then silence), in memory per instance.
+3. [#52](https://github.com/siddharthasharma9537/spjrsd/pull/52) (on #51): non-text messages (audio, image, location, reaction, sticker, empty) get a short bilingual note and never reach the model; per-number limit of 30 messages per 10 minutes (one notice, then silence), in memory per instance.
 
-Tests: `backend/tests/test_whatsapp_bot.py` (fake db), whole backend suite 139 passed on this branch (Python 3.14 venv, requirements minus jq and the linters). Not run: nothing against live WhatsApp, Meta, Cloud Run or MongoDB. Webhook change **B should wait until #50 to #52 are merged and deployed** (merging does not deploy: no Cloud Build trigger, D). Telugu in the new notes (`expired`, non-text, rate limit) is AI-written and awaits a native reader.
+Tests: `backend/tests/test_whatsapp_bot.py` (fake db), whole backend suite 139 passed on this branch (Python 3.14 venv, requirements minus jq and the linters). Not run: nothing against live WhatsApp, Meta, Cloud Run or MongoDB. Webhook change **B should wait until #50, #51 and #52 are merged and deployed** (merging does not deploy: no Cloud Build trigger, D). Telugu in the new notes (`expired`, non-text, rate limit) is AI-written and awaits a native reader.
 
 ### A, done (set by HQ with the owner's approval)
 
@@ -80,7 +80,7 @@ After the cut-over (a pull request, no live effect): point the `.github/workflow
 
 ## Open pull requests
 
-- #50, #51 and the third WhatsApp hardening pull request (stacked: #50 on `main`, #51 on #50, the third on #51), awaiting review. #49 (this ledger) is merged.
+- #50, #51 and #52 (WhatsApp hardening, stacked: #50 on `main`, #51 on #50, #52 on #51), awaiting review. #49 (this ledger) is merged.
 
 ## Live
 
