@@ -6,6 +6,7 @@ os.environ.setdefault("JWT_SECRET", "x" * 32)
 
 import asyncio
 import copy
+import itertools
 import sys
 import types
 from datetime import datetime, timedelta, timezone
@@ -86,11 +87,15 @@ def bot(monkeypatch):
     return types.SimpleNamespace(db=db, sent=sent, registered=registered)
 
 
-def text_message(body, wa_id="wamid.1", phone=PHONE):
+_ids = itertools.count(1)
+
+
+def text_message(body, wa_id=None, phone=PHONE):
+    wa_id = wa_id or f"wamid.auto{next(_ids)}"
     return {"from": phone, "id": wa_id, "type": "text", "text": {"body": body}}
 
 
-def say(bot, body, wa_id="wamid.1", phone=PHONE):
+def say(bot, body, wa_id=None, phone=PHONE):
     asyncio.run(whatsapp._handle_inbound_message(text_message(body, wa_id, phone), {}))
 
 
@@ -207,3 +212,111 @@ def test_cancel_still_works(bot):
     say(bot, "cancel")
     assert "reg_state" not in bot.db.session()
     assert "cancelled" in texts(bot)[-1]
+
+
+# ---- webhook: signature, duplicates, per-message errors --------------------
+
+import hashlib
+import hmac
+import json
+
+from fastapi import HTTPException
+
+
+class FakeRequest:
+    def __init__(self, payload, secret=None, signature=None):
+        self._raw = json.dumps(payload).encode()
+        sig = signature
+        if sig is None and secret:
+            sig = "sha256=" + hmac.new(secret.encode(), self._raw, hashlib.sha256).hexdigest()
+        self.headers = {"x-hub-signature-256": sig} if sig else {}
+
+    async def body(self):
+        return self._raw
+
+    async def json(self):
+        return json.loads(self._raw)
+
+
+def delivery(*messages):
+    return {"entry": [{"changes": [{"value": {"messages": list(messages)}}]}]}
+
+
+def post(request):
+    return asyncio.run(whatsapp.receive_whatsapp_webhook(request))
+
+
+def test_unset_secret_fails_closed(bot, monkeypatch, caplog):
+    monkeypatch.setattr(whatsapp, "META_APP_SECRET", None)
+    monkeypatch.delenv("WHATSAPP_ALLOW_UNSIGNED", raising=False)
+    with caplog.at_level("WARNING"):
+        with pytest.raises(HTTPException) as err:
+            post(FakeRequest(delivery(text_message("hi"))))
+    assert err.value.status_code == 403
+    assert "META_APP_SECRET is not set" in caplog.text
+    assert bot.sent == [] and bot.db.whatsapp_messages.rows == []
+
+
+def test_unset_secret_can_be_allowed_for_local_development(bot, monkeypatch):
+    monkeypatch.setattr(whatsapp, "META_APP_SECRET", None)
+    monkeypatch.setenv("WHATSAPP_ALLOW_UNSIGNED", "true")
+    assert post(FakeRequest(delivery(text_message("menu")))) == {"status": "ok"}
+    assert bot.sent
+
+
+def test_valid_signature_is_accepted(bot, monkeypatch):
+    monkeypatch.setattr(whatsapp, "META_APP_SECRET", "topsecret")
+    assert post(FakeRequest(delivery(text_message("menu")), secret="topsecret")) == {"status": "ok"}
+    assert bot.sent
+
+
+@pytest.mark.parametrize("signature", [None, "sha256=deadbeef", "md5=abc"])
+def test_missing_or_wrong_signature_is_refused(bot, monkeypatch, signature):
+    monkeypatch.setattr(whatsapp, "META_APP_SECRET", "topsecret")
+    with pytest.raises(HTTPException) as err:
+        post(FakeRequest(delivery(text_message("menu")), signature=signature))
+    assert err.value.status_code == 403
+    assert bot.sent == []
+
+
+def test_a_redelivered_message_is_not_answered_twice(bot, monkeypatch):
+    monkeypatch.setattr(whatsapp, "META_APP_SECRET", "topsecret")
+    request = lambda: FakeRequest(delivery(text_message("menu", wa_id="wamid.same")), secret="topsecret")
+    post(request())
+    first = len(bot.sent)
+    assert first > 0
+    post(request())
+    assert len(bot.sent) == first
+    assert len(bot.db.whatsapp_messages.rows) == 1
+
+
+def test_a_redelivered_registration_answer_does_not_advance_twice(bot):
+    say(bot, "11", wa_id="wamid.a")
+    say(bot, "Lakshmi Devi", wa_id="wamid.b")
+    say(bot, "Lakshmi Devi", wa_id="wamid.b")
+    # Had the retry been processed as the email answer, it would be rejected as
+    # an invalid email and the state would still be "email"; either way no
+    # second prompt is sent and the stored messages show it once.
+    assert [m["wa_message_id"] for m in bot.db.whatsapp_messages.rows] == ["wamid.a", "wamid.b"]
+    assert bot.db.session()["reg_state"] == "email"
+
+
+def test_one_failing_message_does_not_fail_the_delivery(bot, monkeypatch, caplog):
+    monkeypatch.setattr(whatsapp, "META_APP_SECRET", "topsecret")
+    real = whatsapp._handle_inbound_message
+
+    async def flaky(message, value):
+        if message["id"] == "wamid.bad":
+            raise RuntimeError("boom")
+        await real(message, value)
+
+    monkeypatch.setattr(whatsapp, "_handle_inbound_message", flaky)
+    request = FakeRequest(
+        delivery(text_message("menu", wa_id="wamid.bad"), text_message("menu", wa_id="wamid.good")),
+        secret="topsecret",
+    )
+    with caplog.at_level("ERROR"):
+        assert post(request) == {"status": "ok"}
+    assert "wamid.bad" in caplog.text
+    assert [m["wa_message_id"] for m in bot.db.whatsapp_messages.rows] == ["wamid.good"]
+    assert bot.sent

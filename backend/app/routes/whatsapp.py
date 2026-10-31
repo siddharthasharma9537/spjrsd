@@ -706,9 +706,16 @@ async def _send_language_prompt(to: str):
 def _verify_signature(raw_body: bytes, signature_header: str | None) -> bool:
     """Checks the X-Hub-Signature-256 header Meta signs each webhook delivery
     with, so forged requests can't make this endpoint send messages on the
-    temple's behalf. Skipped (with a warning) if META_APP_SECRET isn't set."""
+    temple's behalf. With no META_APP_SECRET it fails closed (and says so in the
+    log), because without the check anyone could post here and spend the
+    temple's WhatsApp and model calls; set WHATSAPP_ALLOW_UNSIGNED=true only for
+    local development."""
     if not META_APP_SECRET:
-        return True
+        if os.environ.get("WHATSAPP_ALLOW_UNSIGNED", "").lower() == "true":
+            logger.warning("META_APP_SECRET is not set: accepting an UNSIGNED WhatsApp webhook (WHATSAPP_ALLOW_UNSIGNED=true)")
+            return True
+        logger.warning("META_APP_SECRET is not set: refusing the WhatsApp webhook call (set it, or WHATSAPP_ALLOW_UNSIGNED=true for local development)")
+        return False
     if not signature_header or not signature_header.startswith("sha256="):
         return False
     expected = hmac.new(META_APP_SECRET.encode(), raw_body, hashlib.sha256).hexdigest()
@@ -740,7 +747,12 @@ async def receive_whatsapp_webhook(request: Request):
         for change in entry.get("changes", []):
             value = change.get("value", {})
             for message in value.get("messages", []):
-                await _handle_inbound_message(message, value)
+                # One bad message must not fail the whole delivery: a 500 makes
+                # Meta retry the batch, repeating replies to the others.
+                try:
+                    await _handle_inbound_message(message, value)
+                except Exception:
+                    logger.exception("WhatsApp message %s could not be handled", message.get("id"))
 
     # Meta only cares that this returns 200; delivery-status callbacks
     # ("sent"/"delivered"/"read") land in the same payload shape under
@@ -769,8 +781,15 @@ async def _handle_inbound_message(message: dict, value: dict):
     else:
         text_body = None
 
+    # Meta redelivers a message it did not get a 200 for; the same wa_message_id
+    # must not repeat its reply or advance a registration twice.
+    wa_message_id = message.get("id")
+    if wa_message_id and await db.whatsapp_messages.find_one({"wa_message_id": wa_message_id}, {"_id": 0, "id": 1}):
+        logger.info("Skipping already-seen WhatsApp message %s", wa_message_id)
+        return
+
     contacts = value.get("contacts", [])
-    profile_name = contacts[0]["profile"]["name"] if contacts else None
+    profile_name = contacts[0]["profile"]["name"] if contacts and contacts[0].get("profile") else None
 
     await db.whatsapp_messages.insert_one({
         "id": str(uuid.uuid4()),
@@ -778,7 +797,7 @@ async def _handle_inbound_message(message: dict, value: dict):
         "profile_name": profile_name,
         "type": message_type,
         "text": text_body,
-        "wa_message_id": message.get("id"),
+        "wa_message_id": wa_message_id,
         "created_at": datetime.now(timezone.utc).isoformat(),
     })
 
