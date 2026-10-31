@@ -4,6 +4,7 @@ import hmac
 import logging
 import os
 import re
+import time
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -28,6 +29,25 @@ META_APP_SECRET = os.environ.get("META_APP_SECRET")
 # discussed. 6 turns = 3 exchanges - enough for that, not so much it bloats
 # every classify()/ask() call.
 CHAT_HISTORY_TURNS = 6
+
+# Per-number throttle on the WhatsApp path (the web chat has its own per-IP
+# one). In memory and per instance, like that one: it resets on restart and
+# each Cloud Run instance counts separately, so it is a brake on a runaway
+# sender, not a hard quota. Over the limit a number gets one notice, then
+# silence until its window clears, so the bot can never talk itself into a loop.
+RATE_LIMIT_WINDOW_SECONDS = 600
+RATE_LIMIT_MAX_MESSAGES = 30
+_message_log: dict[str, list[float]] = {}
+_rate_notified: set[str] = set()
+
+NON_TEXT_NOTE = (
+    "🙏 క్షమించండి, నేను టెక్స్ట్ సందేశాలను మాత్రమే చదవగలను. దయచేసి టైప్ చేయండి, లేదా మెనూ కోసం 'menu' అని పంపండి.\n\n"
+    "Sorry, I can only read text messages. Please type your question, or send 'menu' to see the options."
+)
+RATE_LIMIT_NOTE = (
+    "🙏 చాలా సందేశాలు వచ్చాయి. కొంత సేపటి తర్వాత మళ్ళీ ప్రయత్నించండి, లేదా ఆలయ కార్యాలయాన్ని సంప్రదించండి.\n\n"
+    "You've sent a lot of messages. Please try again in a little while, or contact the temple office."
+)
 
 # All devotee-facing copy lives here, one language per menu item (chosen once
 # per phone number and remembered in db.whatsapp_sessions), so it can be
@@ -703,6 +723,22 @@ async def _send_language_prompt(to: str):
     })
 
 
+def _rate_limited(phone: str) -> bool:
+    """Records one message from `phone`; True if it is over the limit."""
+    now = time.monotonic()
+    recent = [t for t in _message_log.get(phone, []) if now - t < RATE_LIMIT_WINDOW_SECONDS]
+    recent.append(now)
+    _message_log[phone] = recent
+    if len(_message_log) > 5000:
+        for number in [n for n, ts in _message_log.items() if now - ts[-1] >= RATE_LIMIT_WINDOW_SECONDS]:
+            del _message_log[number]
+            _rate_notified.discard(number)
+    if len(recent) <= RATE_LIMIT_MAX_MESSAGES:
+        _rate_notified.discard(phone)
+        return False
+    return True
+
+
 def _verify_signature(raw_body: bytes, signature_header: str | None) -> bool:
     """Checks the X-Hub-Signature-256 header Meta signs each webhook delivery
     with, so forged requests can't make this endpoint send messages on the
@@ -804,8 +840,21 @@ async def _handle_inbound_message(message: dict, value: dict):
     if not from_number:
         return
 
+    if _rate_limited(from_number):
+        if from_number not in _rate_notified:
+            _rate_notified.add(from_number)
+            await _send_whatsapp_text(from_number, RATE_LIMIT_NOTE)
+        return
+
     stripped = (text_body or "").strip()
     lowered = stripped.lower()
+
+    # A voice note, image, location, reaction or sticker has no text. Reaching
+    # the router as "" would cost a database snapshot and a model call for
+    # nothing, so it gets a short note instead.
+    if not stripped:
+        await _send_whatsapp_text(from_number, NON_TEXT_NOTE)
+        return
 
     session = await db.whatsapp_sessions.find_one({"phone": from_number}, {"_id": 0})
     language = session.get("language") if session else None
