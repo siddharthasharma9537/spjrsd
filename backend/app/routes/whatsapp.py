@@ -5,8 +5,9 @@ import logging
 import os
 import re
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
+import bcrypt
 import requests
 from fastapi import APIRouter, HTTPException, Query, Request
 
@@ -382,10 +383,16 @@ MENU_KEYWORDS = {
 # form does, then hands off to main.py's shared _register_devotee (same
 # email-verification-link flow as the website - no separate OTP step here).
 # State lives in db.whatsapp_sessions alongside "language": reg_state is one
-# of "name"/"email"/"gotram"/"password"/"confirm_password"/"newsletter" while
+# of "name"/"email"/"gotram"/"newsletter"/"password"/"confirm_password" while
 # a registration is in progress, and reg_data accumulates the answers. Both
 # are unset again once finished (or cancelled), so a plain "11" always starts
-# a fresh attempt.
+# a fresh attempt. The password is the last thing asked: it is never stored
+# in plaintext (see _handle_registration_reply), and an unfinished registration
+# is dropped after REG_TIMEOUT.
+REG_TIMEOUT = timedelta(minutes=30)
+# Words that leave a registration for the menu. Greetings ("hi", "hello") are
+# deliberately not here: they could be someone's name.
+REG_ESCAPE_WORDS = {"menu", "help", "options", "మెనూ", "సహాయం", "ఎంపికలు"}
 REG_PROMPTS = {
     "en": {
         "already_registered": "You're already registered! Sign in at {site}/login with your mobile number and password.\n\nForgot your password? {site}/forgot-password",
@@ -401,6 +408,7 @@ REG_PROMPTS = {
         "ask_newsletter": "Would you like to receive temple updates by email (festival announcements, news)? Reply 'yes' or 'no'.",
         "invalid_yes_no": "Please reply 'yes' or 'no'.",
         "cancelled": "Registration cancelled. Type 'register' any time to start again.",
+        "expired": "Your registration was left unfinished for a while, so it was cleared. Type 'register' to start again.",
         "done": "🎉 Registration complete!\n\nWe've sent a verification link to {email} - please open it to confirm your email (needed before you can book sevas or accommodation).\n\nSign in any time at {site}/login with your mobile number ({mobile}) and the password you just set.",
     },
     "te": {
@@ -417,6 +425,7 @@ REG_PROMPTS = {
         "ask_newsletter": "ఆలయ నవీకరణలు (పండుగ ప్రకటనలు, వార్తలు) ఇమెయిల్ ద్వారా పొందాలనుకుంటున్నారా? 'yes' లేదా 'no' అని పంపండి.",
         "invalid_yes_no": "దయచేసి 'yes' లేదా 'no' అని పంపండి.",
         "cancelled": "నమోదు రద్దు చేయబడింది. మళ్ళీ మొదలుపెట్టడానికి ఎప్పుడైనా 'register' అని పంపండి.",
+        "expired": "మీ నమోదు చాలా సేపు పూర్తికాకపోవడంతో తొలగించబడింది. మళ్ళీ మొదలుపెట్టడానికి 'register' అని పంపండి.",
         "done": "🎉 నమోదు పూర్తయింది!\n\nమీ ఇమెయిల్ ({email})కు ధృవీకరణ లింక్ పంపాము - సేవలు లేదా వసతి బుక్ చేసుకోవడానికి ముందు దాన్ని తెరిచి ధృవీకరించండి.\n\nమీ మొబైల్ నంబర్ ({mobile}) మరియు మీరు సెట్ చేసిన పాస్‌వర్డ్‌తో {site}/login లో ఎప్పుడైనా సైన్ ఇన్ చేయండి.",
     },
 }
@@ -433,19 +442,47 @@ def _normalize_mobile(from_number: str) -> str:
     return digits[-10:] if len(digits) > 10 else digits
 
 
-def _hash_password(pw: str) -> str:
-    # Deliberately duplicated from main.py's hash_password (also plain sha256
-    # hexdigest) rather than imported - main.py imports this router at module
-    # load time, so importing back from here would be circular. Only used to
-    # compare the password/confirm-password pair here without persisting
-    # either in plaintext in db.whatsapp_sessions between messages; the final
-    # plaintext (once confirmed equal) is handed to main.py's _register_devotee,
-    # which does the real, byte-for-byte-identical hash of the stored record.
-    return hashlib.sha256(pw.encode()).hexdigest()
+def _hash_pending_password(pw: str) -> str:
+    # Only what is needed to compare the password with its confirmation, and
+    # only as a salted bcrypt hash (same scheme main.py stores accounts with),
+    # never the plaintext. The plaintext of the confirmed entry is used once, in
+    # memory, in the same message that creates the account.
+    return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
+
+
+def _matches_pending_password(pw: str, hashed: str) -> bool:
+    try:
+        return bcrypt.checkpw(pw.encode(), hashed.encode())
+    except ValueError:
+        return False
 
 
 def _is_valid_email(value: str) -> bool:
     return bool(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", value))
+
+
+async def _set_registration(to: str, state: str, reg_data: dict):
+    await db.whatsapp_sessions.update_one(
+        {"phone": to},
+        {"$set": {"reg_state": state, "reg_data": reg_data, "reg_updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+
+
+async def _clear_registration(to: str):
+    await db.whatsapp_sessions.update_one(
+        {"phone": to}, {"$unset": {"reg_state": "", "reg_data": "", "reg_updated_at": ""}}
+    )
+
+
+def _registration_expired(session: dict) -> bool:
+    """True if an in-progress registration was last touched more than
+    REG_TIMEOUT ago. A registration with no timestamp (started before this
+    field existed) counts as expired."""
+    try:
+        updated = datetime.fromisoformat(session.get("reg_updated_at") or "")
+    except ValueError:
+        return True
+    return datetime.now(timezone.utc) - updated > REG_TIMEOUT
 
 
 async def _start_registration(to: str, language: str):
@@ -455,10 +492,7 @@ async def _start_registration(to: str, language: str):
     if existing:
         await _send_whatsapp_text(to, prompts["already_registered"].format(site=SITE))
         return
-    await db.whatsapp_sessions.update_one(
-        {"phone": to},
-        {"$set": {"reg_state": "name", "reg_data": {}}},
-    )
+    await _set_registration(to, "name", {})
     await _send_whatsapp_text(to, prompts["ask_name"])
 
 
@@ -467,7 +501,7 @@ async def _handle_registration_reply(to: str, language: str, state: str, reg_dat
     lowered = stripped.lower()
 
     if lowered in ("cancel", "రద్దు"):
-        await db.whatsapp_sessions.update_one({"phone": to}, {"$unset": {"reg_state": "", "reg_data": ""}})
+        await _clear_registration(to)
         await _send_whatsapp_text(to, prompts["cancelled"])
         return
 
@@ -478,7 +512,7 @@ async def _handle_registration_reply(to: str, language: str, state: str, reg_dat
             await _send_whatsapp_text(to, prompts["ask_name"])
             return
         reg_data["name"] = stripped
-        await db.whatsapp_sessions.update_one({"phone": to}, {"$set": {"reg_state": "email", "reg_data": reg_data}})
+        await _set_registration(to, "email", reg_data)
         await _send_whatsapp_text(to, prompts["ask_email"])
 
     elif state == "email":
@@ -489,35 +523,12 @@ async def _handle_registration_reply(to: str, language: str, state: str, reg_dat
             await _send_whatsapp_text(to, prompts["email_taken"].format(site=SITE))
             return
         reg_data["email"] = stripped
-        await db.whatsapp_sessions.update_one({"phone": to}, {"$set": {"reg_state": "gotram", "reg_data": reg_data}})
+        await _set_registration(to, "gotram", reg_data)
         await _send_whatsapp_text(to, prompts["ask_gotram"])
 
     elif state == "gotram":
         reg_data["gotram"] = "" if skip else stripped
-        await db.whatsapp_sessions.update_one({"phone": to}, {"$set": {"reg_state": "password", "reg_data": reg_data}})
-        await _send_whatsapp_text(to, prompts["ask_password"])
-
-    elif state == "password":
-        if len(stripped) < 4:
-            await _send_whatsapp_text(to, prompts["password_too_short"])
-            return
-        # Stores only the hash of this first entry, never the plaintext, so
-        # a devotee's password never sits at rest in db.whatsapp_sessions -
-        # confirm_password below re-hashes its own input and compares hashes.
-        reg_data["password_hash_pending"] = _hash_password(stripped)
-        await db.whatsapp_sessions.update_one({"phone": to}, {"$set": {"reg_state": "confirm_password", "reg_data": reg_data}})
-        await _send_whatsapp_text(to, prompts["ask_confirm_password"])
-
-    elif state == "confirm_password":
-        if _hash_password(stripped) != reg_data.get("password_hash_pending"):
-            reg_data.pop("password_hash_pending", None)
-            await db.whatsapp_sessions.update_one({"phone": to}, {"$set": {"reg_state": "password", "reg_data": reg_data}})
-            await _send_whatsapp_text(to, prompts["password_mismatch"])
-            return
-        # The confirmed plaintext (not the hash) is what gets handed to
-        # main.py's _register_devotee below, which does its own hashing.
-        reg_data["password_plain"] = stripped
-        await db.whatsapp_sessions.update_one({"phone": to}, {"$set": {"reg_state": "newsletter", "reg_data": reg_data}})
+        await _set_registration(to, "newsletter", reg_data)
         await _send_whatsapp_text(to, prompts["ask_newsletter"])
 
     elif state == "newsletter":
@@ -526,7 +537,24 @@ async def _handle_registration_reply(to: str, language: str, state: str, reg_dat
         if lowered not in yes_words and lowered not in no_words:
             await _send_whatsapp_text(to, prompts["invalid_yes_no"])
             return
-        subscribe = lowered in yes_words
+        reg_data["subscribe_newsletter"] = lowered in yes_words
+        await _set_registration(to, "password", reg_data)
+        await _send_whatsapp_text(to, prompts["ask_password"])
+
+    elif state == "password":
+        if len(stripped) < 4:
+            await _send_whatsapp_text(to, prompts["password_too_short"])
+            return
+        reg_data["password_hash_pending"] = _hash_pending_password(stripped)
+        await _set_registration(to, "confirm_password", reg_data)
+        await _send_whatsapp_text(to, prompts["ask_confirm_password"])
+
+    elif state == "confirm_password":
+        if not _matches_pending_password(stripped, reg_data.get("password_hash_pending") or ""):
+            reg_data.pop("password_hash_pending", None)
+            await _set_registration(to, "password", reg_data)
+            await _send_whatsapp_text(to, prompts["password_mismatch"])
+            return
         mobile = _normalize_mobile(to)
 
         # Lazy import - main.py imports this router at module load time, so
@@ -534,20 +562,22 @@ async def _handle_registration_reply(to: str, language: str, state: str, reg_dat
         # here since this only runs after main.py has fully loaded.
         from app.main import DevoteeRegister, _register_devotee
 
+        # The confirmed plaintext goes straight to _register_devotee, which
+        # hashes it for the account; it is never written to db.whatsapp_sessions.
         try:
             devotee = await _register_devotee(DevoteeRegister(
                 name=reg_data.get("name", ""), email=reg_data["email"], mobile=mobile,
-                gotram=reg_data.get("gotram", ""), password=reg_data["password_plain"],
-                subscribe_newsletter=subscribe,
+                gotram=reg_data.get("gotram", ""), password=stripped,
+                subscribe_newsletter=bool(reg_data.get("subscribe_newsletter")),
             ))
         except ValueError:
             # Email got taken by someone else between the email step above and
             # now (rare race) - same message as the earlier, more common check.
-            await db.whatsapp_sessions.update_one({"phone": to}, {"$unset": {"reg_state": "", "reg_data": ""}})
+            await _clear_registration(to)
             await _send_whatsapp_text(to, prompts["email_taken"].format(site=SITE))
             return
 
-        await db.whatsapp_sessions.update_one({"phone": to}, {"$unset": {"reg_state": "", "reg_data": ""}})
+        await _clear_registration(to)
         await _send_whatsapp_text(to, prompts["done"].format(site=SITE, mobile=devotee["mobile"], email=devotee["email"]))
 
 
@@ -766,6 +796,14 @@ async def _handle_inbound_message(message: dict, value: dict):
     # email, ...) rather than a command - so this is handled before the
     # language-switch shortcuts below, which would otherwise misfire on a
     # devotee whose actual name happens to be "English" or similar.
+    if reg_state and _registration_expired(session):
+        await _clear_registration(from_number)
+        await _send_whatsapp_text(from_number, REG_PROMPTS[language or "en"]["expired"])
+        reg_state = None
+    elif reg_state and lowered in REG_ESCAPE_WORDS:
+        await _clear_registration(from_number)
+        await _send_menu(from_number, language or "en")
+        return
     if reg_state:
         await _handle_registration_reply(from_number, language or "en", reg_state, session.get("reg_data") or {}, stripped)
         return
