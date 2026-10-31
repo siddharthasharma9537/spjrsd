@@ -84,6 +84,8 @@ def bot(monkeypatch):
         _register_devotee=fake_register,
     ))
     db.whatsapp_sessions.rows.append({"phone": PHONE, "language": "en"})
+    whatsapp._message_log.clear()
+    whatsapp._rate_notified.clear()
     return types.SimpleNamespace(db=db, sent=sent, registered=registered)
 
 
@@ -320,3 +322,97 @@ def test_one_failing_message_does_not_fail_the_delivery(bot, monkeypatch, caplog
     assert "wamid.bad" in caplog.text
     assert [m["wa_message_id"] for m in bot.db.whatsapp_messages.rows] == ["wamid.good"]
     assert bot.sent
+
+
+# ---- non-text messages ------------------------------------------------------
+
+@pytest.fixture
+def no_model(monkeypatch):
+    calls = []
+
+    async def classify(message, history):
+        calls.append(("classify", message))
+        return "chat"
+
+    async def ask(message, history):
+        calls.append(("ask", message))
+        return "answer"
+
+    monkeypatch.setattr(whatsapp.intent_router, "classify", classify)
+    monkeypatch.setattr(whatsapp.chat_agent, "ask", ask)
+    return calls
+
+
+@pytest.mark.parametrize("message", [
+    {"type": "audio", "audio": {"id": "a1"}},
+    {"type": "image", "image": {"id": "i1"}},
+    {"type": "location", "location": {"latitude": 17.2, "longitude": 79.1}},
+    {"type": "reaction", "reaction": {"emoji": "🙏"}},
+    {"type": "sticker", "sticker": {"id": "s1"}},
+    {"type": "interactive", "interactive": {"type": "nfm_reply"}},
+    {"type": "text", "text": {"body": "   "}},
+])
+def test_non_text_gets_a_note_and_never_reaches_the_model(bot, no_model, message):
+    message = {"from": PHONE, "id": "wamid.nt", **message}
+    asyncio.run(whatsapp._handle_inbound_message(message, {}))
+    assert no_model == []
+    assert texts(bot) == [whatsapp.NON_TEXT_NOTE]
+    assert "menu" in whatsapp.NON_TEXT_NOTE and "మెనూ" in whatsapp.NON_TEXT_NOTE
+
+
+def test_non_text_does_not_disturb_a_registration(bot, no_model):
+    say(bot, "11")
+    say(bot, "Lakshmi Devi")
+    message = {"from": PHONE, "id": "wamid.voice", "type": "audio", "audio": {"id": "a1"}}
+    asyncio.run(whatsapp._handle_inbound_message(message, {}))
+    session = bot.db.session()
+    assert session["reg_state"] == "email"
+    assert session["reg_data"] == {"name": "Lakshmi Devi"}
+
+
+def test_normal_text_still_reaches_the_model(bot, no_model):
+    say(bot, "when is the next festival")
+    assert [kind for kind, _ in no_model] == ["classify", "ask"]
+
+
+# ---- rate limit --------------------------------------------------------------
+
+@pytest.fixture
+def clock(monkeypatch):
+    now = [1000.0]
+    monkeypatch.setattr(whatsapp.time, "monotonic", lambda: now[0])
+    return now
+
+
+def test_a_number_over_the_limit_gets_one_notice_then_silence(bot, no_model, clock):
+    for _ in range(whatsapp.RATE_LIMIT_MAX_MESSAGES):
+        say(bot, "when is the next festival")
+    answered = len(no_model)
+    assert answered == 2 * whatsapp.RATE_LIMIT_MAX_MESSAGES
+    bot.sent.clear()
+
+    say(bot, "one more")
+    assert texts(bot) == [whatsapp.RATE_LIMIT_NOTE]
+    say(bot, "and another")
+    say(bot, "and another")
+    assert texts(bot) == [whatsapp.RATE_LIMIT_NOTE]
+    assert len(no_model) == answered
+
+
+def test_the_limit_clears_after_the_window(bot, no_model, clock):
+    for _ in range(whatsapp.RATE_LIMIT_MAX_MESSAGES + 1):
+        say(bot, "when is the next festival")
+    bot.sent.clear()
+    clock[0] += whatsapp.RATE_LIMIT_WINDOW_SECONDS + 1
+    say(bot, "when is the next festival")
+    assert texts(bot) == ["answer"]
+
+
+def test_the_limit_is_per_number(bot, no_model, clock):
+    other = "919000000001"
+    bot.db.whatsapp_sessions.rows.append({"phone": other, "language": "en"})
+    for _ in range(whatsapp.RATE_LIMIT_MAX_MESSAGES + 1):
+        say(bot, "when is the next festival")
+    bot.sent.clear()
+    say(bot, "when is the next festival", phone=other)
+    assert texts(bot) == ["answer"]

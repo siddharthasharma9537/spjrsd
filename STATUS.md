@@ -1,4 +1,4 @@
-# Temple sites status            updated 2026-10-27 by Desk · Temple sites
+# Temple sites status            updated 2026-10-31 by Desk · Temple sites
 
 Covers `spjrsd` (this repository, folder `spjrsd-src`; temple site `cheruvugattu.online`, Sri Parvathi Jadala Ramalingeshwara Swamy Devasthanam, Cheruvugattu), one temple among many that SoHum will serve. Any future temple website SoHum builds and runs gets its own section here. `~/Workspace/spjrsd` is not a git repository; it holds posters, packages and outputs. How this ledger works: `sohum-contracts` docs/OPERATING_MODEL.md.
 
@@ -16,6 +16,14 @@ Facts below were checked on 2026-10-27 unless marked. "Not verified" means exact
 | B | Meta WhatsApp webhook callback URL | Pending, the owner's in the Meta dashboard |
 | C | GitHub Actions variable `BACKEND_URL` | **Done 2026-10-27 05:27 UTC** by HQ; workflows not run by hand |
 | D | Cloud Build trigger for `backend/**` | Pending, not approved |
+
+### WhatsApp bot hardening (from the read-only review of 2026-10-31), three stacked pull requests, none merged or deployed
+
+1. [#50](https://github.com/siddharthasharma9537/spjrsd/pull/50): the registration password is never stored in plaintext (newsletter asked first; the first password entry kept only as a salted bcrypt hash for the confirmation; the confirmed plaintext goes straight to account creation); an unfinished registration clears after 30 minutes; `menu` / `help` / `options` leave it.
+2. [#51](https://github.com/siddharthasharma9537/spjrsd/pull/51) (on #50): each message handled separately (one failure no longer 500s the delivery), repeated `wa_message_id` skipped, and the webhook refuses when `META_APP_SECRET` is unset (logged; `WHATSAPP_ALLOW_UNSIGNED=true` for local development only).
+3. This pull request (on #51): non-text messages (audio, image, location, reaction, sticker, empty) get a short bilingual note and never reach the model; per-number limit of 30 messages per 10 minutes (one notice, then silence), in memory per instance.
+
+Tests: `backend/tests/test_whatsapp_bot.py` (fake db), whole backend suite 139 passed on this branch (Python 3.14 venv, requirements minus jq and the linters). Not run: nothing against live WhatsApp, Meta, Cloud Run or MongoDB. Webhook change **B should wait until #50 to #52 are merged and deployed** (merging does not deploy: no Cloud Build trigger, D). Telugu in the new notes (`expired`, non-text, rate limit) is AI-written and awaits a native reader.
 
 ### A, done (set by HQ with the owner's approval)
 
@@ -57,21 +65,22 @@ After the cut-over (a pull request, no live effect): point the `.github/workflow
 ## Waiting on the owner
 
 1. **B**: the WhatsApp webhook, including reading the current callback URL in Meta. Approve **D**.
-2. Run the MongoDB panchangam upload (Next 3).
-3. **Jio DLT steps 2 to 5** and **Google Business Profile API approval** (Blocked): the owner's accounts.
-4. **`ANTHROPIC_API_KEY`** for the website chat agent (`intent_router.py`; without it intent classification falls back to menu replies). Decide: keep the chat agent (set the key) or retire it.
-5. **Original panchangam source file** (for the 11 uncertain Vinayaka Chaturthi labels): probably moot, since data is engine-only since 2026-10-01 and the upload with `--overwrite` replaces those labels. Say so if the file still exists; otherwise it closes with the upload.
-6. **Seed endpoints**: closed. `POST /api/seed` needs `X-Seed-Secret` and refuses everyone while `SEED_SECRET` is unset (it is, on Cloud Run); `POST /api/seed/stotrams` needs the `stotrams:create` permission. Nothing to do unless a fresh database is to be seeded.
-7. **Cleanup proposals** (nothing done; each is the owner's call):
+2. **WhatsApp bot, owner decisions** (not decided by any session): (a) password entry in chat: keep as now (hashed, expiring), or remove it and send a website sign-up link instead (recommended: nothing sensitive typed into a chat, and the minimum of 4 characters stays on the website's rules); (b) retention of `whatsapp_messages` and `whatsapp_sessions.chat_history` (currently kept forever; no deletion exists); (c) whether the bot tells devotees that free-text questions go to a model (Gemini) and are kept. Options and recommendation are in the report to HQ.
+3. Run the MongoDB panchangam upload (Next 3).
+4. **Jio DLT steps 2 to 5** and **Google Business Profile API approval** (Blocked): the owner's accounts.
+5. **`ANTHROPIC_API_KEY`** for the website chat agent (`intent_router.py`; without it intent classification falls back to menu replies). Decide: keep the chat agent (set the key) or retire it.
+6. **Original panchangam source file** (for the 11 uncertain Vinayaka Chaturthi labels): probably moot, since data is engine-only since 2026-10-01 and the upload with `--overwrite` replaces those labels. Say so if the file still exists; otherwise it closes with the upload.
+7. **Seed endpoints**: closed. `POST /api/seed` needs `X-Seed-Secret` and refuses everyone while `SEED_SECRET` is unset (it is, on Cloud Run); `POST /api/seed/stotrams` needs the `stotrams:create` permission. Nothing to do unless a fresh database is to be seeded.
+8. **Cleanup proposals** (nothing done; each is the owner's call):
    - Merged-by-squash remote branches, safe to delete: `claude/google-review-replies`, `fix/review-reply-templates`, `fix/review-sync-paging`, `fix/review-sync-speed`, `fix/devotee-signin-and-ticket-lookup`, `samagri-api`, `claude/new-session-etjmny`, `feat/live-blog-pagination`, `claude/temple-digital-presence-naming-rlyugg` (merged PRs #20 to #24, #31, #47, #48).
    - `feat/panchangam-day-shape`: PR #19 closed unmerged, superseded by #33 and the engine-only decision; also exists locally.
    - `claude/website-mobile-app-conversion-4w4ybb` (5 Sept, 12 commits, no pull request, 224 files different from `main`): an Android/APK conversion far behind `main`. Keep as a reference or delete; revive only as a fresh step if an app is wanted.
    - Local `main` is 12 commits behind `origin/main`; no local changes, so a fast-forward is safe (not done).
-8. The README still says the frontend is on Vercel; it is on Render behind Cloudflare. One-line docs fix for the next step that touches the README.
+9. The README still says the frontend is on Vercel; it is on Render behind Cloudflare. One-line docs fix for the next step that touches the README.
 
 ## Open pull requests
 
-- #49: this ledger (`status/ledger`), awaiting review. No other open pull request in `spjrsd`.
+- #50, #51 and the third WhatsApp hardening pull request (stacked: #50 on `main`, #51 on #50, the third on #51), awaiting review. #49 (this ledger) is merged.
 
 ## Live
 
